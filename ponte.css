@@ -89,7 +89,9 @@ body {
 
 #logo-footer img {
 
-    height: 55px;
+    height: 120px;
 
     width: auto;
+
+    opacity: 1;
 }
