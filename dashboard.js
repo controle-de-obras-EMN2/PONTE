@@ -138,11 +138,11 @@ function criarGraficoBarra(idCanvas, titulo, dados) {
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    const obras = obterFeaturesPorNome("OBRAS");
-const eee = obterFeaturesPorNome("EEE");
-const sinistros = obterFeaturesPorNome("Sinistro");
-const viradaMancha = obterFeaturesPorNome("VIRADA");
-const frentes = obterFeaturesPorNome("Frentes");
+const obras = obterFeatures("json_OBRAS_EMN2_4");
+const eee = obterFeatures("json_EEE_6");
+const sinistros = obterFeatures("json_SinistroEMN2_7");
+const viradaMancha = obterFeatures("json_VIRADADEMANCHA_2");
+const frentes = obterFeatures("json_EMN2Frentes_em_Andamento_9");
 
     document.getElementById("totalObras").innerText = obras.length.toLocaleString("pt-BR");
     document.getElementById("totalFrentes").innerText = frentes.length.toLocaleString("pt-BR");
