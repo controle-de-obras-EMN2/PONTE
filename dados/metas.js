@@ -79,6 +79,37 @@ const metas = {
   }
 ],
 
+  proximoMes: {
+  referencia: "Julho/2026",
+
+  economias: {
+    fatorU: {
+      previsto: 0,
+      realizado: 0
+    },
+    contrato: {
+      previsto: 0,
+      realizado: 0
+    }
+  },
+
+  imobilizado: {
+    previsto: 0,
+    realizado: 0
+  },
+
+  producao: {
+    integra: {
+      previsto: 0,
+      realizado: 0
+    },
+    andamento: {
+      previsto: 0,
+      realizado: 0
+    }
+  }
+},
+
   extensaoContratos: [
   {
     contrato: "00268/24",
