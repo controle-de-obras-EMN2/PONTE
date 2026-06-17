@@ -596,134 +596,56 @@ function tabelaDeAtributos(features, campos) {
     return html;
 }
 
-function abrirDetalhesObras() {
-    const obrasTodas = obterFeatures("json_OBRAS_EMN2_4");
-    const obras = filtrarPorContrato(obrasTodas, "NUM_CONTRA");
-
-    abrirModal(
-        "Detalhes das Obras",
-        tabelaDeAtributos(obras, ["NUM_CONTRA", "FRENTE", "STATUS_C", "METODO", "DIAMETR_MM", "MUNICIPIO"])
-    );
+function cardMetaHtml(titulo, previsto, realizado, unidade = "") {
+    return `
+        <div class="card">
+            <h3>${titulo}</h3>
+            <strong>${unidade === "R$" ? formatarMoeda(realizado) : formatarNumero(realizado) + unidade}</strong>
+            <span>${percentual(realizado, previsto).toFixed(2)}%</span>
+            <p>Previsto: ${unidade === "R$" ? formatarMoeda(previsto) : formatarNumero(previsto) + unidade}</p>
+        </div>
+    `;
 }
-
-function abrirDetalhesFrentes() {
-    const frentesTodas = obterFeatures("json_EMN2Frentes_em_Andamento_9");
-
-    const frentes = filtrarPorContratoMultiplosCampos(frentesTodas, [
-        "CONTRATO",
-        "Contrato",
-        "contrato",
-        "NUM_CONTRA",
-        "NUM_CONTRATO"
-    ]);
-
-    abrirModal(
-        "Frentes em Campo",
-        tabelaDeAtributos(frentes, ["CONTRATO", "FRENTE", "STATUS", "EQUIPE", "ENGENHEIRO", "FISCAL", "MUNICIPIO"])
-    );
-}
-
-function abrirDetalhesSinistros() {
-    const sinistrosTodas = obterFeatures("json_SinistroEMN2_7");
-    const sinistros = filtrarPorContrato(sinistrosTodas, "Contrato");
-
-    abrirModal(
-        "Sinistros",
-        tabelaDeAtributos(sinistros, ["Contrato", "Ficha", "Frente", "Sinistro", "Critério"])
-    );
-}
-
-function abrirDetalhesEEE() {
-    const eeeTodas = obterFeatures("json_EEE_6");
-
-    const eee = filtrarPorContratoMultiplosCampos(eeeTodas, [
-        "CONTRATO",
-        "Contrato",
-        "contrato",
-        "NUM_CONTRA",
-        "NUM_CONTRATO"
-    ]);
-
-    abrirModal(
-        "Elevatórias - EEE",
-        tabelaDeAtributos(eee, ["CONTRATO", "EEE", "STATUS", "LOCAL", "MUNICIPIO", "Q", "OPERAÇÃO"])
-    );
-}
-
-function abrirDetalhesLancamentos() {
-    const lancamentosTodas = obterCamadaPorParteDoNome("LAN");
-
-    const lancamentos = filtrarPorContratoMultiplosCampos(lancamentosTodas, [
-        "CONTRATO",
-        "Contrato",
-        "contrato",
-        "NUM_CONTRA",
-        "NUM_CONTRATO"
-    ]);
-
-    abrirModal(
-        "Pontos de Lançamento",
-        tabelaDeAtributos(lancamentos, ["CONTRATO", "Contrato", "STATUS", "Status", "PACOTE", "Pacote", "LOCAL", "MUNICIPIO"])
-    );
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    carregarMetasGerais();
-    atualizarDashboard();
-    criarGraficosFixos();
-});
-
-document.addEventListener("keydown", function(event) {
-    if (event.key === "Escape") {
-        fecharModal();
-    }
-});
 
 function abrirDetalhesMetas() {
-    const html = `
+    const atual = `
+        <h3 style="color:#0b2f5b;margin-top:0;">Metas consolidadas atuais</h3>
+
         <div class="cards cards-5">
 
-            <div class="card">
-                <h3>Economias Fator U</h3>
-                <strong>${formatarNumero(metas.economias.fatorU.realizado)}</strong>
-                <span>${percentual(metas.economias.fatorU.realizado, metas.economias.fatorU.previsto).toFixed(2)}%</span>
-                <p>Previsto: ${formatarNumero(metas.economias.fatorU.previsto)}</p>
-            </div>
+            ${cardMetaHtml("Economias Fator U", metas.economias.fatorU.previsto, metas.economias.fatorU.realizado)}
 
-            <div class="card">
-                <h3>Economias Contrato</h3>
-                <strong>${formatarNumero(metas.economias.contrato.realizado)}</strong>
-                <span>${percentual(metas.economias.contrato.realizado, metas.economias.contrato.previsto).toFixed(2)}%</span>
-                <p>Previsto: ${formatarNumero(metas.economias.contrato.previsto)}</p>
-            </div>
+            ${cardMetaHtml("Economias Contrato", metas.economias.contrato.previsto, metas.economias.contrato.realizado)}
 
-            <div class="card">
-                <h3>Imobilizado</h3>
-                <strong>${formatarMoeda(metas.imobilizado.realizado)}</strong>
-                <span>${percentual(metas.imobilizado.realizado, metas.imobilizado.previsto).toFixed(2)}%</span>
-                <p>Previsto: ${formatarMoeda(metas.imobilizado.previsto)}</p>
-            </div>
+            ${cardMetaHtml("Imobilizado", metas.imobilizado.previsto, metas.imobilizado.realizado, "R$")}
 
-            <div class="card">
-                <h3>Produção Integra</h3>
-                <strong>${formatarNumero(metas.producao.integra.realizado)} m</strong>
-                <span>${percentual(metas.producao.integra.realizado, metas.producao.integra.previsto).toFixed(2)}%</span>
-                <p>Previsto: ${formatarNumero(metas.producao.integra.previsto)} m</p>
-            </div>
+            ${cardMetaHtml("Produção Integra", metas.producao.integra.previsto, metas.producao.integra.realizado, " m")}
 
-            <div class="card">
-                <h3>Produção Andamento</h3>
-                <strong>${formatarNumero(metas.producao.andamento.realizado)} m</strong>
-                <span>${percentual(metas.producao.andamento.realizado, metas.producao.andamento.previsto).toFixed(2)}%</span>
-                <p>Previsto: ${formatarNumero(metas.producao.andamento.previsto)} m</p>
-            </div>
+            ${cardMetaHtml("Produção Andamento", metas.producao.andamento.previsto, metas.producao.andamento.realizado, " m")}
 
         </div>
-
-        <h3 style="margin-top:25px;color:#0b2f5b;">Previsão para o próximo mês</h3>
-
-        <p>Este bloco fica pronto para receber os dados de previsão mensal no arquivo <strong>metas.js</strong>.</p>
     `;
 
-    abrirModal("Metas Gerais", html);
+    const prox = metas.proximoMes;
+
+    const proximoMesHtml = `
+        <h3 style="color:#0b2f5b;margin-top:28px;">Previsão para o próximo mês - ${prox.referencia}</h3>
+
+        <div class="cards cards-5">
+
+            ${cardMetaHtml("Economias Fator U", prox.economias.fatorU.previsto, prox.economias.fatorU.realizado)}
+
+            ${cardMetaHtml("Economias Contrato", prox.economias.contrato.previsto, prox.economias.contrato.realizado)}
+
+            ${cardMetaHtml("Imobilizado", prox.imobilizado.previsto, prox.imobilizado.realizado, "R$")}
+
+            ${cardMetaHtml("Produção Integra", prox.producao.integra.previsto, prox.producao.integra.realizado, " m")}
+
+            ${cardMetaHtml("Produção Andamento", prox.producao.andamento.previsto, prox.producao.andamento.realizado, " m")}
+
+        </div>
+    `;
+
+    abrirModal("Metas Gerais", atual + proximoMesHtml);
+}
 }
