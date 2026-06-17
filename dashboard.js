@@ -660,3 +660,119 @@ document.addEventListener("DOMContentLoaded", function () {
     atualizarDashboard();
     criarGraficosFixos();
 });
+
+function abrirModal(titulo, conteudo) {
+    document.getElementById("modalTitulo").innerText = titulo;
+    document.getElementById("modalCorpo").innerHTML = conteudo;
+    document.getElementById("modal").style.display = "block";
+}
+
+function fecharModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+function tabelaDeAtributos(features, campos) {
+    if (!features || features.length === 0) {
+        return "<p>Nenhum registro encontrado.</p>";
+    }
+
+    let html = "<table class='tabela-modal'><thead><tr>";
+
+    campos.forEach(campo => {
+        html += "<th>" + campo + "</th>";
+    });
+
+    html += "</tr></thead><tbody>";
+
+    features.forEach(feature => {
+        const p = feature.properties || {};
+        html += "<tr>";
+
+        campos.forEach(campo => {
+            html += "<td>" + (p[campo] ?? "") + "</td>";
+        });
+
+        html += "</tr>";
+    });
+
+    html += "</tbody></table>";
+
+    return html;
+}
+
+function abrirDetalhesObras() {
+    const obrasTodas = obterFeatures("json_OBRAS_EMN2_4");
+    const obras = filtrarPorContrato(obrasTodas, "NUM_CONTRA");
+
+    abrirModal(
+        "Detalhes das Obras",
+        tabelaDeAtributos(obras, ["NUM_CONTRA", "FRENTE", "STATUS_C", "METODO", "DIAMETR_MM", "MUNICIPIO", "BAIRRO", "LOGRADOURO"])
+    );
+}
+
+function abrirDetalhesFrentes() {
+    const frentesTodas = obterFeatures("json_EMN2Frentes_em_Andamento_9");
+
+    const frentes = filtrarPorContratoMultiplosCampos(frentesTodas, [
+        "CONTRATO",
+        "Contrato",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
+
+    abrirModal(
+        "Frentes em Campo",
+        tabelaDeAtributos(frentes, ["CONTRATO", "FRENTE", "MÉTODO", "STATUS", "ENGENHEIRO", "FISCAL", "ENCARREGADO", "EQUIPE", "DATA", "ENDEREÇO"])
+    );
+}
+
+function abrirDetalhesSinistros() {
+    const sinistrosTodas = obterFeatures("json_SinistroEMN2_7");
+    const sinistros = filtrarPorContrato(sinistrosTodas, "Contrato");
+
+    abrirModal(
+        "Sinistros",
+        tabelaDeAtributos(sinistros, ["Contrato", "Ficha", "Frente", "Sinistro", "Critério"])
+    );
+}
+
+function abrirDetalhesEEE() {
+    const eeeTodas = obterFeatures("json_EEE_6");
+
+    const eee = filtrarPorContratoMultiplosCampos(eeeTodas, [
+        "CONTRATO",
+        "Contrato",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
+
+    abrirModal(
+        "Elevatórias - EEE",
+        tabelaDeAtributos(eee, ["CONTRATO", "EEE", "STATUS", "LOCAL", "MUNICIPIO", "Q", "OPERAÇÃO"])
+    );
+}
+
+function abrirDetalhesLancamentos() {
+    const lancamentosTodas = obterCamadaPorParteDoNome("PONTOSDELANAMENTO");
+
+    const lancamentos = filtrarPorContratoMultiplosCampos(lancamentosTodas, [
+        "CONTRATO",
+        "Contrato",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
+
+    abrirModal(
+        "Pontos de Lançamento",
+        tabelaDeAtributos(lancamentos, ["Contrato", "Pacote", "Nome_Lanca", "Municipio", "Bacia", "Status"])
+    );
+}
+
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+        fecharModal();
+    }
+});
