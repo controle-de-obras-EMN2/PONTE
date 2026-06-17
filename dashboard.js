@@ -678,3 +678,52 @@ document.addEventListener("keydown", function(event) {
         fecharModal();
     }
 });
+
+function abrirDetalhesMetas() {
+    const html = `
+        <div class="cards cards-5">
+
+            <div class="card">
+                <h3>Economias Fator U</h3>
+                <strong>${formatarNumero(metas.economias.fatorU.realizado)}</strong>
+                <span>${percentual(metas.economias.fatorU.realizado, metas.economias.fatorU.previsto).toFixed(2)}%</span>
+                <p>Previsto: ${formatarNumero(metas.economias.fatorU.previsto)}</p>
+            </div>
+
+            <div class="card">
+                <h3>Economias Contrato</h3>
+                <strong>${formatarNumero(metas.economias.contrato.realizado)}</strong>
+                <span>${percentual(metas.economias.contrato.realizado, metas.economias.contrato.previsto).toFixed(2)}%</span>
+                <p>Previsto: ${formatarNumero(metas.economias.contrato.previsto)}</p>
+            </div>
+
+            <div class="card">
+                <h3>Imobilizado</h3>
+                <strong>${formatarMoeda(metas.imobilizado.realizado)}</strong>
+                <span>${percentual(metas.imobilizado.realizado, metas.imobilizado.previsto).toFixed(2)}%</span>
+                <p>Previsto: ${formatarMoeda(metas.imobilizado.previsto)}</p>
+            </div>
+
+            <div class="card">
+                <h3>Produção Integra</h3>
+                <strong>${formatarNumero(metas.producao.integra.realizado)} m</strong>
+                <span>${percentual(metas.producao.integra.realizado, metas.producao.integra.previsto).toFixed(2)}%</span>
+                <p>Previsto: ${formatarNumero(metas.producao.integra.previsto)} m</p>
+            </div>
+
+            <div class="card">
+                <h3>Produção Andamento</h3>
+                <strong>${formatarNumero(metas.producao.andamento.realizado)} m</strong>
+                <span>${percentual(metas.producao.andamento.realizado, metas.producao.andamento.previsto).toFixed(2)}%</span>
+                <p>Previsto: ${formatarNumero(metas.producao.andamento.previsto)} m</p>
+            </div>
+
+        </div>
+
+        <h3 style="margin-top:25px;color:#0b2f5b;">Previsão para o próximo mês</h3>
+
+        <p>Este bloco fica pronto para receber os dados de previsão mensal no arquivo <strong>metas.js</strong>.</p>
+    `;
+
+    abrirModal("Metas Gerais", html);
+}
