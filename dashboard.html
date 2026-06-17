@@ -76,6 +76,56 @@ align-items:center;
             <p id="prodIntegraMeta">Meta: 0 m</p>
         </div>
 
+        <section class="cards">
+
+    <div class="card">
+        <h3>Obras cadastradas</h3>
+        <strong id="totalObras">0</strong>
+        <p>Trechos na camada de obras</p>
+    </div>
+
+    <div class="card">
+        <h3>Frentes em campo</h3>
+        <strong id="totalFrentes">0</strong>
+        <p>Frentes de serviço ativas</p>
+    </div>
+
+    <div class="card">
+        <h3>Sinistros</h3>
+        <strong id="totalSinistros">0</strong>
+        <p>Ocorrências cadastradas</p>
+    </div>
+
+    <div class="card">
+        <h3>EEE</h3>
+        <strong id="totalEEE">0</strong>
+        <p>Elevatórias cadastradas</p>
+    </div>
+
+</section>
+
+<section class="graficos">
+
+    <div class="grafico-card">
+        <h2>Obras por Status</h2>
+        <canvas id="graficoStatusObras"></canvas>
+    </div>
+
+    <div class="grafico-card">
+        <h2>Obras por Método</h2>
+        <canvas id="graficoMetodo"></canvas>
+    </div>
+
+    <div class="grafico-card">
+        <h2>Obras por Diâmetro</h2>
+        <canvas id="graficoDiametro"></canvas>
+    </div>
+
+    <div class="grafico-card">
+        <h2>Frentes por Status</h2>
+        <canvas id="graficoFrentesStatus"></canvas>
+    </div>
+
     </section>
 
     <section class="graficos">
@@ -91,6 +141,11 @@ align-items:center;
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="dados/metas.js"></script>
+<script src="MAPA/layers/OBRAS_3.js"></script>
+<script src="MAPA/layers/EEE_5.js"></script>
+<script src="MAPA/layers/SinistroEMN2_6.js"></script>
+<script src="MAPA/layers/VIRADADEMANCHA_2.js"></script>
+<script src="MAPA/layers/EMN2Frentes_em_Andamento_7.js"></script>
 <script src="dashboard.js"></script>
 
 </div>
