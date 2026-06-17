@@ -1,5 +1,5 @@
 const metas = {
-  atualizacao: "03/06/2026",
+  atualizacao: "12/06/2026",
 
   economias: {
     fatorU: {
@@ -19,12 +19,12 @@ const metas = {
 
   producao: {
     integra: {
-      previsto: 59969.24,
-      realizado: 25875.76
+      previsto: 39969.24,
+      realizado: 26421.69
     },
     andamento: {
       previsto: 2423.40,
-      realizado: 962.55
+      realizado: 1065.55
     }
   },
 
