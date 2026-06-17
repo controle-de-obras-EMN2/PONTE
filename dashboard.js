@@ -672,3 +672,9 @@ document.addEventListener("DOMContentLoaded", function () {
     atualizarDashboard();
     criarGraficosFixos();
 });
+
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+        fecharModal();
+    }
+});
