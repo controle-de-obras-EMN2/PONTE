@@ -771,10 +771,11 @@ function abrirDetalhesLancamentos() {
     );
 }
 
-document.addEventListener("keydown", function(event) {
-    if (event.key === "Escape") {
-        fecharModal();
-    }
+document.addEventListener("DOMContentLoaded", function () {
+    carregarMetasGerais();
+    atualizarDashboard();
+    criarGraficosFixos();
+    ativarCliquesDosCards();
 });
 
 /* ========================= */
@@ -1020,3 +1021,36 @@ document.addEventListener("keydown", function(event) {
         fecharModal();
     }
 });
+
+function ativarCliquesDosCards() {
+    const tituloMetas = document.getElementById("tituloMetasGerais");
+    const cardObras = document.getElementById("cardObras");
+    const cardFrentes = document.getElementById("cardFrentes");
+    const cardSinistros = document.getElementById("cardSinistros");
+    const cardEEE = document.getElementById("cardEEE");
+    const cardLancamentos = document.getElementById("cardLancamentos");
+
+    if (tituloMetas) {
+        tituloMetas.addEventListener("click", abrirDetalhesMetas);
+    }
+
+    if (cardObras) {
+        cardObras.addEventListener("click", abrirDetalhesObras);
+    }
+
+    if (cardFrentes) {
+        cardFrentes.addEventListener("click", abrirDetalhesFrentes);
+    }
+
+    if (cardSinistros) {
+        cardSinistros.addEventListener("click", abrirDetalhesSinistros);
+    }
+
+    if (cardEEE) {
+        cardEEE.addEventListener("click", abrirDetalhesEEE);
+    }
+
+    if (cardLancamentos) {
+        cardLancamentos.addEventListener("click", abrirDetalhesLancamentos);
+    }
+}
