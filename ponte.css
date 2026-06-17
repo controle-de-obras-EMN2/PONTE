@@ -6,15 +6,13 @@ body {
     margin: 0;
     padding: 0;
     width: 100%;
-    min-height: 100%;
+    min-height: 100%; 
+    font-family: Segoe UI, Arial, sans-serif;
 }
 
 body {
     overflow-x: hidden;
     overflow-y: auto;
-}
-
-    font-family: Segoe UI, Arial, sans-serif;
 }
 
 /* HEADER */
@@ -43,7 +41,7 @@ body {
 
 #logo {
 
-    height: 250px;
+    height: 200px;
 
     margin-left: 20px;
 }
@@ -95,7 +93,7 @@ body {
 
 #logo-footer img {
 
-    height: 40px;
+    height: 30px;
 
     width: auto;
 
