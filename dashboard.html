@@ -37,7 +37,10 @@
 
   <main id="dashboard">
 
-    <section class="cards">
+  <section class="secao-dashboard">
+    <h2>Metas Gerais</h2>
+
+    <div class="cards cards-5">
 
         <div class="card">
             <h3>Economias Fator U</h3>
@@ -67,85 +70,119 @@
             <p id="prodIntegraMeta">Meta: 0 m</p>
         </div>
 
-        <section class="cards">
+        <div class="card">
+            <h3>Produção Andamento</h3>
+            <strong id="prodAndamentoReal">0 m</strong>
+            <span id="prodAndamentoPerc">0%</span>
+            <p id="prodAndamentoMeta">Meta: 0 m</p>
+        </div>
 
-    <div class="card">
-        <h3>Obras cadastradas</h3>
-        <strong id="totalObras">0</strong>
-        <p>Trechos na camada de obras</p>
     </div>
-
-    <div class="card">
-        <h3>Frentes em campo</h3>
-        <strong id="totalFrentes">0</strong>
-        <p>Frentes de serviço ativas</p>
-    </div>
-
-    <div class="card">
-        <h3>Sinistros</h3>
-        <strong id="totalSinistros">0</strong>
-        <p>Ocorrências cadastradas</p>
-    </div>
-
-    <div class="card">
-        <h3>EEE</h3>
-        <strong id="totalEEE">0</strong>
-        <p>Elevatórias cadastradas</p>
-    </div>
-
 </section>
 
-<section class="graficos">
+<section class="secao-dashboard">
+    <h2>Operação</h2>
 
-    <div class="grafico-card">
-        <h2>Obras por Status</h2>
-        <canvas id="graficoStatusObras"></canvas>
+    <div class="cards cards-5">
+
+        <div class="card">
+            <h3>Obras cadastradas</h3>
+            <strong id="totalObras">0</strong>
+            <p>Trechos na camada de obras</p>
+        </div>
+
+        <div class="card">
+            <h3>Frentes em campo</h3>
+            <strong id="totalFrentes">0</strong>
+            <p>Frentes de serviço ativas</p>
+        </div>
+
+        <div class="card">
+            <h3>Sinistros</h3>
+            <strong id="totalSinistros">0</strong>
+            <p>Ocorrências cadastradas</p>
+        </div>
+
+        <div class="card">
+            <h3>EEE</h3>
+            <strong id="totalEEE">0</strong>
+            <p>Elevatórias cadastradas</p>
+        </div>
+
+        <div class="card">
+            <h3>Pontos de lançamento</h3>
+            <strong id="totalLancamentos">0</strong>
+            <p>Pontos irregulares cadastrados</p>
+        </div>
+
     </div>
+</section>
 
-    <div class="grafico-card">
-        <h2>Obras por Método</h2>
-        <canvas id="graficoMetodo"></canvas>
-    </div>
+<section class="secao-dashboard">
+    <h2>Indicadores do Mapa</h2>
 
-    <div class="grafico-card">
-        <h2>Obras por Diâmetro</h2>
-        <canvas id="graficoDiametro"></canvas>
-    </div>
-
-    <div class="grafico-card">
-        <h2>Frentes por Status</h2>
-        <canvas id="graficoFrentesStatus"></canvas>
-    </div>
-
-    </section>
-
-    <section class="graficos">
+    <div class="graficos graficos-3">
 
         <div class="grafico-card">
-            <h2>Valor Contratual x Pedido x Unitizado</h2>
+            <h3>Obras por Status</h3>
+            <canvas id="graficoStatusObras"></canvas>
+        </div>
+
+        <div class="grafico-card">
+            <h3>Obras por Método</h3>
+            <canvas id="graficoMetodo"></canvas>
+        </div>
+
+        <div class="grafico-card">
+            <h3>Obras por Diâmetro</h3>
+            <canvas id="graficoDiametro"></canvas>
+        </div>
+
+        <div class="grafico-card">
+            <h3>Frentes por Status</h3>
+            <canvas id="graficoFrentesStatus"></canvas>
+        </div>
+
+        <div class="grafico-card">
+            <h3>EEE por Status</h3>
+            <canvas id="graficoEEEStatus"></canvas>
+        </div>
+
+        <div class="grafico-card">
+            <h3>Manchas por Cor</h3>
+            <canvas id="graficoManchas"></canvas>
+        </div>
+
+    </div>
+</section>
+
+<section class="secao-dashboard">
+    <h2>Contratos</h2>
+
+    <div class="graficos graficos-grandes">
+
+        <div class="grafico-card grafico-largo">
+            <h3>Valor Contratual x Pedido x Unitizado</h3>
             <canvas id="graficoValores"></canvas>
         </div>
 
-    </section>
+        <div class="grafico-card grafico-largo">
+            <h3>Extensão Contratual x Atual x Executada x Unitizada</h3>
+            <canvas id="graficoExtensao"></canvas>
+        </div>
 
-</main>
+    </div>
+</section>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script src="dados/metas.js"></script>
+
 <script src="MAPA/layers/OBRAS_EMN2_4.js"></script>
+<script src="MAPA/layers/VIRADADEMANCHA_2.js"></script>
 <script src="MAPA/layers/EEE_6.js"></script>
 <script src="MAPA/layers/SinistroEMN2_7.js"></script>
-<script src="MAPA/layers/VIRADADEMANCHA_2.js"></script>
 <script src="MAPA/layers/EMN2Frentes_em_Andamento_9.js"></script>
+
 <script src="dashboard.js"></script>
-
-</div>
-
-<div id="logo-footer">
-
-    <img src="images/logo_empresa.png">
-
-</div>
-
-</body>
-</html>
+      
