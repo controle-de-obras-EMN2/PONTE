@@ -50,7 +50,7 @@
 
   <section class="secao-dashboard">
       
-    <h2 class="titulo-click" onclick="abrirDetalhesMetas()">Metas Gerais</h2>
+    <h2 id="tituloMetasGerais" class="titulo-click">Metas Gerais</h2>
     <div class="cards cards-5">
 
         <div class="card">
@@ -96,32 +96,32 @@
 
     <div class="cards cards-5">
 
-        <div class="card card-click" onclick="abrirDetalhesObras()">
+        <div class="card card-click" id="cardObras">
     <h3>Obras cadastradas</h3>
     <strong id="totalObras">0</strong>
     <span id="percentualObrasProntas">0% prontas</span>
     <p>Frentes únicas cadastradas</p>
 </div>
 
-        <div class="card card-click" onclick="abrirDetalhesFrentes()">
+       <div class="card card-click" id="cardFrentes">
     <h3>Frentes em campo</h3>
     <strong id="totalFrentes">0</strong>
     <p>Frentes de serviço ativas</p>
 </div>
 
-       <div class="card card-click" onclick="abrirDetalhesSinistros()">
+      <div class="card card-click" id="cardSinistros">
     <h3>Sinistros</h3>
     <strong id="totalSinistros">0</strong>
     <p>Ocorrências cadastradas</p>
 </div>
 
-        <div class="card card-click" onclick="abrirDetalhesEEE()">
+        <div class="card card-click" id="cardEEE">
     <h3>EEE</h3>
     <strong id="totalEEE">0</strong>
     <p>Elevatórias cadastradas</p>
 </div>
 
-        <div class="card card-click" onclick="abrirDetalhesLancamentos()">
+       <div class="card card-click" id="cardLancamentos">
     <h3>Pontos de lançamento</h3>
     <strong id="totalLancamentos">0</strong>
     <span id="statusLancamentos">Ativos: 0 | Suprimidos: 0</span>
