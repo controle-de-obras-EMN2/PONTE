@@ -377,3 +377,56 @@ body {
 .titulo-click:hover {
     text-decoration: underline;
 }
+
+/* MODAL / POP-UP */
+
+.modal {
+    display: none;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999999 !important;
+    background: rgba(0,0,0,.45) !important;
+}
+
+.modal-content {
+    background: white;
+    width: 85%;
+    max-height: 80vh;
+    overflow: auto;
+    margin: 80px auto;
+    padding: 0;
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.25);
+}
+
+.modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    padding: 20px 24px 14px 24px;
+    border-bottom: 1px solid #ddd;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #0b2f5b;
+}
+
+.modal-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    border: none;
+    background: #0b2f5b;
+    color: white;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+#modalCorpo {
+    padding: 20px 24px 24px 24px;
+}
