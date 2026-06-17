@@ -567,6 +567,12 @@ function fecharModal() {
     document.getElementById("modal").style.display = "none";
 }
 
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+        fecharModal();
+    }
+});
+
 function tabelaDeAtributos(features, campos) {
     if (!features || features.length === 0) {
         return "<p>Nenhum registro encontrado.</p>";
