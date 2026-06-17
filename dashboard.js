@@ -78,3 +78,91 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 });
+function obterFeatures(nomeVariavel) {
+    if (!window[nomeVariavel]) {
+        console.warn("Camada não encontrada:", nomeVariavel);
+        return [];
+    }
+
+    return window[nomeVariavel].features || [];
+}
+
+function contarPorCampo(features, campo) {
+    const contagem = {};
+
+    features.forEach(feature => {
+        const valor = feature.properties?.[campo] || "Não informado";
+        contagem[valor] = (contagem[valor] || 0) + 1;
+    });
+
+    return contagem;
+}
+
+function criarGraficoBarra(idCanvas, titulo, dados) {
+    const canvas = document.getElementById(idCanvas);
+
+    if (!canvas) return;
+
+    new Chart(canvas, {
+        type: "bar",
+        data: {
+            labels: Object.keys(dados),
+            datasets: [{
+                label: titulo,
+                data: Object.values(dados)
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const obras = obterFeatures("json_OBRAS_3");
+    const eee = obterFeatures("json_EEE_5");
+    const sinistros = obterFeatures("json_SinistroEMN2_6");
+    const viradaMancha = obterFeatures("json_VIRADADEMANCHA_2");
+    const frentes = obterFeatures("json_EMN2Frentes_em_Andamento_7");
+
+    document.getElementById("totalObras").innerText = obras.length.toLocaleString("pt-BR");
+    document.getElementById("totalFrentes").innerText = frentes.length.toLocaleString("pt-BR");
+    document.getElementById("totalSinistros").innerText = sinistros.length.toLocaleString("pt-BR");
+    document.getElementById("totalEEE").innerText = eee.length.toLocaleString("pt-BR");
+
+    criarGraficoBarra(
+        "graficoStatusObras",
+        "Obras por Status",
+        contarPorCampo(obras, "STATUS_C")
+    );
+
+    criarGraficoBarra(
+        "graficoMetodo",
+        "Obras por Método",
+        contarPorCampo(obras, "METODO")
+    );
+
+    criarGraficoBarra(
+        "graficoDiametro",
+        "Obras por Diâmetro",
+        contarPorCampo(obras, "DIAMETR_MM")
+    );
+
+    criarGraficoBarra(
+        "graficoFrentesStatus",
+        "Frentes por Status",
+        contarPorCampo(frentes, "STATUS")
+    );
+
+});
