@@ -66,12 +66,11 @@ function criarGraficoBarra(idCanvas, titulo, dados) {
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    // DADOS MANUAIS DO QUADRO BRANCO
-
     const ecoFU = metas.economias.fatorU;
     const ecoContrato = metas.economias.contrato;
     const imob = metas.imobilizado;
     const prodIntegra = metas.producao.integra;
+    const prodAndamento = metas.producao.andamento;
 
     document.getElementById("ecoFatorUReal").innerText = formatarNumero(ecoFU.realizado);
     document.getElementById("ecoFatorUPerc").innerText = percentual(ecoFU.realizado, ecoFU.previsto).toFixed(2) + "%";
@@ -89,66 +88,111 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("prodIntegraPerc").innerText = percentual(prodIntegra.realizado, prodIntegra.previsto).toFixed(2) + "%";
     document.getElementById("prodIntegraMeta").innerText = "Meta: " + formatarNumero(prodIntegra.previsto) + " m";
 
-    // DADOS AUTOMÁTICOS DO MAPA
+    document.getElementById("prodAndamentoReal").innerText = formatarNumero(prodAndamento.realizado) + " m";
+    document.getElementById("prodAndamentoPerc").innerText = percentual(prodAndamento.realizado, prodAndamento.previsto).toFixed(2) + "%";
+    document.getElementById("prodAndamentoMeta").innerText = "Meta: " + formatarNumero(prodAndamento.previsto) + " m";
 
     const obras = obterFeatures("json_OBRAS_EMN2_4");
     const eee = obterFeatures("json_EEE_6");
     const sinistros = obterFeatures("json_SinistroEMN2_7");
     const frentes = obterFeatures("json_EMN2Frentes_em_Andamento_9");
+    const manchas = obterFeatures("json_VIRADADEMANCHA_2");
 
     document.getElementById("totalObras").innerText = obras.length.toLocaleString("pt-BR");
     document.getElementById("totalFrentes").innerText = frentes.length.toLocaleString("pt-BR");
     document.getElementById("totalSinistros").innerText = sinistros.length.toLocaleString("pt-BR");
     document.getElementById("totalEEE").innerText = eee.length.toLocaleString("pt-BR");
 
+    const totalLancamentos = window.json_PONTOSDELANAMENTO_1?.features?.length || 0;
+    document.getElementById("totalLancamentos").innerText = totalLancamentos.toLocaleString("pt-BR");
+
     criarGraficoBarra("graficoStatusObras", "Obras por Status", contarPorCampo(obras, "STATUS_C"));
     criarGraficoBarra("graficoMetodo", "Obras por Método", contarPorCampo(obras, "METODO"));
     criarGraficoBarra("graficoDiametro", "Obras por Diâmetro", contarPorCampo(obras, "DIAMETR_MM"));
     criarGraficoBarra("graficoFrentesStatus", "Frentes por Status", contarPorCampo(frentes, "STATUS"));
+    criarGraficoBarra("graficoEEEStatus", "EEE por Status", contarPorCampo(eee, "STATUS"));
+    criarGraficoBarra("graficoManchas", "Manchas por Cor", contarPorCampo(manchas, "COR_MANCHA"));
 
-    // GRÁFICO DE VALORES CONTRATUAIS
-
-    const graficoValores = document.getElementById("graficoValores");
-
-    if (graficoValores) {
-        new Chart(graficoValores, {
-            type: "bar",
-            data: {
-                labels: metas.valoresContratos.map(item => item.contrato),
-                datasets: [
-                    {
-                        label: "Valor Contratual",
-                        data: metas.valoresContratos.map(item => item.valorContratual)
-                    },
-                    {
-                        label: "Total Pedido",
-                        data: metas.valoresContratos.map(item => item.totalPedido)
-                    },
-                    {
-                        label: "Total Unitizado",
-                        data: metas.valoresContratos.map(item => item.totalUnitizado)
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: "bottom"
-                    }
+    new Chart(document.getElementById("graficoValores"), {
+        type: "bar",
+        data: {
+            labels: metas.valoresContratos.map(item => item.contrato),
+            datasets: [
+                {
+                    label: "Valor Contratual",
+                    data: metas.valoresContratos.map(item => item.valorContratual)
                 },
-                scales: {
-                    y: {
-                        ticks: {
-                            callback: function(value) {
-                                return "R$ " + (value / 1000000).toFixed(0) + " mi";
-                            }
+                {
+                    label: "Total Pedido",
+                    data: metas.valoresContratos.map(item => item.totalPedido)
+                },
+                {
+                    label: "Total Unitizado",
+                    data: metas.valoresContratos.map(item => item.totalUnitizado)
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: "bottom"
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) {
+                            return "R$ " + (value / 1000000).toFixed(0) + " mi";
                         }
                     }
                 }
             }
-        });
-    }
+        }
+    });
+
+    new Chart(document.getElementById("graficoExtensao"), {
+        type: "bar",
+        data: {
+            labels: metas.extensaoContratos.map(item => item.contrato),
+            datasets: [
+                {
+                    label: "Extensão Contratual",
+                    data: metas.extensaoContratos.map(item => item.contratual)
+                },
+                {
+                    label: "Extensão Atual",
+                    data: metas.extensaoContratos.map(item => item.atual)
+                },
+                {
+                    label: "Extensão Executada",
+                    data: metas.extensaoContratos.map(item => item.executada)
+                },
+                {
+                    label: "Extensão Unitizada",
+                    data: metas.extensaoContratos.map(item => item.unitizada)
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: "bottom"
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString("pt-BR") + " m";
+                        }
+                    }
+                }
+            }
+        }
+    });
 
 });
