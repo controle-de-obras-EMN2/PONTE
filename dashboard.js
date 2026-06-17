@@ -269,6 +269,54 @@ function somarMaterialPreparado(obras) {
     return resultado;
 }
 
+function obterCamadaPorParteDoNome(parteNome) {
+    const nome = Object.keys(window).find(chave =>
+        chave.startsWith("json_") &&
+        chave.toLowerCase().includes(parteNome.toLowerCase())
+    );
+
+    if (!nome) {
+        console.warn("Camada não encontrada contendo:", parteNome);
+        return [];
+    }
+
+    console.log("Camada encontrada:", nome);
+    return window[nome].features || [];
+}
+
+function contarStatusLancamentos(features) {
+    const resultado = {
+        total: features.length,
+        ativos: 0,
+        suprimidos: 0
+    };
+
+    features.forEach(feature => {
+        const p = feature.properties || {};
+        const status = String(
+            p.STATUS || p.Status || p.status || p.SITUACAO || p.Situação || ""
+        ).toUpperCase();
+
+        if (
+            status.includes("ATIVO") ||
+            status.includes("EXISTENTE") ||
+            status.includes("PENDENTE")
+        ) {
+            resultado.ativos++;
+        }
+
+        if (
+            status.includes("SUPRIMIDO") ||
+            status.includes("ELIMINADO") ||
+            status.includes("INATIVO")
+        ) {
+            resultado.suprimidos++;
+        }
+    });
+
+    return resultado;
+}
+
 function atualizarDashboard() {
     const obrasTodas = obterFeatures("json_OBRAS_EMN2_4");
     const eeeTodas = obterFeatures("json_EEE_6");
@@ -276,7 +324,7 @@ function atualizarDashboard() {
     const frentesTodas = obterFeatures("json_EMN2Frentes_em_Andamento_9");
     const manchasTodas = obterFeatures("json_VIRADADEMANCHA_2");
 
-    const lancamentosTodas = window.json_PONTOSDELANAMENTO_1?.features || [];
+    const lancamentosTodas = obterCamadaPorParteDoNome("LAN");];
 
     const obras = filtrarPorContrato(obrasTodas, "NUM_CONTRA");
 
@@ -336,9 +384,17 @@ function atualizarDashboard() {
     document.getElementById("totalSinistros").innerText = sinistros.length.toLocaleString("pt-BR");
     document.getElementById("totalEEE").innerText = eee.length.toLocaleString("pt-BR");
 
-    if (document.getElementById("totalLancamentos")) {
-        document.getElementById("totalLancamentos").innerText = lancamentos.length.toLocaleString("pt-BR");
-    }
+    const resumoLancamentos = contarStatusLancamentos(lancamentos);
+
+if (document.getElementById("totalLancamentos")) {
+    document.getElementById("totalLancamentos").innerText = resumoLancamentos.total.toLocaleString("pt-BR");
+}
+
+if (document.getElementById("statusLancamentos")) {
+    document.getElementById("statusLancamentos").innerText =
+        "Ativos: " + resumoLancamentos.ativos.toLocaleString("pt-BR") +
+        " | Suprimidos: " + resumoLancamentos.suprimidos.toLocaleString("pt-BR");
+}
 
     graficoStatusObras = criarGraficoBarra(
         "graficoStatusObras",
