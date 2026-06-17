@@ -776,3 +776,247 @@ document.addEventListener("keydown", function(event) {
         fecharModal();
     }
 });
+
+/* ========================= */
+/* POP-UPS DOS CARDS */
+/* ========================= */
+
+window.abrirModal = function(titulo, conteudo) {
+    const modalTitulo = document.getElementById("modalTitulo");
+    const modalCorpo = document.getElementById("modalCorpo");
+    const modal = document.getElementById("modal");
+
+    if (!modalTitulo || !modalCorpo || !modal) {
+        console.error("Modal não encontrado no dashboard.html");
+        return;
+    }
+
+    modalTitulo.innerText = titulo;
+    modalCorpo.innerHTML = conteudo;
+    modal.style.display = "block";
+};
+
+window.fecharModal = function() {
+    const modal = document.getElementById("modal");
+
+    if (modal) {
+        modal.style.display = "none";
+    }
+};
+
+function gerarTabelaModal(features, campos) {
+    if (!features || features.length === 0) {
+        return "<p>Nenhum registro encontrado para o filtro atual.</p>";
+    }
+
+    let html = "<table class='tabela-modal'><thead><tr>";
+
+    campos.forEach(campo => {
+        html += "<th>" + campo.titulo + "</th>";
+    });
+
+    html += "</tr></thead><tbody>";
+
+    features.forEach(feature => {
+        const p = feature.properties || {};
+        html += "<tr>";
+
+        campos.forEach(campo => {
+            html += "<td>" + (p[campo.campo] ?? "") + "</td>";
+        });
+
+        html += "</tr>";
+    });
+
+    html += "</tbody></table>";
+
+    return html;
+}
+
+function filtrarContratoModal(features, camposContrato) {
+    if (contratoSelecionado === "TODOS") {
+        return features;
+    }
+
+    return features.filter(feature => {
+        const p = feature.properties || {};
+
+        return camposContrato.some(campo =>
+            String(p[campo] || "").trim() === contratoSelecionado
+        );
+    });
+}
+
+window.abrirDetalhesObras = function() {
+    const obrasTodas = obterFeatures("json_OBRAS_EMN2_4");
+
+    const obras = filtrarContratoModal(obrasTodas, [
+        "NUM_CONTRA",
+        "CONTRATO",
+        "Contrato",
+        "contrato"
+    ]);
+
+    abrirModal(
+        "Detalhes das Obras",
+        gerarTabelaModal(obras, [
+            { titulo: "Contrato", campo: "NUM_CONTRA" },
+            { titulo: "Frente", campo: "FRENTE" },
+            { titulo: "Status", campo: "STATUS_C" },
+            { titulo: "Método", campo: "METODO" },
+            { titulo: "Diâmetro", campo: "DIAMETR_MM" },
+            { titulo: "Município", campo: "MUNICIPIO" },
+            { titulo: "Bairro", campo: "BAIRRO" },
+            { titulo: "Logradouro", campo: "LOGRADOURO" }
+        ])
+    );
+};
+
+window.abrirDetalhesFrentes = function() {
+    const frentesTodas = obterFeatures("json_EMN2Frentes_em_Andamento_9");
+
+    const frentes = filtrarContratoModal(frentesTodas, [
+        "CONTRATO",
+        "Contrato",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
+
+    abrirModal(
+        "Frentes em Campo",
+        gerarTabelaModal(frentes, [
+            { titulo: "Contrato", campo: "CONTRATO" },
+            { titulo: "Frente", campo: "FRENTE" },
+            { titulo: "Método", campo: "MÉTODO" },
+            { titulo: "Status", campo: "STATUS" },
+            { titulo: "Engenheiro", campo: "ENGENHEIRO" },
+            { titulo: "Fiscal", campo: "FISCAL" },
+            { titulo: "Encarregado", campo: "ENCARREGADO" },
+            { titulo: "Equipe", campo: "EQUIPE" },
+            { titulo: "Data", campo: "DATA" },
+            { titulo: "Endereço", campo: "ENDEREÇO" }
+        ])
+    );
+};
+
+window.abrirDetalhesSinistros = function() {
+    const sinistrosTodas = obterFeatures("json_SinistroEMN2_7");
+
+    const sinistros = filtrarContratoModal(sinistrosTodas, [
+        "Contrato",
+        "CONTRATO",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
+
+    abrirModal(
+        "Sinistros",
+        gerarTabelaModal(sinistros, [
+            { titulo: "Contrato", campo: "Contrato" },
+            { titulo: "Ficha", campo: "Ficha" },
+            { titulo: "Frente", campo: "Frente" },
+            { titulo: "Sinistro", campo: "Sinistro" },
+            { titulo: "Critério", campo: "Critério" }
+        ])
+    );
+};
+
+window.abrirDetalhesEEE = function() {
+    const eeeTodas = obterFeatures("json_EEE_6");
+
+    const eee = filtrarContratoModal(eeeTodas, [
+        "CONTRATO",
+        "Contrato",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
+
+    abrirModal(
+        "Elevatórias - EEE",
+        gerarTabelaModal(eee, [
+            { titulo: "Contrato", campo: "CONTRATO" },
+            { titulo: "EEE", campo: "EEE" },
+            { titulo: "Status", campo: "STATUS" },
+            { titulo: "Local", campo: "LOCAL" },
+            { titulo: "Endereço", campo: "ENDEREÇO" },
+            { titulo: "Município", campo: "MUNICIPIO" },
+            { titulo: "Vazão Q", campo: "Q" },
+            { titulo: "Operação", campo: "OPERAÇÃO" }
+        ])
+    );
+};
+
+window.abrirDetalhesLancamentos = function() {
+    const lancamentosTodas = obterCamadaPorParteDoNome("PONTOSDELANAMENTO");
+
+    const lancamentos = filtrarContratoModal(lancamentosTodas, [
+        "Contrato",
+        "CONTRATO",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
+
+    abrirModal(
+        "Pontos de Lançamento",
+        gerarTabelaModal(lancamentos, [
+            { titulo: "Contrato", campo: "Contrato" },
+            { titulo: "Pacote", campo: "Pacote" },
+            { titulo: "Nome", campo: "Nome_Lanca" },
+            { titulo: "Município", campo: "Municipio" },
+            { titulo: "Bacia", campo: "Bacia" },
+            { titulo: "Status", campo: "Status" }
+        ])
+    );
+};
+
+window.abrirDetalhesMetas = function() {
+    const atual = `
+        <h3 style="color:#0b2f5b;margin-top:0;">Metas consolidadas atuais</h3>
+
+        <div class="cards cards-5">
+
+            ${cardMetaHtml("Economias Fator U", metas.economias.fatorU.previsto, metas.economias.fatorU.realizado)}
+
+            ${cardMetaHtml("Economias Contrato", metas.economias.contrato.previsto, metas.economias.contrato.realizado)}
+
+            ${cardMetaHtml("Imobilizado", metas.imobilizado.previsto, metas.imobilizado.realizado, "R$")}
+
+            ${cardMetaHtml("Produção Integra", metas.producao.integra.previsto, metas.producao.integra.realizado, " m")}
+
+            ${cardMetaHtml("Produção Andamento", metas.producao.andamento.previsto, metas.producao.andamento.realizado, " m")}
+
+        </div>
+    `;
+
+    const prox = metas.proximoMes;
+
+    const proximoMesHtml = `
+        <h3 style="color:#0b2f5b;margin-top:28px;">Previsão para o próximo mês - ${prox.referencia}</h3>
+
+        <div class="cards cards-5">
+
+            ${cardMetaHtml("Economias Fator U", prox.economias.fatorU.previsto, prox.economias.fatorU.realizado)}
+
+            ${cardMetaHtml("Economias Contrato", prox.economias.contrato.previsto, prox.economias.contrato.realizado)}
+
+            ${cardMetaHtml("Imobilizado", prox.imobilizado.previsto, prox.imobilizado.realizado, "R$")}
+
+            ${cardMetaHtml("Produção Integra", prox.producao.integra.previsto, prox.producao.integra.realizado, " m")}
+
+            ${cardMetaHtml("Produção Andamento", prox.producao.andamento.previsto, prox.producao.andamento.realizado, " m")}
+
+        </div>
+    `;
+
+    abrirModal("Metas Gerais", atual + proximoMesHtml);
+};
+
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+        fecharModal();
+    }
+});
