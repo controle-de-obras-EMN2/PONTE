@@ -36,6 +36,17 @@
 </header>
 
   <main id="dashboard">
+      <section class="filtros-dashboard">
+    <button onclick="filtrarContrato('TODOS')">Todos</button>
+    <button onclick="filtrarContrato('00268/24')">00268/24</button>
+    <button onclick="filtrarContrato('00272/24')">00272/24</button>
+    <button onclick="filtrarContrato('00274/24')">00274/24</button>
+    <button onclick="filtrarContrato('00277/24')">00277/24</button>
+    <button onclick="filtrarContrato('00797/24')">00797/24</button>
+    <button onclick="filtrarContrato('00900/24')">00900/24</button>
+    <button onclick="filtrarContrato('01151/21')">01151/21</button>
+    <button onclick="filtrarContrato('03179/23')">03179/23</button>
+</section>
 
   <section class="secao-dashboard">
     <h2>Metas Gerais</h2>
@@ -85,29 +96,30 @@
 
     <div class="cards cards-5">
 
-        <div class="card">
-            <h3>Obras cadastradas</h3>
-            <strong id="totalObras">0</strong>
-            <p>Trechos na camada de obras</p>
-        </div>
+        <div class="card card-click" onclick="abrirDetalhesObras()">
+    <h3>Obras cadastradas</h3>
+    <strong id="totalObras">0</strong>
+    <span id="percentualObrasProntas">0% prontas</span>
+    <p>Frentes únicas cadastradas</p>
+</div>
 
-        <div class="card">
-            <h3>Frentes em campo</h3>
-            <strong id="totalFrentes">0</strong>
-            <p>Frentes de serviço ativas</p>
-        </div>
+        <div class="card card-click" onclick="abrirDetalhesFrentes()">
+    <h3>Frentes em campo</h3>
+    <strong id="totalFrentes">0</strong>
+    <p>Frentes de serviço ativas</p>
+</div>
 
-        <div class="card">
-            <h3>Sinistros</h3>
-            <strong id="totalSinistros">0</strong>
-            <p>Ocorrências cadastradas</p>
-        </div>
+       <div class="card card-click" onclick="abrirDetalhesSinistros()">
+    <h3>Sinistros</h3>
+    <strong id="totalSinistros">0</strong>
+    <p>Ocorrências cadastradas</p>
+</div>
 
-        <div class="card">
-            <h3>EEE</h3>
-            <strong id="totalEEE">0</strong>
-            <p>Elevatórias cadastradas</p>
-        </div>
+        <div class="card card-click" onclick="abrirDetalhesEEE()">
+    <h3>EEE</h3>
+    <strong id="totalEEE">0</strong>
+    <p>Elevatórias cadastradas</p>
+</div>
 
         <div class="card">
             <h3>Pontos de lançamento</h3>
@@ -173,6 +185,13 @@
 
     </div>
 </section>
+      <div id="modal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="fecharModal()">×</button>
+        <h2 id="modalTitulo"></h2>
+        <div id="modalCorpo"></div>
+    </div>
+</div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
