@@ -648,4 +648,3 @@ function abrirDetalhesMetas() {
 
     abrirModal("Metas Gerais", atual + proximoMesHtml);
 }
-}
