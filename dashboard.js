@@ -324,7 +324,7 @@ function atualizarDashboard() {
     const frentesTodas = obterFeatures("json_EMN2Frentes_em_Andamento_9");
     const manchasTodas = obterFeatures("json_VIRADADEMANCHA_2");
 
-    const lancamentosTodas = obterCamadaPorParteDoNome("LAN");];
+    const lancamentosTodas = obterCamadaPorParteDoNome("LAN");
 
     const obras = filtrarPorContrato(obrasTodas, "NUM_CONTRA");
 
