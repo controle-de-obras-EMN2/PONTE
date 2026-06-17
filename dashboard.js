@@ -241,6 +241,34 @@ function carregarMetasGerais() {
     document.getElementById("prodAndamentoMeta").innerText = "Meta: " + formatarNumero(prodAndamento.previsto) + " m";
 }
 
+function filtrarPorContratoMultiplosCampos(features, camposPossiveis) {
+    if (contratoSelecionado === "TODOS") return features;
+
+    return features.filter(feature => {
+        const p = feature.properties || {};
+
+        return camposPossiveis.some(campo =>
+            String(p[campo] || "").trim() === contratoSelecionado
+        );
+    });
+}
+
+function somarMaterialPreparado(obras) {
+    const resultado = {};
+
+    obras.forEach(feature => {
+        const p = feature.properties || {};
+
+        const material = p.MATERIAL || p.Material || p.material;
+
+        if (!material) return;
+
+        resultado[material] = (resultado[material] || 0) + 1;
+    });
+
+    return resultado;
+}
+
 function atualizarDashboard() {
     const obrasTodas = obterFeatures("json_OBRAS_EMN2_4");
     const eeeTodas = obterFeatures("json_EEE_6");
@@ -248,9 +276,35 @@ function atualizarDashboard() {
     const frentesTodas = obterFeatures("json_EMN2Frentes_em_Andamento_9");
     const manchasTodas = obterFeatures("json_VIRADADEMANCHA_2");
 
+    const lancamentosTodas = window.json_PONTOSDELANAMENTO_1?.features || [];
+
     const obras = filtrarPorContrato(obrasTodas, "NUM_CONTRA");
+
     const sinistros = filtrarPorContrato(sinistrosTodas, "Contrato");
-    const frentes = filtrarPorContrato(frentesTodas, "CONTRATO");
+
+    const frentes = filtrarPorContratoMultiplosCampos(frentesTodas, [
+        "CONTRATO",
+        "Contrato",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
+
+    const lancamentos = filtrarPorContratoMultiplosCampos(lancamentosTodas, [
+        "CONTRATO",
+        "Contrato",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
+
+    const eee = filtrarPorContratoMultiplosCampos(eeeTodas, [
+        "CONTRATO",
+        "Contrato",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
 
     const frentesUnicas = agruparFrentesUnicas(obras);
 
@@ -280,12 +334,10 @@ function atualizarDashboard() {
 
     document.getElementById("totalFrentes").innerText = frentes.length.toLocaleString("pt-BR");
     document.getElementById("totalSinistros").innerText = sinistros.length.toLocaleString("pt-BR");
-    document.getElementById("totalEEE").innerText = eeeTodas.length.toLocaleString("pt-BR");
-
-    const totalLancamentos = window.json_PONTOSDELANAMENTO_1?.features?.length || 0;
+    document.getElementById("totalEEE").innerText = eee.length.toLocaleString("pt-BR");
 
     if (document.getElementById("totalLancamentos")) {
-        document.getElementById("totalLancamentos").innerText = totalLancamentos.toLocaleString("pt-BR");
+        document.getElementById("totalLancamentos").innerText = lancamentos.length.toLocaleString("pt-BR");
     }
 
     graficoStatusObras = criarGraficoBarra(
@@ -312,7 +364,7 @@ function atualizarDashboard() {
     graficoMaterial = criarGraficoBarra(
         "graficoMaterial",
         "Obras por Material",
-        contarPorCampoArray(frentesUnicas, "material"),
+        somarMaterialPreparado(obras),
         graficoMaterial
     );
 
@@ -326,7 +378,7 @@ function atualizarDashboard() {
     graficoEEEStatus = criarGraficoBarra(
         "graficoEEEStatus",
         "EEE por Status",
-        contarPorCampo(eeeTodas, "STATUS"),
+        contarPorCampo(eee, "STATUS"),
         graficoEEEStatus
     );
 
