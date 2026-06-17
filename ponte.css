@@ -136,153 +136,98 @@ body {
 
     color: white;
 }
+/* DASHBOARD */
+
 #dashboard {
-    margin-top: 130px;
-    padding: 30px;
-    background: #f4f6f8;
-    min-height: calc(100vh - 130px);
-    font-family: "Segoe UI", Arial, sans-serif;
-}
-
-.cards {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
-    margin-bottom: 25px;
-}
-
-.card {
-    background: white;
-    border-radius: 14px;
-    padding: 22px;
-    box-shadow: 0 3px 12px rgba(0,0,0,.08);
-    border-left: 6px solid #0b2f5b;
-}
-
-.card h3 {
-    margin: 0 0 12px 0;
-    color: #0b2f5b;
-    font-size: 16px;
-}
-
-.card strong {
-    display: block;
-    font-size: 30px;
-    color: #111;
-    margin-bottom: 6px;
-}
-
-.card span {
-    color: #d32f2f;
-    font-weight: 700;
-    font-size: 18px;
-}
-
-.card p {
-    color: #666;
-    margin: 8px 0 0 0;
-}
-
-.graficos {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-}
-
-.grafico-card {
-    background: white;
-    border-radius: 14px;
+    margin-top: 110px;
     padding: 24px;
-    box-shadow: 0 3px 12px rgba(0,0,0,.08);
-}
-
-.grafico-card h2 {
-    color: #0b2f5b;
-    margin-top: 0;
-}
-.graficos {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px;
-}
-
-.grafico-card {
-    background: white;
-    border-radius: 14px;
-    padding: 20px;
-    box-shadow: 0 3px 12px rgba(0,0,0,.08);
-    height: 360px;
-}
-
-.grafico-card h2 {
-    color: #0b2f5b;
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 20px;
-}
-
-.grafico-card canvas {
-    max-height: 280px !important;
-}
-/* AJUSTE GERAL DO DASHBOARD */
-
-#dashboard {
-    margin-top: 120px;
-    padding: 20px;
     background: #f4f6f8;
-    min-height: calc(100vh - 120px);
+    min-height: calc(100vh - 110px);
     box-sizing: border-box;
     overflow-x: hidden;
 }
 
-/* CARDS */
-
 .cards {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    width: 100%;
-    box-sizing: border-box;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
     margin-bottom: 18px;
 }
 
 .card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 3px 12px rgba(0,0,0,.08);
+    border-left: 6px solid #0b2f5b;
     min-width: 0;
-    padding: 16px;
+}
+
+.card h3 {
+    margin: 0 0 10px;
+    color: #0b2f5b;
+    font-size: 15px;
 }
 
 .card strong {
+    display: block;
     font-size: 24px;
+    color: #111;
 }
 
-/* GRÁFICOS */
+.card span {
+    display: block;
+    margin-top: 6px;
+    color: #d32f2f;
+    font-weight: 700;
+}
+
+.card p {
+    margin: 8px 0 0;
+    color: #666;
+    font-size: 14px;
+}
 
 .graficos {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    width: 100%;
-    box-sizing: border-box;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
 }
 
 .grafico-card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px;
     height: 310px;
-    padding: 16px;
+    box-shadow: 0 3px 12px rgba(0,0,0,.08);
     box-sizing: border-box;
+    min-width: 0;
 }
 
 .grafico-card h2 {
+    color: #0b2f5b;
     font-size: 17px;
-    margin-bottom: 8px;
+    margin: 0 0 10px;
 }
 
 .grafico-card canvas {
-    max-height: 240px !important;
+    width: 100% !important;
+    height: 240px !important;
 }
 
-/* GARANTE QUE NÃO TENHA ROLAGEM LATERAL */
+@media (max-width: 1200px) {
+    .cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
 
-html,
-body {
-    overflow-x: hidden !important;
+    .graficos {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 700px) {
+    .cards,
+    .graficos {
+        grid-template-columns: 1fr;
+    }
 }
