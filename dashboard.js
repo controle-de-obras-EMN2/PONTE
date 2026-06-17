@@ -648,3 +648,9 @@ function abrirDetalhesMetas() {
 
     abrirModal("Metas Gerais", atual + proximoMesHtml);
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+    carregarMetasGerais();
+    atualizarDashboard();
+    criarGraficosFixos();
+});
