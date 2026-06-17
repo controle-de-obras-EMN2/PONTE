@@ -140,24 +140,36 @@ body {
 
 #dashboard {
     margin-top: 110px;
-    padding: 24px;
+    padding: 22px;
     background: #f4f6f8;
     min-height: calc(100vh - 110px);
     box-sizing: border-box;
     overflow-x: hidden;
 }
 
+.secao-dashboard {
+    margin-bottom: 24px;
+}
+
+.secao-dashboard h2 {
+    color: #0b2f5b;
+    font-size: 20px;
+    margin: 0 0 14px 0;
+}
+
 .cards {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 18px;
+    gap: 14px;
+}
+
+.cards-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .card {
     background: white;
     border-radius: 14px;
-    padding: 18px;
+    padding: 16px;
     box-shadow: 0 3px 12px rgba(0,0,0,.08);
     border-left: 6px solid #0b2f5b;
     min-width: 0;
@@ -166,7 +178,7 @@ body {
 .card h3 {
     margin: 0 0 10px;
     color: #0b2f5b;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .card strong {
@@ -177,105 +189,79 @@ body {
 
 .card span {
     display: block;
-    margin-top: 6px;
+    margin-top: 5px;
     color: #d32f2f;
     font-weight: 700;
 }
 
 .card p {
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     color: #666;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .graficos {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
+}
+
+.graficos-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.graficos-grandes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .grafico-card {
     background: white;
     border-radius: 14px;
-    padding: 18px;
-    height: 310px;
+    padding: 16px;
+    height: 320px;
     box-shadow: 0 3px 12px rgba(0,0,0,.08);
     box-sizing: border-box;
     min-width: 0;
 }
 
-.grafico-card h2 {
+.grafico-card h3 {
     color: #0b2f5b;
-    font-size: 17px;
+    font-size: 16px;
     margin: 0 0 10px;
 }
 
 .grafico-card canvas {
     width: 100% !important;
-    height: 240px !important;
+    height: 245px !important;
 }
 
-@media (max-width: 1200px) {
-    .cards {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .graficos {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.grafico-largo {
+    height: 390px;
 }
 
-@media (max-width: 700px) {
-    .cards,
-    .graficos {
-        grid-template-columns: 1fr;
-    }
-}
-/* DASHBOARD FINAL */
-
-#dashboard {
-    margin-top: 110px !important;
-    padding: 24px !important;
-    background: #f4f6f8 !important;
-    min-height: calc(100vh - 110px) !important;
-    box-sizing: border-box !important;
-    overflow-x: hidden !important;
-}
-
-.cards {
-    display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 16px !important;
-    margin-bottom: 18px !important;
-}
-
-.card {
-    min-width: 0 !important;
-    padding: 16px !important;
-}
-
-.card strong {
-    font-size: 24px !important;
-}
-
-.graficos {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 16px !important;
-}
-
-.grafico-card {
-    height: 310px !important;
-    min-width: 0 !important;
-    padding: 16px !important;
-}
-
-.grafico-card canvas {
-    width: 100% !important;
-    height: 230px !important;
+.grafico-largo canvas {
+    height: 315px !important;
 }
 
 html,
 body {
     overflow-x: hidden !important;
+}
+
+@media (max-width: 1400px) {
+    .cards-5 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .graficos-3,
+    .graficos-grandes {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 800px) {
+    .cards-5,
+    .graficos-3,
+    .graficos-grandes {
+        grid-template-columns: 1fr;
+    }
 }
