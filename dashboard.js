@@ -1,9 +1,21 @@
+let contratoSelecionado = "TODOS";
+
+let graficoStatusObras = null;
+let graficoMetodo = null;
+let graficoDiametro = null;
+let graficoMaterial = null;
+let graficoFrentesStatus = null;
+let graficoEEEStatus = null;
+let graficoManchas = null;
+let graficoValores = null;
+let graficoExtensao = null;
+
 function formatarNumero(valor) {
-    return valor.toLocaleString("pt-BR");
+    return Number(valor || 0).toLocaleString("pt-BR");
 }
 
 function formatarMoeda(valor) {
-    return valor.toLocaleString("pt-BR", {
+    return Number(valor || 0).toLocaleString("pt-BR", {
         style: "currency",
         currency: "BRL"
     });
@@ -23,6 +35,41 @@ function obterFeatures(nomeVariavel) {
     return window[nomeVariavel].features || [];
 }
 
+function filtrarContrato(contrato) {
+    contratoSelecionado = contrato;
+    atualizarDashboard();
+}
+
+function filtrarPorContrato(features, campoContrato) {
+    if (contratoSelecionado === "TODOS") return features;
+
+    return features.filter(feature =>
+        String(feature.properties?.[campoContrato] || "").trim() === contratoSelecionado
+    );
+}
+
+function agruparFrentesUnicas(obras) {
+    const mapa = {};
+
+    obras.forEach(feature => {
+        const p = feature.properties || {};
+        const frente = p.FRENTE || "Não informado";
+
+        if (!mapa[frente]) {
+            mapa[frente] = {
+                frente: frente,
+                contrato: p.NUM_CONTRA || "",
+                status: p.STATUS_C || "Não informado",
+                metodo: p.METODO || "Não informado",
+                diametro: p.DIAMETR_MM || "Não informado",
+                material: p.MATERIAL || p.TIPO || "Não informado"
+            };
+        }
+    });
+
+    return Object.values(mapa);
+}
+
 function contarPorCampo(features, campo) {
     const contagem = {};
 
@@ -34,11 +81,51 @@ function contarPorCampo(features, campo) {
     return contagem;
 }
 
-function criarGraficoBarra(idCanvas, titulo, dados) {
-    const canvas = document.getElementById(idCanvas);
-    if (!canvas) return;
+function contarPorCampoArray(lista, campo) {
+    const contagem = {};
 
-    new Chart(canvas, {
+    lista.forEach(item => {
+        const valor = item[campo] || "Não informado";
+        contagem[valor] = (contagem[valor] || 0) + 1;
+    });
+
+    return contagem;
+}
+
+function manchasPorCor(features) {
+    const resultado = {};
+
+    features.forEach(feature => {
+        const p = feature.properties || {};
+        const cor = p.COR_MANCHA || "Não informado";
+
+        if (!resultado[cor]) {
+            resultado[cor] = {
+                ftu: 0,
+                contrato: 0
+            };
+        }
+
+        resultado[cor].ftu += Number(p.ECON_FTU) || 0;
+        resultado[cor].contrato += Number(p.ECON_CONT) || 0;
+    });
+
+    return resultado;
+}
+
+function destruirGrafico(grafico) {
+    if (grafico) {
+        grafico.destroy();
+    }
+}
+
+function criarGraficoBarra(idCanvas, titulo, dados, graficoExistente) {
+    destruirGrafico(graficoExistente);
+
+    const canvas = document.getElementById(idCanvas);
+    if (!canvas) return null;
+
+    return new Chart(canvas, {
         type: "bar",
         data: {
             labels: Object.keys(dados),
@@ -50,7 +137,14 @@ function criarGraficoBarra(idCanvas, titulo, dados) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: "index",
+                intersect: false
+            },
             plugins: {
+                tooltip: {
+                    enabled: true
+                },
                 legend: {
                     display: false
                 }
@@ -64,8 +158,62 @@ function criarGraficoBarra(idCanvas, titulo, dados) {
     });
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+function criarGraficoManchas(idCanvas, dados, graficoExistente) {
+    destruirGrafico(graficoExistente);
 
+    const canvas = document.getElementById(idCanvas);
+    if (!canvas) return null;
+
+    return new Chart(canvas, {
+        type: "bar",
+        data: {
+            labels: Object.keys(dados),
+            datasets: [
+                {
+                    label: "Economias Fator U",
+                    data: Object.values(dados).map(item => item.ftu)
+                },
+                {
+                    label: "Economias Contrato",
+                    data: Object.values(dados).map(item => item.contrato)
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: "index",
+                intersect: false
+            },
+            plugins: {
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ": " + formatarNumero(context.raw);
+                        }
+                    }
+                },
+                legend: {
+                    position: "bottom"
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatarNumero(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function carregarMetasGerais() {
     const ecoFU = metas.economias.fatorU;
     const ecoContrato = metas.economias.contrato;
     const imob = metas.imobilizado;
@@ -91,29 +239,106 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("prodAndamentoReal").innerText = formatarNumero(prodAndamento.realizado) + " m";
     document.getElementById("prodAndamentoPerc").innerText = percentual(prodAndamento.realizado, prodAndamento.previsto).toFixed(2) + "%";
     document.getElementById("prodAndamentoMeta").innerText = "Meta: " + formatarNumero(prodAndamento.previsto) + " m";
+}
 
-    const obras = obterFeatures("json_OBRAS_EMN2_4");
-    const eee = obterFeatures("json_EEE_6");
-    const sinistros = obterFeatures("json_SinistroEMN2_7");
-    const frentes = obterFeatures("json_EMN2Frentes_em_Andamento_9");
-    const manchas = obterFeatures("json_VIRADADEMANCHA_2");
+function atualizarDashboard() {
+    const obrasTodas = obterFeatures("json_OBRAS_EMN2_4");
+    const eeeTodas = obterFeatures("json_EEE_6");
+    const sinistrosTodas = obterFeatures("json_SinistroEMN2_7");
+    const frentesTodas = obterFeatures("json_EMN2Frentes_em_Andamento_9");
+    const manchasTodas = obterFeatures("json_VIRADADEMANCHA_2");
 
-    document.getElementById("totalObras").innerText = obras.length.toLocaleString("pt-BR");
+    const obras = filtrarPorContrato(obrasTodas, "NUM_CONTRA");
+    const sinistros = filtrarPorContrato(sinistrosTodas, "Contrato");
+    const frentes = filtrarPorContrato(frentesTodas, "CONTRATO");
+
+    const frentesUnicas = agruparFrentesUnicas(obras);
+
+    const statusProntos = [
+        "OBRA CONCLUÍDA",
+        "OBRA CONCLUIDA",
+        "PAVIMENTAÇÃO PROVISÓRIA CONCLUÍDA",
+        "PAVIMENTACAO PROVISORIA CONCLUIDA",
+        "PAVIMENTAÇÃO DEFINITIVA CONCLUÍDA",
+        "PAVIMENTACAO DEFINITIVA CONCLUIDA",
+        "IMOBILIZADO"
+    ];
+
+    const prontas = frentesUnicas.filter(item =>
+        statusProntos.includes(String(item.status).trim().toUpperCase())
+    ).length;
+
+    const percentualProntas = frentesUnicas.length
+        ? percentual(prontas, frentesUnicas.length)
+        : 0;
+
+    document.getElementById("totalObras").innerText = frentesUnicas.length.toLocaleString("pt-BR");
+
+    if (document.getElementById("percentualObrasProntas")) {
+        document.getElementById("percentualObrasProntas").innerText = percentualProntas.toFixed(1) + "% prontas";
+    }
+
     document.getElementById("totalFrentes").innerText = frentes.length.toLocaleString("pt-BR");
     document.getElementById("totalSinistros").innerText = sinistros.length.toLocaleString("pt-BR");
-    document.getElementById("totalEEE").innerText = eee.length.toLocaleString("pt-BR");
+    document.getElementById("totalEEE").innerText = eeeTodas.length.toLocaleString("pt-BR");
 
     const totalLancamentos = window.json_PONTOSDELANAMENTO_1?.features?.length || 0;
-    document.getElementById("totalLancamentos").innerText = totalLancamentos.toLocaleString("pt-BR");
 
-    criarGraficoBarra("graficoStatusObras", "Obras por Status", contarPorCampo(obras, "STATUS_C"));
-    criarGraficoBarra("graficoMetodo", "Obras por Método", contarPorCampo(obras, "METODO"));
-    criarGraficoBarra("graficoDiametro", "Obras por Diâmetro", contarPorCampo(obras, "DIAMETR_MM"));
-    criarGraficoBarra("graficoFrentesStatus", "Frentes por Status", contarPorCampo(frentes, "STATUS"));
-    criarGraficoBarra("graficoEEEStatus", "EEE por Status", contarPorCampo(eee, "STATUS"));
-    criarGraficoBarra("graficoManchas", "Manchas por Cor", contarPorCampo(manchas, "COR_MANCHA"));
+    if (document.getElementById("totalLancamentos")) {
+        document.getElementById("totalLancamentos").innerText = totalLancamentos.toLocaleString("pt-BR");
+    }
 
-    new Chart(document.getElementById("graficoValores"), {
+    graficoStatusObras = criarGraficoBarra(
+        "graficoStatusObras",
+        "Obras por Status",
+        contarPorCampoArray(frentesUnicas, "status"),
+        graficoStatusObras
+    );
+
+    graficoMetodo = criarGraficoBarra(
+        "graficoMetodo",
+        "Obras por Método",
+        contarPorCampoArray(frentesUnicas, "metodo"),
+        graficoMetodo
+    );
+
+    graficoDiametro = criarGraficoBarra(
+        "graficoDiametro",
+        "Obras por Diâmetro",
+        contarPorCampoArray(frentesUnicas, "diametro"),
+        graficoDiametro
+    );
+
+    graficoMaterial = criarGraficoBarra(
+        "graficoMaterial",
+        "Obras por Material",
+        contarPorCampoArray(frentesUnicas, "material"),
+        graficoMaterial
+    );
+
+    graficoFrentesStatus = criarGraficoBarra(
+        "graficoFrentesStatus",
+        "Frentes por Status",
+        contarPorCampo(frentes, "STATUS"),
+        graficoFrentesStatus
+    );
+
+    graficoEEEStatus = criarGraficoBarra(
+        "graficoEEEStatus",
+        "EEE por Status",
+        contarPorCampo(eeeTodas, "STATUS"),
+        graficoEEEStatus
+    );
+
+    graficoManchas = criarGraficoManchas(
+        "graficoManchas",
+        manchasPorCor(manchasTodas),
+        graficoManchas
+    );
+}
+
+function criarGraficosFixos() {
+    graficoValores = new Chart(document.getElementById("graficoValores"), {
         type: "bar",
         data: {
             labels: metas.valoresContratos.map(item => item.contrato),
@@ -135,7 +360,19 @@ document.addEventListener("DOMContentLoaded", function () {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: "index",
+                intersect: false
+            },
             plugins: {
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ": " + formatarMoeda(context.raw);
+                        }
+                    }
+                },
                 legend: {
                     position: "bottom"
                 }
@@ -152,7 +389,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    new Chart(document.getElementById("graficoExtensao"), {
+    graficoExtensao = new Chart(document.getElementById("graficoExtensao"), {
         type: "bar",
         data: {
             labels: metas.extensaoContratos.map(item => item.contrato),
@@ -178,7 +415,19 @@ document.addEventListener("DOMContentLoaded", function () {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: "index",
+                intersect: false
+            },
             plugins: {
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ": " + formatarNumero(context.raw) + " m";
+                        }
+                    }
+                },
                 legend: {
                     position: "bottom"
                 }
@@ -187,12 +436,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 y: {
                     ticks: {
                         callback: function(value) {
-                            return value.toLocaleString("pt-BR") + " m";
+                            return formatarNumero(value) + " m";
                         }
                     }
                 }
             }
         }
     });
+}
 
+document.addEventListener("DOMContentLoaded", function () {
+    carregarMetasGerais();
+    atualizarDashboard();
+    criarGraficosFixos();
 });
