@@ -78,13 +78,21 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 });
-function obterFeatures(nomeVariavel) {
-    if (!window[nomeVariavel]) {
-        console.warn("Camada não encontrada:", nomeVariavel);
+function obterFeaturesPorNome(parteDoNome) {
+    const variavel = Object.keys(window).find(nome =>
+        nome.startsWith("json_") &&
+        nome.toLowerCase().includes(parteDoNome.toLowerCase())
+    );
+
+    if (!variavel) {
+        console.warn("Camada não encontrada contendo:", parteDoNome);
         return [];
     }
 
-    return window[nomeVariavel].features || [];
+    console.log("Camada encontrada:", variavel);
+
+    return window[variavel].features || [];
+}
 }
 
 function contarPorCampo(features, campo) {
@@ -130,11 +138,11 @@ function criarGraficoBarra(idCanvas, titulo, dados) {
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    const obras = obterFeatures("json_OBRAS_3");
-    const eee = obterFeatures("json_EEE_5");
-    const sinistros = obterFeatures("json_SinistroEMN2_6");
-    const viradaMancha = obterFeatures("json_VIRADADEMANCHA_2");
-    const frentes = obterFeatures("json_EMN2Frentes_em_Andamento_7");
+    const obras = obterFeaturesPorNome("OBRAS");
+const eee = obterFeaturesPorNome("EEE");
+const sinistros = obterFeaturesPorNome("Sinistro");
+const viradaMancha = obterFeaturesPorNome("VIRADA");
+const frentes = obterFeaturesPorNome("Frentes");
 
     document.getElementById("totalObras").innerText = obras.length.toLocaleString("pt-BR");
     document.getElementById("totalFrentes").innerText = frentes.length.toLocaleString("pt-BR");
