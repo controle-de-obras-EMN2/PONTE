@@ -2,218 +2,231 @@
 <html lang="pt-BR">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PONTE | Dashboard</title>
 
-<meta charset="UTF-8">
-
-<title>PONTE | Dashboard</title>
-
-<link rel="stylesheet" href="ponte.css">
-
+    <link rel="stylesheet" href="ponte.css">
 </head>
 
 <body>
 
-<header id="header">
+    <header id="header">
 
-    <img src="images/logo_ponte.png" id="logo">
+        <img src="images/logo_ponte.png" id="logo" alt="Logo PONTE">
 
-    <div id="titulo">
-        Plataforma de Operação e Navegação Técnica de Engenharia
+        <div id="titulo">
+            Plataforma de Operação e Navegação Técnica de Engenharia
+        </div>
+
+        <div id="menu">
+
+            <a href="index.html" class="menu-btn">
+                🗺️ Mapa
+            </a>
+
+            <a href="dashboard.html" class="menu-btn">
+                📊 Dashboard
+            </a>
+
+        </div>
+
+    </header>
+
+    <main id="dashboard">
+
+        <section class="filtros-dashboard">
+            <button onclick="filtrarContrato('TODOS')">Todos</button>
+            <button onclick="filtrarContrato('00268/24')">00268/24</button>
+            <button onclick="filtrarContrato('00272/24')">00272/24</button>
+            <button onclick="filtrarContrato('00274/24')">00274/24</button>
+            <button onclick="filtrarContrato('00277/24')">00277/24</button>
+            <button onclick="filtrarContrato('00797/24')">00797/24</button>
+            <button onclick="filtrarContrato('00900/24')">00900/24</button>
+            <button onclick="filtrarContrato('01151/21')">01151/21</button>
+            <button onclick="filtrarContrato('03179/23')">03179/23</button>
+        </section>
+
+        <section class="secao-dashboard">
+
+            <h2 id="tituloMetasGerais" class="titulo-click">Metas Gerais</h2>
+
+            <div class="cards cards-5">
+
+                <div class="card">
+                    <h3>Economias Fator U</h3>
+                    <strong id="ecoFatorUReal">0</strong>
+                    <span id="ecoFatorUPerc">0%</span>
+                    <p id="ecoFatorUMeta">Meta: 0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Economias Contrato</h3>
+                    <strong id="ecoContratoReal">0</strong>
+                    <span id="ecoContratoPerc">0%</span>
+                    <p id="ecoContratoMeta">Meta: 0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Imobilizado</h3>
+                    <strong id="imobReal">R$ 0</strong>
+                    <span id="imobPerc">0%</span>
+                    <p id="imobMeta">Meta: R$ 0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Produção Integra</h3>
+                    <strong id="prodIntegraReal">0 m</strong>
+                    <span id="prodIntegraPerc">0%</span>
+                    <p id="prodIntegraMeta">Meta: 0 m</p>
+                </div>
+
+                <div class="card">
+                    <h3>Produção Andamento</h3>
+                    <strong id="prodAndamentoReal">0 m</strong>
+                    <span id="prodAndamentoPerc">0%</span>
+                    <p id="prodAndamentoMeta">Meta: 0 m</p>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="secao-dashboard">
+
+            <h2>Operação</h2>
+
+            <div class="cards cards-5">
+
+                <div class="card card-click" id="cardObras">
+                    <h3>Obras cadastradas</h3>
+                    <strong id="totalObras">0</strong>
+                    <span id="percentualObrasProntas">0% prontas</span>
+                    <p>Frentes únicas cadastradas</p>
+                </div>
+
+                <div class="card card-click" id="cardFrentes">
+                    <h3>Frentes em campo</h3>
+                    <strong id="totalFrentes">0</strong>
+                    <p>Frentes de serviço ativas</p>
+                </div>
+
+                <div class="card card-click" id="cardSinistros">
+                    <h3>Sinistros</h3>
+                    <strong id="totalSinistros">0</strong>
+                    <p>Ocorrências cadastradas</p>
+                </div>
+
+                <div class="card card-click" id="cardEEE">
+                    <h3>EEE</h3>
+                    <strong id="totalEEE">0</strong>
+                    <p>Elevatórias cadastradas</p>
+                </div>
+
+                <div class="card card-click" id="cardLancamentos">
+                    <h3>Pontos de lançamento</h3>
+                    <strong id="totalLancamentos">0</strong>
+                    <span id="statusLancamentos">Ativos: 0 | Suprimidos: 0</span>
+                    <p>Pontos irregulares cadastrados</p>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="secao-dashboard">
+
+            <h2>Indicadores do Mapa</h2>
+
+            <div class="graficos graficos-3">
+
+                <div class="grafico-card">
+                    <h3>Obras por Status</h3>
+                    <canvas id="graficoStatusObras"></canvas>
+                </div>
+
+                <div class="grafico-card">
+                    <h3>Obras por Método</h3>
+                    <canvas id="graficoMetodo"></canvas>
+                </div>
+
+                <div class="grafico-card">
+                    <h3>Obras por Diâmetro</h3>
+                    <canvas id="graficoDiametro"></canvas>
+                </div>
+
+                <div class="grafico-card">
+                    <h3>Obras por Material</h3>
+                    <canvas id="graficoMaterial"></canvas>
+                </div>
+
+                <div class="grafico-card">
+                    <h3>Frentes por Status</h3>
+                    <canvas id="graficoFrentesStatus"></canvas>
+                </div>
+
+                <div class="grafico-card">
+                    <h3>EEE por Status</h3>
+                    <canvas id="graficoEEEStatus"></canvas>
+                </div>
+
+                <div class="grafico-card">
+                    <h3>Manchas por Cor</h3>
+                    <canvas id="graficoManchas"></canvas>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="secao-dashboard">
+
+            <h2>Contratos</h2>
+
+            <div class="graficos graficos-grandes">
+
+                <div class="grafico-card grafico-largo">
+                    <h3>Valor Contratual x Pedido x Unitizado</h3>
+                    <canvas id="graficoValores"></canvas>
+                </div>
+
+                <div class="grafico-card grafico-largo">
+                    <h3>Extensão Contratual x Atual x Executada x Unitizada</h3>
+                    <canvas id="graficoExtensao"></canvas>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <div id="modal" class="modal" style="display:none;">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h2 id="modalTitulo"></h2>
+                <button class="modal-close" type="button" onclick="fecharModal()">×</button>
+            </div>
+
+            <div id="modalCorpo"></div>
+
+        </div>
     </div>
 
-    <div id="menu">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        <a href="index.html" class="menu-btn">
-            🗺️ Mapa
-        </a>
+    <script src="dados/metas.js"></script>
 
-        <a href="dashboard.html" class="menu-btn">
-            📊 Dashboard
-        </a>
+    <script src="MAPA/layers/OBRAS_EMN2_4.js"></script>
+    <script src="MAPA/layers/VIRADADEMANCHA_2.js"></script>
+    <script src="MAPA/layers/EEE_6.js"></script>
+    <script src="MAPA/layers/SinistroEMN2_7.js"></script>
+    <script src="MAPA/layers/EMN2Frentes_em_Andamento_9.js"></script>
+    <script src="MAPA/layers/PONTOSDELANAMENTO_8.js"></script>
 
-    </div>
+    <script src="dashboard.js"></script>
 
-</header>
+</body>
 
-  <main id="dashboard">
-      <section class="filtros-dashboard">
-    <button onclick="filtrarContrato('TODOS')">Todos</button>
-    <button onclick="filtrarContrato('00268/24')">00268/24</button>
-    <button onclick="filtrarContrato('00272/24')">00272/24</button>
-    <button onclick="filtrarContrato('00274/24')">00274/24</button>
-    <button onclick="filtrarContrato('00277/24')">00277/24</button>
-    <button onclick="filtrarContrato('00797/24')">00797/24</button>
-    <button onclick="filtrarContrato('00900/24')">00900/24</button>
-    <button onclick="filtrarContrato('01151/21')">01151/21</button>
-    <button onclick="filtrarContrato('03179/23')">03179/23</button>
-</section>
-
-  <section class="secao-dashboard">
-      
-    <h2 id="tituloMetasGerais" class="titulo-click">Metas Gerais</h2>
-    <div class="cards cards-5">
-
-        <div class="card">
-            <h3>Economias Fator U</h3>
-            <strong id="ecoFatorUReal">0</strong>
-            <span id="ecoFatorUPerc">0%</span>
-            <p id="ecoFatorUMeta">Meta: 0</p>
-        </div>
-
-        <div class="card">
-            <h3>Economias Contrato</h3>
-            <strong id="ecoContratoReal">0</strong>
-            <span id="ecoContratoPerc">0%</span>
-            <p id="ecoContratoMeta">Meta: 0</p>
-        </div>
-
-        <div class="card">
-            <h3>Imobilizado</h3>
-            <strong id="imobReal">R$ 0</strong>
-            <span id="imobPerc">0%</span>
-            <p id="imobMeta">Meta: R$ 0</p>
-        </div>
-
-        <div class="card">
-            <h3>Produção Integra</h3>
-            <strong id="prodIntegraReal">0 m</strong>
-            <span id="prodIntegraPerc">0%</span>
-            <p id="prodIntegraMeta">Meta: 0 m</p>
-        </div>
-
-        <div class="card">
-            <h3>Produção Andamento</h3>
-            <strong id="prodAndamentoReal">0 m</strong>
-            <span id="prodAndamentoPerc">0%</span>
-            <p id="prodAndamentoMeta">Meta: 0 m</p>
-        </div>
-
-    </div>
-</section>
-
-<section class="secao-dashboard">
-    <h2>Operação</h2>
-
-    <div class="cards cards-5">
-
-        <div class="card card-click" id="cardObras">
-    <h3>Obras cadastradas</h3>
-    <strong id="totalObras">0</strong>
-    <span id="percentualObrasProntas">0% prontas</span>
-    <p>Frentes únicas cadastradas</p>
-</div>
-
-       <div class="card card-click" id="cardFrentes">
-    <h3>Frentes em campo</h3>
-    <strong id="totalFrentes">0</strong>
-    <p>Frentes de serviço ativas</p>
-</div>
-
-      <div class="card card-click" id="cardSinistros">
-    <h3>Sinistros</h3>
-    <strong id="totalSinistros">0</strong>
-    <p>Ocorrências cadastradas</p>
-</div>
-
-        <div class="card card-click" id="cardEEE">
-    <h3>EEE</h3>
-    <strong id="totalEEE">0</strong>
-    <p>Elevatórias cadastradas</p>
-</div>
-
-       <div class="card card-click" id="cardLancamentos">
-    <h3>Pontos de lançamento</h3>
-    <strong id="totalLancamentos">0</strong>
-    <span id="statusLancamentos">Ativos: 0 | Suprimidos: 0</span>
-    <p>Pontos irregulares cadastrados</p>
-</div>
-
-    </div>
-</section>
-
-<section class="secao-dashboard">
-    <h2>Indicadores do Mapa</h2>
-
-    <div class="graficos graficos-3">
-
-        <div class="grafico-card">
-            <h3>Obras por Status</h3>
-            <canvas id="graficoStatusObras"></canvas>
-        </div>
-
-        <div class="grafico-card">
-            <h3>Obras por Método</h3>
-            <canvas id="graficoMetodo"></canvas>
-        </div>
-
-        <div class="grafico-card">
-            <h3>Obras por Diâmetro</h3>
-            <canvas id="graficoDiametro"></canvas>
-        </div>
-
-        <div class="grafico-card">
-    <h3>Obras por Material</h3>
-    <canvas id="graficoMaterial"></canvas>
-</div>
-
-        <div class="grafico-card">
-            <h3>Frentes por Status</h3>
-            <canvas id="graficoFrentesStatus"></canvas>
-        </div>
-
-        <div class="grafico-card">
-            <h3>EEE por Status</h3>
-            <canvas id="graficoEEEStatus"></canvas>
-        </div>
-
-        <div class="grafico-card">
-            <h3>Manchas por Cor</h3>
-            <canvas id="graficoManchas"></canvas>
-        </div>
-
-    </div>
-</section>
-
-<section class="secao-dashboard">
-    <h2>Contratos</h2>
-
-    <div class="graficos graficos-grandes">
-
-        <div class="grafico-card grafico-largo">
-            <h3>Valor Contratual x Pedido x Unitizado</h3>
-            <canvas id="graficoValores"></canvas>
-        </div>
-
-        <div class="grafico-card grafico-largo">
-            <h3>Extensão Contratual x Atual x Executada x Unitizada</h3>
-            <canvas id="graficoExtensao"></canvas>
-        </div>
-
-    </div>
-    
-</section>
-      <div id="modal" class="modal" style="display:none;">
-    <div class="modal-content">
-
-        <div class="modal-header">
-            <h2 id="modalTitulo"></h2>
-            <button class="modal-close" type="button" onclick="fecharModal()">×</button>
-        </div>
-
-        <div id="modalCorpo"></div>
-
-    </div>
-</div>
-      
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="dados/metas.js"></script>
-
-<script src="MAPA/layers/OBRAS_EMN2_4.js"></script>
-<script src="MAPA/layers/VIRADADEMANCHA_2.js"></script>
-<script src="MAPA/layers/EEE_6.js"></script>
-<script src="MAPA/layers/SinistroEMN2_7.js"></script>
-<script src="MAPA/layers/EMN2Frentes_em_Andamento_9.js"></script>
-<script src="MAPA/layers/PONTOSDELANAMENTO_8.js"></script>
-
-<script src="dashboard.js"></script>
-      
+</html>
