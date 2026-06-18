@@ -523,7 +523,7 @@ body.modal-open {
     }
 
     #logo {
-        height: 130px;
+        height: 90px;
     }
 
     #titulo {
@@ -543,7 +543,10 @@ body.modal-open {
         margin-top: 130px;
     }
 
-    .cards-5,
+    .cards-5 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .graficos-3,
     .graficos-grandes {
         grid-template-columns: 1fr;
@@ -554,3 +557,183 @@ body.modal-open {
         max-height: 88vh;
     }
 }
+
+/* =========================================================
+   CORREÇÃO MOBILE DO DASHBOARD
+   ========================================================= */
+
+@media (max-width: 800px) {
+
+    body {
+        overflow-x: hidden;
+    }
+
+    #header {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+
+        height: auto !important;
+        min-height: auto !important;
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        padding: 18px 16px 16px 16px;
+
+        box-sizing: border-box;
+    }
+
+    #logo {
+        height: 90px !important;
+        width: auto !important;
+
+        margin: 0 0 12px 0 !important;
+
+        pointer-events: none;
+    }
+
+    #titulo {
+        margin: 0 !important;
+
+        text-align: center;
+
+        font-size: 18px !important;
+        line-height: 1.25;
+
+        max-width: 100%;
+    }
+
+    #menu {
+        width: 100%;
+
+        margin: 18px 0 0 0 !important;
+
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+    }
+
+    .menu-btn {
+        padding: 12px 18px;
+
+        font-size: 18px;
+
+        border-radius: 8px;
+    }
+
+    #dashboard {
+        margin-top: 0 !important;
+
+        padding: 16px;
+
+        min-height: auto;
+    }
+
+    .filtros-dashboard {
+        display: flex;
+
+        flex-wrap: nowrap;
+
+        gap: 10px;
+
+        overflow-x: auto;
+
+        padding: 0 0 12px 0;
+
+        margin-bottom: 22px;
+
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .filtros-dashboard button {
+        flex: 0 0 auto;
+
+        min-width: 100px;
+        height: 46px;
+
+        padding: 0 14px;
+
+        font-size: 15px;
+
+        border-radius: 9px;
+    }
+
+    .secao-dashboard h2 {
+        font-size: 24px;
+
+        margin-bottom: 18px;
+    }
+
+    .cards-5 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+
+        gap: 14px;
+    }
+
+    .card {
+        padding: 16px;
+
+        border-left-width: 5px;
+    }
+
+    .card h3 {
+        font-size: 15px;
+        line-height: 1.2;
+    }
+
+    .card strong {
+        font-size: 24px;
+    }
+
+    .card span {
+        font-size: 15px;
+    }
+
+    .card p {
+        font-size: 13px;
+    }
+
+    .graficos-3,
+    .graficos-grandes {
+        grid-template-columns: 1fr !important;
+    }
+
+    .grafico-card {
+        height: 330px;
+    }
+
+    .grafico-card canvas {
+        height: 255px !important;
+    }
+
+    .grafico-largo {
+        height: 360px;
+    }
+
+    .grafico-largo canvas {
+        height: 285px !important;
+    }
+}
+
+
+/* Celulares muito estreitos */
+
+@media (max-width: 360px) {
+
+    .cards-5 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .menu-btn {
+        font-size: 16px;
+        padding: 10px 14px;
+    }
+
+    .card strong {
+        font-size: 22px;
+    }
+}
+
