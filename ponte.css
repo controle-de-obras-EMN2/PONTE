@@ -430,3 +430,94 @@ body {
 #modalCorpo {
     padding: 20px 24px 24px 24px;
 }
+
+/* MODAL / POP-UP */
+
+#modal.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(0,0,0,.45);
+}
+
+#modal .modal-content {
+    background: white;
+    width: 85%;
+    max-height: 80vh;
+    overflow: auto;
+    margin: 70px auto;
+    padding: 0;
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.25);
+}
+
+#modal .modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    padding: 20px 24px 14px 24px;
+    border-bottom: 1px solid #ddd;
+}
+
+#modal .modal-header h2 {
+    margin: 0;
+    color: #0b2f5b;
+}
+
+#modal .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    border: none;
+    background: #0b2f5b;
+    color: white;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+#modalCorpo {
+    padding: 20px 24px 24px 24px;
+}
+
+.tabela-modal {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.tabela-modal thead th {
+    position: sticky;
+    top: 0;
+    z-index: 9;
+    background: #0b2f5b;
+    color: white;
+    padding: 8px;
+    text-align: left;
+}
+
+.tabela-modal td {
+    border-bottom: 1px solid #ddd;
+    padding: 7px;
+}
+
+.card-click {
+    cursor: pointer;
+}
+
+.card-click:hover {
+    transform: translateY(-2px);
+    transition: .2s;
+}
+
+.titulo-click {
+    cursor: pointer;
+}
+
+.titulo-click:hover {
+    text-decoration: underline;
+}
