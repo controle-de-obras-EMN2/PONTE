@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PONTE | Fluxo</title>
+    <link rel="stylesheet" href="ponte.css">
+</head>
+
+<body>
+
+    <header id="header">
+
+        <img src="images/logo_ponte.png" id="logo" alt="Logo PONTE">
+
+        <div id="titulo">
+            Plataforma de Operação e Navegação Técnica de Engenharia
+        </div>
+
+        <div id="menu">
+            <a href="index.html" class="menu-btn">🗺️ Mapa</a>
+            <a href="dashboard.html" class="menu-btn">📊 Dashboard</a>
+            <a href="fluxo.html" class="menu-btn">🧭 Fluxo</a>
+        </div>
+
+    </header>
+
+    <main id="fluxo-page">
+
+        <section class="fluxo-topo">
+            <div>
+                <h1>Fluxo dos Pacotes</h1>
+                <p>Visualização interativa do caminhamento dos contratos, elevatórias, coletores e interferências.</p>
+            </div>
+
+            <div class="fluxo-acoes">
+                <input type="text" id="buscaFluxo" placeholder="Buscar contrato, EEE, coletor...">
+                <button type="button" onclick="centralizarFluxo()">Centralizar</button>
+            </div>
+        </section>
+
+        <section class="fluxo-legenda">
+            <button type="button" data-filtro="TODOS" class="ativo">Todos</button>
+            <button type="button" data-filtro="contrato">Contratos</button>
+            <button type="button" data-filtro="elevatoria">EEE</button>
+            <button type="button" data-filtro="coletor">Coletores</button>
+            <button type="button" data-filtro="linha_recalque">Linhas de recalque</button>
+            <button type="button" data-filtro="ponto_critico">Pontos críticos</button>
+            <button type="button" data-filtro="existente">Existente</button>
+        </section>
+
+        <section class="fluxo-container" id="fluxoContainer">
+            <svg id="fluxoSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div id="tooltipFluxo" class="tooltip-fluxo"></div>
+        </section>
+
+    </main>
+
+    <div id="modal" class="modal" style="display:none;">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h2 id="modalTitulo"></h2>
+                <button class="modal-close" type="button" onclick="fecharModal()">×</button>
+            </div>
+
+            <div id="modalCorpo"></div>
+
+        </div>
+    </div>
+
+    <script src="fluxo.js"></script>
+
+</body>
+
+</html>
