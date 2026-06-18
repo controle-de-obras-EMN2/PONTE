@@ -1,0 +1,327 @@
+﻿tipo;id;nome;categoria;contrato;coordenacao;meta_2025;meta_2026;economias_recebidas;economias_liberadas;extensao_km;metodo;vazao_ls;status;x;y;origem;destino;descricao;cor
+node;s3;ETE SÃO JOÃO;ete;;;;;;;;;;;47.5;98.0;;;Fluxograma: Terminação 2;
+node;s5;EEE PQ. DAS NAÇÕES | Q=126,0 l/s;elevatoria;;;;;;;;;126,0 l/s;;30.0;109.0;;;CaixaDeTexto 4;
+node;s8;EEE JD. FÁTIMA | Q=209,0 l/s;elevatoria;;;;;;;;;209,0 l/s;;36.0;104.0;;;CaixaDeTexto 7;
+node;s10;EEE DAS INDUSTRIAS | Q=21,13 l/s;elevatoria;;;;;;;;;21,13 l/s;;28.0;116.0;;;CaixaDeTexto 9;
+node;s12;CT MARGINAL;coletor;;;;;;;;;;;32.0;112.5;;;CaixaDeTexto 11;
+node;s14;CT CUMBICA TRAMO I;coletor;;;;;;;;;;;35.0;112.5;;;CaixaDeTexto 13;
+node;s16;CT CUMBICA TRAMO II;coletor;;;;;;;;;;;36.5;109.5;;;CaixaDeTexto 15;
+node;s20;LR DAS INDUSTRIAS;linha_recalque;;;;;;;;;;;28.5;112.5;;;CaixaDeTexto 19;
+node;s21;LR PQ. DAS NAÇÕES;linha_recalque;;;;;;;;;;;32.0;104.5;;;CaixaDeTexto 20;
+node;s23;CTS SÃO JOÃO;coletor;;;;;;;;;;;29.5;100.5;;;CaixaDeTexto 22;
+node;s27;EG PQ. DAS NAÇÕES;outro;;;;;;;;;;;34.5;104.5;;;CaixaDeTexto 26;
+node;s28;LR JD. FÁTIMA;linha_recalque;;;;;;;;;;;36.5;101.5;;;CaixaDeTexto 27;
+node;s30;EG JD. FÁTIMA;outro;;;;;;;;;;;38.5;97.5;;;CaixaDeTexto 29;
+node;s34;CT. VISTA DO PARARÍSO;coletor;;;;;;;;;;;41.5;97.5;;;CaixaDeTexto 33;
+node;s37;CT  RUA UBATA;coletor;;;;;;;;;;;28.0;121.5;;;CaixaDeTexto 36;
+node;s38;EEE MARIA DIRCE | Q=15,20 l/s;elevatoria;;;;;;;;;15,20 l/s;;30.0;125.5;;;CaixaDeTexto 37;
+node;s40;LR MARIA DIRCE;linha_recalque;;;;;;;;;;;32.0;121.5;;;CaixaDeTexto 39;
+node;s44;EG MARIA DIRCE;outro;;;;;;;;;;;35.5;121.0;;;CaixaDeTexto 43;
+node;s50;RCE EXISTENTE 300MM;existente;;;;;;;;;;;38.5;121.0;;;CaixaDeTexto 49;
+node;s51;CT LAURO;coletor;;;;;;;;;;;40.5;117.5;;;CaixaDeTexto 50;
+node;s52;CT CACHOEIRA DO ARARI;coletor;;;;;;;;;;;39.5;109.5;;;CaixaDeTexto 51;
+node;s56;EEE CARLOPOLIS | Q=5,0 l/s;elevatoria;;;;;;;;;5,0 l/s;;43.5;108.5;;;CaixaDeTexto 55;
+node;s58;LR CARLOPOLIS;linha_recalque;;;;;;;;;;;42.0;104.5;;;CaixaDeTexto 57;
+node;s59;CT CACHOEIRA DO ARARI;coletor;;;;;;;;;;;39.0;104.5;;;CaixaDeTexto 58;
+node;s62;CT EXISTENTE 500MM;coletor;;;;;;;;;;;45.0;98.0;;;CaixaDeTexto 61;
+node;s70;CTS. PAPA JOÃO PAULO I;coletor;;;;;;;;;;;42.0;91.0;;;CaixaDeTexto 69;
+node;s77;CT DAS INDUSTRIAS I;coletor;;;;;;;;;;;25.0;112.5;;;CaixaDeTexto 76;
+node;s78;CT DAS INDUSTRIAS II;coletor;;;;;;;;;;;25.0;119.0;;;CaixaDeTexto 77;
+node;s88;EEE MANOEL ALONSO ALEMANDRA | Q=5,0 l/s;elevatoria;;;;;;;;;5,0 l/s;;16.5;117.0;;;CaixaDeTexto 87;
+node;s91;LR MANOEL ALONSO ALEMANDRA;linha_recalque;;;;;;;;;;;18.0;113.5;;;CaixaDeTexto 90;
+node;s95;CT ALTO DO PARAGUAI;coletor;;;;;;;;;;;26.5;104.5;;;CaixaDeTexto 94;
+node;s101;CT ANTÔNIO JOÃO;coletor;;;;;;;;;;;14.5;97.5;;;CaixaDeTexto 100;
+node;s102;RCE EXISTENTE 300MM;existente;;;;;;;;;;;18.0;97.5;;;CaixaDeTexto 101;
+node;s103;CT RUA MIRIAM;coletor;;;;;;;;;;;16.0;101.5;;;CaixaDeTexto 102;
+node;s109;CT BARRA DAS GRAÇAS;coletor;;;;;;;;;;;21.5;104.5;;;CaixaDeTexto 108;
+node;s112;CT SÃO JOÃO;coletor;;;;;;;;;;;26.5;98.5;;;CaixaDeTexto 111;
+node;s114;CT PEDRA LAVADA;coletor;;;;;;;;;;;21.5;97.5;;;CaixaDeTexto 113;
+node;s122;RCE EXISTENTE 300MM;existente;;;;;;;;;;;19.5;110.0;;;CaixaDeTexto 121;
+node;s171;CT AVENIDA BRUMATTI;coletor;;;;;;;;;;;50.5;93.5;;;CaixaDeTexto 170;
+node;s173;CT EXISTENTE 500MM;coletor;;;;;;;;;;;50.0;97.5;;;CaixaDeTexto 172;
+node;s180;CT EXISTENTE 600MM;coletor;;;;;;;;;;;54.5;94.0;;;CaixaDeTexto 179;
+node;s183;CT EXISTENTE 500MM;coletor;;;;;;;;;;;53.0;97.5;;;CaixaDeTexto 182;
+node;s289;EEE VILA PARAÍSO | Q=386,10 l/s;elevatoria;;;;;;;;;386,10 l/s;;55.5;143.5;;;CaixaDeTexto 288;
+node;s291;LR VILA PARAÍSO;linha_recalque;;;;;;;;;;;56.0;140.5;;;CaixaDeTexto 290;
+node;s294;CT JD. SILVESTRE;coletor;;;;;;;;;;;54.5;144.5;;;CaixaDeTexto 293;
+node;s297;CT LAGO DE PEDRA;coletor;;;;;;;;;;;49.5;140.5;;;CaixaDeTexto 296;
+node;s298;CT PIMENTAS;coletor;;;;;;;;;;;53.0;141.5;;;CaixaDeTexto 297;
+node;s299;CT SANTA MARIA;coletor;;;;;;;;;;;51.0;144.5;;;CaixaDeTexto 298;
+node;s301;CT PQ. DAS NAÇÕES;coletor;;;;;;;;;;;59.5;140.5;;;CaixaDeTexto 300;
+node;s309;EEE PQ. INDUSTRIAL | Q=136,14 l/s;elevatoria;;;;;;;;;136,14 l/s;;51.0;136.0;;;CaixaDeTexto 308;
+node;s310;CT JD. CENTENÁRIO;coletor;;;;;;;;;;;49.5;132.5;;;CaixaDeTexto 309;
+node;s311;CT PQ. INDUSTRIAL;coletor;;;;;;;;;;;51.0;128.5;;;CaixaDeTexto 310;
+node;s316;LR PQ. INDUSTRIAL;linha_recalque;;;;;;;;;;;52.5;133.5;;;CaixaDeTexto 315;
+node;s320;CT VILA PARAÍSO;coletor;;;;;;;;;;;54.5;136.5;;;CaixaDeTexto 319;
+node;s326;INTERCEPTOR  ITB4;outro;;;;;;;;;;;65.5;137.0;;;CaixaDeTexto 325;
+node;s328;CT ÁGUA CHATA;coletor;;;;;;;;;;;61.5;145.5;;;CaixaDeTexto 327;
+node;s331;INTERCEPTOR EXISTENTE 1500MM;existente;;;;;;;;;;;64.5;129.0;;;CaixaDeTexto 330;
+node;s339;CT DUTRA;coletor;;;;;;;;;;;67.0;141.5;;;CaixaDeTexto 338;
+node;s341;CT JUSCELINO KUBTSCHEK;coletor;;;;;;;;;;;63.0;139.5;;;CaixaDeTexto 340;
+node;s523;EEE | BAMBI;elevatoria;;;;;;;;;;;65.0;102.0;;;CaixaDeTexto 522;
+node;s528;CTS RANGEL FILHO MD;coletor;;;;;;;;;;;50.5;111.5;;;CaixaDeTexto 527;
+node;s532;EEE SANTA PAULA | Q=20,0 l/s;elevatoria;;;;;;;;;20,0 l/s;;47.5;113.0;;;CaixaDeTexto 531;
+node;s533;LR PONTE ALTA;linha_recalque;;;;;;;;;;;63.5;115.5;;;CaixaDeTexto 532;
+node;s539;CT EXISTENTE 700MM;coletor;;;;;;;;;;;65.0;120.0;;;CaixaDeTexto 538;
+node;s540;CT VILA CARMELIA I;coletor;;;;;;;;;;;68.5;111.5;;;CaixaDeTexto 539;
+node;s543;EEE | NIPON 01 | Q=3,0 l/s;elevatoria;;;;;;;;;3,0 l/s;;83.0;96.0;;;CaixaDeTexto 542;
+node;s545;LINHA DE RECALQUE;outro;;;;;;;;;;;81.0;107.0;;;CaixaDeTexto 544;
+node;s546;REDE COLETORA;coletor;;;;;;;;;;;79.0;111.5;;;CaixaDeTexto 545;
+node;s552;LR SANTA PAULA;linha_recalque;;;;;;;;;;;49.5;115.5;;;CaixaDeTexto 551;
+node;s553;CT PONTE ALTA;coletor;;;;;;;;;;;53.0;115.5;;;CaixaDeTexto 552;
+node;s556;EEE | NIPON 02 | Q=5,0 l/s;elevatoria;;;;;;;;;5,0 l/s;;83.0;111.0;;;CaixaDeTexto 555;
+node;s557;EEE | NIPON 03 | Q=8,0 l/s;elevatoria;;;;;;;;;8,0 l/s;;79.5;119.5;;;CaixaDeTexto 556;
+node;s562;REDE COLETORA;coletor;;;;;;;;;;;84.5;98.0;;;CaixaDeTexto 561;
+node;s563;LINHA DE RECALQUE;outro;;;;;;;;;;;82.5;103.0;;;CaixaDeTexto 562;
+node;s566;REDE COLETORA;coletor;;;;;;;;;;;84.5;107.0;;;CaixaDeTexto 565;
+node;s568;LINHA DE RECALQUE;outro;;;;;;;;;;;77.5;115.5;;;CaixaDeTexto 567;
+node;s571;EEE | BONSUCESSO | Q=440,50 l/s;elevatoria;;;;;;;;;440,50 l/s;;72.0;127.0;;;CaixaDeTexto 570;
+node;s573;LR BONSUCESSO;linha_recalque;;;;;;;;;;;70.5;123.5;;;CaixaDeTexto 572;
+node;s576;CT BONSUCESSO;coletor;;;;;;;;;;;67.0;123.5;;;CaixaDeTexto 575;
+node;s579;INTERCEPTOR EXISTENTE 1500MM;existente;;;;;;;;;;;64.0;123.5;;;CaixaDeTexto 578;
+node;s580;ETE BONSUCESSO;ete;;;;;;;;;;;62.0;124.0;;;Fluxograma: Terminação 579;
+node;s583;EEE PONTE ALTA | Q=30,12 l/s;elevatoria;;;;;;;;;30,12 l/s;;62.0;119.5;;;CaixaDeTexto 582;
+node;s585;EEE JD. CAMPESTRE;elevatoria;;;;;;;;;;;69.0;119.0;;;CaixaDeTexto 584;
+node;s586;LR JD. CAMPESTRE;linha_recalque;;;;;;;;;;;67.0;115.5;;;CaixaDeTexto 585;
+node;s589;CT SERRA DO OURO;coletor;;;;;;;;;;;71.0;107.0;;;CaixaDeTexto 588;
+node;s590;LR BAMBI;linha_recalque;;;;;;;;;;;67.0;99.5;;;CaixaDeTexto 589;
+node;s592;CT VILA CARMELIA I;coletor;;;;;;;;;;;68.5;103.5;;;CaixaDeTexto 591;
+node;s595;CTS VILA CARMELIA I;coletor;;;;;;;;;;;71.0;98.0;;;CaixaDeTexto 594;
+node;s599;CT PONTA ALTA;coletor;;;;;;;;;;;56.0;115.5;;;CaixaDeTexto 598;
+node;s600;CT PONTA ALTA;coletor;;;;;;;;;;;60.0;115.5;;;CaixaDeTexto 599;
+node;s606;CTS RANGEL FILHO ME;coletor;;;;;;;;;;;54.5;111.5;;;CaixaDeTexto 605;
+node;s607;CTS PONTE ALTA II;coletor;;;;;;;;;;;58.0;112.0;;;CaixaDeTexto 606;
+node;s609;EEE SANTA PAULA I;elevatoria;;;;;;;;;;;44.0;127.5;;;CaixaDeTexto 608;
+node;s612;LR SANTA PAULA I;linha_recalque;;;;;;;;;;;46.0;123.5;;;CaixaDeTexto 611;
+node;s613;CT SANTA APULA;coletor;;;;;;;;;;;47.5;120.5;;;CaixaDeTexto 612;
+node;s618;CT ARUJÁ;coletor;;;;;;;;;;;77.5;124.5;;;CaixaDeTexto 617;
+node;s620;CT CIDADE ARACILA;coletor;;;;;;;;;;;79.0;128.0;;;CaixaDeTexto 619;
+node;s623;INT. ESTRADA DOS VADOS 3;outro;;;;;;;;;;;81.0;123.5;;;CaixaDeTexto 622;
+node;s627;CT RECANTO PRIMAVERA;coletor;;;;;;;;;;;77.5;132.0;;;CaixaDeTexto 626;
+node;s641;EEE FORTALEZA | Q=90,25 l/s;elevatoria;;;;;;;;;90,25 l/s;;61.0;77.5;;;CaixaDeTexto 640;
+node;s646;CT 2;coletor;;;;;;;;;;;59.5;80.0;;;CaixaDeTexto 645;
+node;s647;CT 3;coletor;;;;;;;;;;;63.0;80.0;;;CaixaDeTexto 646;
+node;s650;LR FORTALEZA;linha_recalque;;;;;;;;;;;61.0;83.5;;;CaixaDeTexto 649;
+node;s652;ETE FORTALEZA;ete;;;;;;;;;;;65.0;87.5;;;Fluxograma: Terminação 651;
+node;s653;RCE 150MM;existente;;;;;;;;;;;63.0;88.5;;;CaixaDeTexto 652;
+node;s64;EEE ESTRADA DO SABO | Q=12,08 l/s;elevatoria;;;;;;;;;12,08 l/s;;27.0;58.0;;;CaixaDeTexto 63;
+node;s79;CT ESTRADA DO SABO TR2;coletor;;;;;;;;;;;30.5;58.5;;;CaixaDeTexto 78;
+node;s82;CT ITB-01 TRECHO 2;coletor;;;;;;;;;;;33.5;58.5;;;CaixaDeTexto 81;
+node;s83;CTS AV. SERRA REDONDA;coletor;;;;;;;;;;;28.5;61.5;;;CaixaDeTexto 82;
+node;s84;LR ESTRADA DO SABO;linha_recalque;;;;;;;;;;;28.5;53.5;;;CaixaDeTexto 83;
+node;s86;CTS ESTRADA DO SABO;coletor;;;;;;;;;;;26.5;50.5;;;CaixaDeTexto 85;
+node;s94;CT ITB-01 TRECHO 2;coletor;;;;;;;;;;;32.0;53.5;;;CaixaDeTexto 93;
+node;s96;CTS EDUARDO ABAD;coletor;;;;;;;;;;;30.5;50.5;;;CaixaDeTexto 95;
+node;s106;CT. SEVERIANO MELO TR2;coletor;;;;;;;;;;;39.0;46.5;;;CaixaDeTexto 105;
+node;s124;CT IBT-01 TRECHO 1;coletor;;;;;;;;;;;32.5;70.0;;;CaixaDeTexto 123;
+node;s514;CTS ESTRADA MUNICIPAL;coletor;;;;;;;;;;;35.5;70.0;;;CaixaDeTexto 513;
+node;s517;CTS DOMINGOS CANTARIN;coletor;;;;;;;;;;;35.5;54.0;;;CaixaDeTexto 516;
+node;s521;RCE EXISTENTE 400MM;existente;;;;;;;;;;;35.5;47.0;;;CaixaDeTexto 520;
+node;s522;PACOTE 15C;outro;;;;;;;;;;;28.5;71.0;;;CaixaDeTexto 521;
+node;s131;CTS CARMO DO CAJURU;coletor;;;;;;;;;;;35.5;62.0;;;CaixaDeTexto 130;
+node;s133;CT ITB-01 TRECHO 1;coletor;;;;;;;;;;;33.5;66.5;;;CaixaDeTexto 132;
+node;s134;PACOTE 15AB;outro;;;;;;;;;;;26.0;71.0;;;CaixaDeTexto 133;
+node;s136;ETE  VÁRZEA DO PALÁCIO;ete;;;;;;;;;;;23.0;71.0;;;Fluxograma: Terminação 135;
+node;s138;CT NOBURO NONAKA;coletor;;;;;;;;;;;33.5;75.5;;;CaixaDeTexto 137;
+node;s141;CTS ANGICO;coletor;;;;;;;;;;;33.5;50.5;;;CaixaDeTexto 140;
+node;s208;EEE RETA | Q=13,01 l/s;elevatoria;;;;;;;;;13,01 l/s;;23.5;49.5;;;CaixaDeTexto 207;
+node;s211;CTS JAIME TAVARES;coletor;;;;;;;;;;;13.0;43.5;;;CaixaDeTexto 210;
+node;s213;INTERL. 165;outro;;;;;;;;;;;18.5;47.5;;;CaixaDeTexto 212;
+node;s214;LR RETA;linha_recalque;;;;;;;;;;;21.5;47.5;;;CaixaDeTexto 213;
+node;s216;INTERL 160;outro;;;;;;;;;;;28.5;40.0;;;CaixaDeTexto 215;
+node;s217;INTERL. 161;outro;;;;;;;;;;;23.5;43.5;;;CaixaDeTexto 216;
+node;s224;EEE GRANITO | Q=12,52 l/s;elevatoria;;;;;;;;;12,52 l/s;;27.0;43.0;;;CaixaDeTexto 223;
+node;s226;LR GRANITO;linha_recalque;;;;;;;;;;;25.5;39.5;;;CaixaDeTexto 225;
+node;s228;EEE ZIRCONIO | Q=17,90 l/s;elevatoria;;;;;;;;;17,90 l/s;;16.5;37.5;;;CaixaDeTexto 227;
+node;s230;INTERL. 166;outro;;;;;;;;;;;16.5;43.5;;;CaixaDeTexto 229;
+node;s231;LR ZIRCONIO;linha_recalque;;;;;;;;;;;15.0;39.5;;;CaixaDeTexto 230;
+node;s235;EEE IRACI | Q=4,0 l/s;elevatoria;;;;;;;;;4,0 l/s;;16.5;57.5;;;CaixaDeTexto 234;
+node;s236;LR | IRACI;linha_recalque;;;;;;;;;;;15.5;54.5;;;CaixaDeTexto 235;
+node;s241;CTS JAIME TAVARES;coletor;;;;;;;;;;;13.5;50.5;;;CaixaDeTexto 240;
+node;s242;CTS NATAL DE BUONI;coletor;;;;;;;;;;;11.5;46.5;;;CaixaDeTexto 241;
+node;s246;EEE BEIRA RIO;elevatoria;;;;;;;;;;;6.5;49.5;;;CaixaDeTexto 245;
+node;s250;RCE EXISTENTE 400MM;existente;;;;;;;;;;;12.0;54.5;;;CaixaDeTexto 249;
+node;s251;LR | BEIRA RIO;linha_recalque;;;;;;;;;;;8.5;46.5;;;CaixaDeTexto 250;
+node;s253;LANÇAMENTO;outro;;;;;;;;;;;7.5;55.0;;;CaixaDeTexto 252;
+node;s255;EEE CONCEIÇÃO DO BANANAL | Q=4,0 l/s;elevatoria;;;;;;;;;4,0 l/s;;27.0;17.5;;;CaixaDeTexto 254;
+node;s655;LR CONCEIÇÃO DO BANANAL;linha_recalque;;;;;;;;;;;28.5;13.5;;;CaixaDeTexto 654;
+node;s658;INTERL. 159;outro;;;;;;;;;;;31.5;14.5;;;CaixaDeTexto 657;
+node;s660;CTS EDVALGO BRAGA;coletor;;;;;;;;;;;33.5;18.0;;;CaixaDeTexto 659;
+node;s664;EEE MONTE DAS OLIVEIRAS | Q=14,88 l/s;elevatoria;;;;;;;;;14,88 l/s;;34.0;32.5;;;CaixaDeTexto 663;
+node;s668;CT MONTE DAS OLIVEIRAS;coletor;;;;;;;;;;;32.0;28.0;;;CaixaDeTexto 667;
+node;s669;LR MONTE DAS OLIVEIRAS;linha_recalque;;;;;;;;;;;33.5;25.5;;;CaixaDeTexto 668;
+node;s672;CTS NINO FANTINI;coletor;;;;;;;;;;;35.0;22.0;;;CaixaDeTexto 671;
+node;s675;CTS ADALBERTO BELINI;coletor;;;;;;;;;;;38.5;22.0;;;CaixaDeTexto 674;
+node;s676;?????;outro;;;;;;;;;;;31.0;21.5;;;CaixaDeTexto 675;
+node;s679;CTS NS. APARECIDA;coletor;;;;;;;;;;;42.0;70.0;;;CaixaDeTexto 678;
+node;s682;RCE EXISTENTE 300MM;existente;;;;;;;;;;;39.0;70.0;;;CaixaDeTexto 681;
+node;s694;PACOTE 15D;outro;;;;;;;;;;;8.5;12.5;;;CaixaDeTexto 693;
+node;s695;PACOTE 19;outro;;;;;;;;;;;47.5;74.5;;;CaixaDeTexto 694;
+node;s696;PACOTE 10A;outro;;;;;;;;;;;15.5;83.5;;;CaixaDeTexto 695;
+node;s697;PACOTE 10B;outro;;;;;;;;;;;34.5;83.5;;;CaixaDeTexto 696;
+node;s698;PACOTE 10C;outro;;;;;;;;;;;44.5;133.5;;;CaixaDeTexto 697;
+node;s699;PACOTE 20;outro;;;;;;;;;;;73.5;140.0;;;CaixaDeTexto 698;
+node;s2;313 ECONOMIAS;outro;;;;;;;;;;;14.5;99.5;;;CaixaDeTexto 1;FF0000
+node;s145;1.216 ECONOMIAS;outro;;;;;;;;;;;26.5;99.5;;;CaixaDeTexto 144;FF0000
+node;s146;594 ECONOMIAS;outro;;;;;;;;;;;30.5;101.5;;;CaixaDeTexto 145;FF0000
+node;s147;1.003 ECONOMIAS;outro;;;;;;;;;;;25.0;115.0;;;CaixaDeTexto 146;FF0000
+node;s148;472 ECONOMIAS;outro;;;;;;;;;;;28.0;123.5;;;CaixaDeTexto 147;FF0000
+node;s149;2.434 ECONOMIAS;outro;;;;;;;;;;;35.0;115.5;;;CaixaDeTexto 148;FF0000
+node;s150;7 ECONOMIAS;outro;;;;;;;;;;;37.5;108.5;;;CaixaDeTexto 149;FF0000
+node;s151;10.331 ECONOMIAS;outro;;;;;;;;;;;49.5;134.5;;;CaixaDeTexto 150;FF0000
+node;s152;2.420 ECONOMIAS;outro;;;;;;;;;;;51.5;128.5;;;CaixaDeTexto 151;FF0000
+node;s153;2.102 ECONOMIAS;outro;;;;;;;;;;;55.0;136.5;;;CaixaDeTexto 152;FF0000
+node;s154;9.330 ECONOMIAS;outro;;;;;;;;;;;53.0;142.5;;;CaixaDeTexto 153;FF0000
+node;s155;6.640 ECONOMIAS;outro;;;;;;;;;;;55.5;147.0;;;CaixaDeTexto 154;FF0000
+node;s156;1.707 ECONOMIAS;outro;;;;;;;;;;;51.5;145.0;;;CaixaDeTexto 155;FF0000
+node;s162;CT ARUJÁ;coletor;;;;;;;;;;;74.0;124.5;;;CaixaDeTexto 161;
+node;s163;RCE EXISTENTE 200MM;existente;;;;;;;;;;;75.5;120.0;;;CaixaDeTexto 162;
+node;s164;13.551 ECONOMIAS;outro;;;;;;;;;;;63.0;142.5;;;CaixaDeTexto 163;FF0000
+node;s165;3 ECONOMIAS;outro;;;;;;;;;;;67.0;142.5;;;CaixaDeTexto 164;FF0000
+node;s166;25 ECONOMIAS;outro;;;;;;;;;;;65.5;137.0;;;CaixaDeTexto 165;FF0000
+node;s167;2.813 ECONOMIAS;outro;;;;;;;;;;;62.5;145.5;;;CaixaDeTexto 166;FF0000
+node;s168;298 ECONOMIAS;outro;;;;;;;;;;;77.5;133.5;;;CaixaDeTexto 167;FF0000
+node;s169;453 ECONOMIAS;outro;;;;;;;;;;;79.5;128.5;;;CaixaDeTexto 168;FF0000
+node;s170;900 ECONOMIAS;outro;;;;;;;;;;;77.5;125.5;;;CaixaDeTexto 169;FF0000
+node;s174;523 ECONOMIAS;outro;;;;;;;;;;;85.0;100.5;;;CaixaDeTexto 173;FF0000
+node;s184;764 ECONOMIAS;outro;;;;;;;;;;;71.0;100.5;;;CaixaDeTexto 183;FF0000
+node;s185;7.213 ECONOMIAS;outro;;;;;;;;;;;71.0;109.5;;;CaixaDeTexto 184;FF0000
+node;s186;3.330 ECONOMIAS;outro;;;;;;;;;;;69.5;103.0;;;CaixaDeTexto 185;FF0000
+node;s187;3.068 ECONOMIAS;outro;;;;;;;;;;;58.5;112.0;;;CaixaDeTexto 186;FF0000
+node;s188;110 ECONOMIAS;outro;;;;;;;;;;;55.5;112.0;;;CaixaDeTexto 187;FF0000
+node;s189;78 ECONOMIAS;outro;;;;;;;;;;;51.5;112.0;;;CaixaDeTexto 188;FF0000
+node;s190;3.092 ECONOMIAS;outro;;;;;;;;;;;53.0;117.5;;;CaixaDeTexto 189;FF0000
+node;s191;1.821 ECONOMIAS;outro;;;;;;;;;;;56.0;117.5;;;CaixaDeTexto 190;FF0000
+node;s624;1.973 ECONOMIAS;outro;;;;;;;;;;;51.5;94.0;;;CaixaDeTexto 623;FF0000
+node;s625;236 ECONOMIAS;outro;;;;;;;;;;;17.5;43.5;;;CaixaDeTexto 624;FF0000
+node;s629;1128 ECONOMIAS;outro;;;;;;;;;;;28.5;41.5;;;CaixaDeTexto 628;FF0000
+node;s632;CT ALBINO MARTELO;coletor;;;;;;;;;;;71.0;115.0;;;CaixaDeTexto 631;
+node;s275;5 ECONOMIAS;outro;;;;;;;;;;;35.5;56.0;;;CaixaDeTexto 274;FF0000
+node;s276;42 ECONOMIAS;outro;;;;;;;;;;;30.5;51.0;;;CaixaDeTexto 275;FF0000
+node;s281;INTERL. 34;outro;;;;;;;;;;;14.5;114.0;;;CaixaDeTexto 280;
+node;s285;24 ECONOMIAS;outro;;;;;;;;;;;14.5;115.5;;;CaixaDeTexto 284;FF0000
+node;s325;INTERL. 27;outro;;;;;;;;;;;45.0;105.5;;;CaixaDeTexto 324;
+node;s343;85 ECONOMIAS;outro;;;;;;;;;;;45.0;107.0;;;CaixaDeTexto 342;FF0000
+node;s348;95 ECONOMIAS;outro;;;;;;;;;;;39.0;49.0;;;CaixaDeTexto 347;FF0000
+node;s349;8.888 ECONOMIAS;outro;;;;;;;;;;;32.0;55.5;;;CaixaDeTexto 348;FF0000
+node;s350;6.853 ECONOMIAS;outro;;;;;;;;;;;35.5;22.5;;;CaixaDeTexto 349;FF0000
+node;s351;37 ECONOMIAS;outro;;;;;;;;;;;31.5;30.5;;;CaixaDeTexto 350;FF0000
+node;s352;895 ECONOMIAS;outro;;;;;;;;;;;33.5;18.0;;;CaixaDeTexto 351;FF0000
+node;s353;66 ECONOMIAS;outro;;;;;;;;;;;42.0;72.5;;;CaixaDeTexto 352;FF0000
+node;s354;44 ECONOMIAS;outro;;;;;;;;;;;35.5;72.5;;;CaixaDeTexto 353;FF0000
+node;s355;2.376 ECONOMIAS;outro;;;;;;;;;;;27.5;50.5;;;CaixaDeTexto 354;FF0000
+node;s356;922 ECONOMIAS;outro;;;;;;;;;;;31.0;58.5;;;CaixaDeTexto 355;FF0000
+node;s357;50 ECONOMIAS;outro;;;;;;;;;;;28.5;64.0;;;CaixaDeTexto 356;FF0000
+node;s358;CT. SEVERIANO MELO TR1;coletor;;;;;;;;;;;42.0;46.5;;;CaixaDeTexto 357;
+node;s361;92 ECONOMIAS;outro;;;;;;;;;;;42.0;49.0;;;CaixaDeTexto 360;FF0000
+node;s364;1.777 ECONOMIAS;outro;;;;;;;;;;;26.0;106.5;;;CaixaDeTexto 363;FF0000
+node;s365;1.278 ECONOMIAS;outro;;;;;;;;;;;21.5;107.0;;;CaixaDeTexto 364;FF0000
+node;s366;1.762 ECONOMIAS;outro;;;;;;;;;;;21.5;99.5;;;CaixaDeTexto 365;FF0000
+node;s367;351 ECONOMIAS;outro;;;;;;;;;;;16.5;101.5;;;CaixaDeTexto 366;FF0000
+node;s159;INTERL. 167;outro;;;;;;;;;;;18.0;55.5;;;CaixaDeTexto 158;
+node;s633;188 ECONOMIAS;outro;;;;;;;;;;;18.5;56.5;;;CaixaDeTexto 632;FF0000
+node;s636;CT 15-02;coletor;;;;;;;;;;;56.0;98.5;;;CaixaDeTexto 635;
+node;s637;10.123 ECONOMIAS;outro;;;;;;;;;;;56.0;99.5;;;CaixaDeTexto 636;FF0000
+node;s684;509 ECONOMIAS;outro;;;;;;;;;;;34.5;66.5;;;CaixaDeTexto 683;FF0000
+node;s685;2057 ECONOMIAS;outro;;;;;;;;;;;34.5;58.5;;;CaixaDeTexto 684;FF0000
+node;s686;132 ECONOMIAS;outro;;;;;;;;;;;23.5;43.5;;;CaixaDeTexto 685;FF0000
+node;s687;375 ECONOMIAS;outro;;;;;;;;;;;18.5;48.5;;;CaixaDeTexto 686;FF0000
+node;s161;PACOTE 15C;outro;;;;;;;;;;;9.5;51.5;;;CaixaDeTexto 160;
+node;ch16;INTEGRA TIETÊ 15D (ZIGURATE/VITALUX/ENORSUL);contrato;;;16290;13023;;13023;26.64;42% MND;;;8;16;;;H16;
+node;cj60;PONTO CRÍTICO;ponto_critico;;;;;;;;;;;10;60;;;J60;
+node;cz75;PONTO CRÍTICO;ponto_critico;;;;;;;;;;;26;75;;;Z75;
+node;co87;10A DP SPE LTDA (DASCO/POLÊMICA;contrato;;;7176;;;7176;8.6;44% MND;;;15;87;;;O87;
+node;cah87;INTEGRA TIETÊ 10B (ZIGURATE/VITALUX/ENORSUL);contrato;;;6510;2800;;2800;20.34;40% MND;;;34;87;;;AH87;
+node;cah110;PONTO CRÍTICO;ponto_critico;;;;;;;;;;;34;110;;;AH110;
+node;cbw128;PONTO CRÍTICO;ponto_critico;;;;;;;;;;;75;128;;;BW128;
+node;car137;CARIOCA GEL;contrato;;;;35358;;35358;16.14;42% MND;;;44;137;;;AR137;
+node;cbu143;CONSTRUTOR INTEGRA TIETÊ (ENPASA/JOFEGE/GIMMA/DP BARROS/DIAGONAL);contrato;;;;20522;;20522;33.90;70% MND;;;73;143;;;BU143;
+node;cbf144;PONTO CRÍTICO;ponto_critico;;;;;;;;;;;58;144;;;BF144;
+link;l1;;;;;;;;;;;;;;;s20;s12;Conector de Seta Reta 17;
+link;l2;;;;;;;;;;;;;;;s27;s8;Conector de Seta Reta 25;
+link;l3;;;;;;;;;;;;;;;s30;s8;Conector de Seta Reta 30;
+link;l4;;;;;;;;;;;;;;;s37;s40;Conector de Seta Reta 41;
+link;l5;;;;;;;;;;;;;;;s44;s50;Conector de Seta Reta 48;
+link;l6;;;;;;;;;;;;;;;s59;s58;Conector de Seta Reta 53;
+link;l7;;;;;;;;;;;;;;;s8;s59;Conector de Seta Reta 56;
+link;l8;;;;;;;;;;;;;;;s30;s34;Conector de Seta Reta 59;
+link;l9;;;;;;;;;;;;;;;s62;s3;Conector de Seta Reta 60;
+link;l10;;;;;;;;;;;;;;;s8;s14;Conector de Seta Reta 62;
+link;l11;;;;;;;;;;;;;;;s59;s52;Conector de Seta Reta 64;
+link;l12;;;;;;;;;;;;;;;s51;s50;Conector de Seta Reta 65;
+link;l13;;;;;;;;;;;;;;;s23;s21;Conector de Seta Reta 66;
+link;l14;;;;;;;;;;;;;;;s70;s34;Conector: Angulado 68;
+link;l15;;;;;;;;;;;;;;;s147;s37;Conector: Angulado 75;
+link;l16;;;;;;;;;;;;;;;s281;s91;Conector de Seta Reta 89;
+link;l17;;;;;;;;;;;;;;;s114;s23;Conector de Seta Reta 99;
+link;l18;;;;;;;;;;;;;;;s109;s21;Conector de Seta Reta 103;
+link;l19;;;;;;;;;;;;;;;s2;s103;Conector de Seta Reta 119;
+link;l20;;;;;;;;;;;;;;;s365;s91;Conector de Seta Reta 120;
+link;l21;;;;;;;;;;;;;;;s171;s173;Conector de Seta Reta 175;
+link;l22;;;;;;;;;;;;;;;s3;s173;Conector de Seta Reta 176;
+link;l23;;;;;;;;;;;;;;;s173;s183;Conector de Seta Reta 178;
+link;l24;;;;;;;;;;;;;;;s180;s636;Conector de Seta Reta 181;
+link;l25;;;;;;;;;;;;;;;s291;s301;Conector de Seta Reta 289;
+link;l26;;;;;;;;;;;;;;;s297;s298;Conector de Seta Reta 302;
+link;l27;;;;;;;;;;;;;;;s298;s156;Conector de Seta Reta 306;
+link;l28;;;;;;;;;;;;;;;s311;s310;Conector de Seta Reta 314;
+link;l29;;;;;;;;;;;;;;;s310;s316;Conector de Seta Reta 317;
+link;l30;;;;;;;;;;;;;;;s153;s291;Conector de Seta Reta 318;
+link;l31;;;;;;;;;;;;;;;s289;s155;Conector de Seta Reta 320;
+link;l32;;;;;;;;;;;;;;;s579;s331;Conector de Seta Reta 329;
+link;l33;;;;;;;;;;;;;;;s164;s328;Conector de Seta Reta 331;
+link;l34;;;;;;;;;;;;;;;s326;s341;Conector de Seta Reta 335;
+link;l35;;;;;;;;;;;;;;;s341;s339;Conector de Seta Reta 341;
+link;l36;;;;;;;;;;;;;;;s590;s589;Conector de Seta Reta 525;
+link;l37;;;;;;;;;;;;;;;s185;s632;Conector de Seta Reta 526;
+link;l38;;;;;;;;;;;;;;;s533;s586;Conector de Seta Reta 534;
+link;l39;;;;;;;;;;;;;;;s533;s579;Conector de Seta Reta 537;
+link;l40;;;;;;;;;;;;;;;s174;s566;Conector de Seta Reta 541;
+link;l41;;;;;;;;;;;;;;;s545;s566;Conector de Seta Reta 543;
+link;l42;;;;;;;;;;;;;;;s568;s618;Conector de Seta Reta 547;
+link;l43;;;;;;;;;;;;;;;s546;s568;Conector de Seta Reta 559;
+link;l44;;;;;;;;;;;;;;;s579;s573;Conector de Seta Reta 574;
+link;l45;;;;;;;;;;;;;;;s580;s579;Conector de Seta Reta 577;
+link;l46;;;;;;;;;;;;;;;s590;s595;Conector de Seta Reta 592;
+link;l47;;;;;;;;;;;;;;;s552;s553;Conector de Seta Reta 595;
+link;l48;;;;;;;;;;;;;;;s599;s533;Conector de Seta Reta 597;
+link;l49;;;;;;;;;;;;;;;s528;s552;Conector de Seta Reta 602;
+link;l50;;;;;;;;;;;;;;;s606;s599;Conector de Seta Reta 603;
+link;l51;;;;;;;;;;;;;;;s607;s599;Conector de Seta Reta 604;
+link;l52;;;;;;;;;;;;;;;s552;s612;Conector de Seta Reta 613;
+link;l53;;;;;;;;;;;;;;;s618;s627;Conector de Seta Reta 620;
+link;l54;;;;;;;;;;;;;;;s573;s618;Conector de Seta Reta 621;
+link;l55;;;;;;;;;;;;;;;s646;s647;Conector de Seta Reta 644;
+link;l56;;;;;;;;;;;;;;;s646;s653;Conector de Seta Reta 647;
+link;l57;;;;;;;;;;;;;;;s653;s652;Conector de Seta Reta 650;
+link;l58;;;;;;;;;;;;;;;s84;s349;Conector de Seta Reta 70;
+link;l59;;;;;;;;;;;;;;;s349;s517;Conector de Seta Reta 92;
+link;l60;;;;;;;;;;;;;;;s96;s94;Conector de Seta Reta 97;
+link;l61;;;;;;;;;;;;;;;s124;s514;Conector de Seta Reta 512;
+link;l62;;;;;;;;;;;;;;;s521;s348;Conector de Seta Reta 517;
+link;l63;;;;;;;;;;;;;;;s517;s131;Conector de Seta Reta 518;
+link;l64;;;;;;;;;;;;;;;s86;s84;Conector de Seta Reta 519;
+link;l65;;;;;;;;;;;;;;;s522;s124;Conector de Seta Reta 530;
+link;l66;;;;;;;;;;;;;;;s349;s83;Conector de Seta Reta 128;
+link;l67;;;;;;;;;;;;;;;s131;s124;Conector de Seta Reta 131;
+link;l68;;;;;;;;;;;;;;;s134;s522;Conector de Seta Reta 134;
+link;l69;;;;;;;;;;;;;;;s136;s134;Conector de Seta Reta 136;
+link;l70;;;;;;;;;;;;;;;s354;s138;Conector de Seta Reta 139;
+link;l71;;;;;;;;;;;;;;;s521;s517;Conector de Seta Reta 142;
+link;l72;;;;;;;;;;;;;;;s213;s214;Conector de Seta Reta 208;
+link;l73;;;;;;;;;;;;;;;s217;s214;Conector de Seta Reta 218;
+link;l74;;;;;;;;;;;;;;;s226;s216;Conector de Seta Reta 224;
+link;l75;;;;;;;;;;;;;;;s231;s213;Conector de Seta Reta 228;
+link;l76;;;;;;;;;;;;;;;s211;s242;Conector de Seta Reta 237;
+link;l77;;;;;;;;;;;;;;;s242;s250;Conector de Seta Reta 239;
+link;l78;;;;;;;;;;;;;;;s251;s242;Conector de Seta Reta 246;
+link;l79;;;;;;;;;;;;;;;s253;s250;Conector de Seta Reta 251;
+link;l80;;;;;;;;;;;;;;;s655;s658;Conector de Seta Reta 656;
+link;l81;;;;;;;;;;;;;;;s658;s676;Conector de Seta Reta 660;
+link;l82;;;;;;;;;;;;;;;s672;s668;Conector de Seta Reta 664;
+link;l83;;;;;;;;;;;;;;;s672;s675;Conector de Seta Reta 670;
+link;l84;;;;;;;;;;;;;;;s514;s682;Conector de Seta Reta 682;
+link;l85;;;;;;;;;;;;;;;s618;s623;Conector de Seta Reta 157;
+link;l86;;;;;;;;;;;;;;;s586;s632;Conector de Seta Reta 629;
+link;l87;;;;;;;;;;;;;;;s58;s325;Conector de Seta Reta 321;
+link;l88;;;;;;;;;;;;;;;s242;s159;Conector: Angulado 344;
