@@ -1,26 +1,29 @@
-/* RESET */
+/* =========================================================
+   RESET
+   ========================================================= */
 
 html,
 body {
-
     margin: 0;
     padding: 0;
     width: 100%;
-    min-height: 100%; 
-    font-family: Segoe UI, Arial, sans-serif;
+    min-height: 100%;
+    font-family: "Segoe UI", Arial, sans-serif;
+    overflow-x: hidden;
 }
 
 body {
-    overflow-x: hidden;
     overflow-y: auto;
+    background: #f4f6f8;
 }
 
-/* HEADER */
+
+/* =========================================================
+   HEADER
+   ========================================================= */
 
 #header {
-
     position: fixed;
-
     top: 0;
     left: 0;
 
@@ -35,19 +38,16 @@ body {
     z-index: 99999;
 
     border-bottom: 1px solid #bfc4ca;
-
     box-shadow: 0 2px 8px rgba(0,0,0,.15);
 }
 
 #logo {
-
     height: 200px;
-
+    width: auto;
     margin-left: 20px;
 }
 
 #titulo {
-
     margin-left: 25px;
 
     color: #0b2f5b;
@@ -56,10 +56,46 @@ body {
     font-weight: 700;
 }
 
-/* MAPA */
+
+/* =========================================================
+   MENU
+   ========================================================= */
+
+#menu {
+    margin-left: auto;
+    margin-right: 30px;
+
+    display: flex;
+    gap: 12px;
+}
+
+.menu-btn {
+    text-decoration: none;
+
+    color: #0b2f5b;
+    background: white;
+
+    padding: 10px 18px;
+
+    border-radius: 6px;
+    border: 1px solid #c5c5c5;
+
+    font-weight: 600;
+
+    transition: 0.2s;
+}
+
+.menu-btn:hover {
+    background: #0b2f5b;
+    color: white;
+}
+
+
+/* =========================================================
+   MAPA
+   ========================================================= */
 
 #mapa-container {
-
     position: absolute;
 
     top: 110px;
@@ -70,17 +106,18 @@ body {
 }
 
 #mapa-frame {
-
     width: 100%;
     height: 100%;
 
     border: none;
 }
 
-/* FOOTER */
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
 
 #logo-footer {
-
     position: fixed;
 
     left: 15px;
@@ -92,57 +129,25 @@ body {
 }
 
 #logo-footer img {
-
     height: 30px;
-
     width: auto;
 
     opacity: 1;
 }
-/* MENU */
 
-#menu {
 
-    margin-left: auto;
-
-    margin-right: 30px;
-
-    display: flex;
-    gap: 12px;
-}
-
-.menu-btn {
-
-    text-decoration: none;
-
-    color: #0b2f5b;
-
-    background: white;
-
-    padding: 10px 18px;
-
-    border-radius: 6px;
-
-    font-weight: 600;
-
-    border: 1px solid #c5c5c5;
-
-    transition: 0.2s;
-}
-
-.menu-btn:hover {
-
-    background: #0b2f5b;
-
-    color: white;
-}
-/* DASHBOARD */
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
 
 #dashboard {
     margin-top: 110px;
     padding: 22px;
+
     background: #f4f6f8;
+
     min-height: calc(100vh - 110px);
+
     box-sizing: border-box;
     overflow-x: hidden;
 }
@@ -153,9 +158,55 @@ body {
 
 .secao-dashboard h2 {
     color: #0b2f5b;
+
     font-size: 20px;
+
     margin: 0 0 14px 0;
 }
+
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+
+.filtros-dashboard {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    margin-bottom: 22px;
+}
+
+.filtros-dashboard button {
+    border: none;
+
+    background: white;
+    color: #0b2f5b;
+
+    padding: 9px 14px;
+
+    border-radius: 8px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+
+    transition: 0.2s;
+}
+
+.filtros-dashboard button:hover {
+    background: #0b2f5b;
+    color: white;
+
+    transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   CARDS
+   ========================================================= */
 
 .cards {
     display: grid;
@@ -168,37 +219,92 @@ body {
 
 .card {
     background: white;
+
     border-radius: 14px;
+
     padding: 16px;
+
     box-shadow: 0 3px 12px rgba(0,0,0,.08);
+
     border-left: 6px solid #0b2f5b;
+
     min-width: 0;
+
+    box-sizing: border-box;
 }
 
 .card h3 {
     margin: 0 0 10px;
+
     color: #0b2f5b;
+
     font-size: 14px;
 }
 
 .card strong {
     display: block;
+
     font-size: 24px;
+
     color: #111;
 }
 
 .card span {
     display: block;
+
     margin-top: 5px;
+
     color: #d32f2f;
+
     font-weight: 700;
 }
 
 .card p {
     margin: 6px 0 0;
+
     color: #666;
+
     font-size: 13px;
 }
+
+
+/* Cards clicáveis */
+
+.card-click {
+    cursor: pointer;
+
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.card-click:hover {
+    transform: translateY(-3px);
+
+    box-shadow: 0 6px 18px rgba(0,0,0,.16);
+}
+
+
+/* Títulos clicáveis */
+
+.titulo-click {
+    cursor: pointer;
+
+    display: inline-block;
+
+    transition: transform .2s ease, color .2s ease;
+}
+
+.titulo-click:hover {
+    transform: translateY(-2px);
+
+    color: #005a9c;
+
+    text-decoration: underline;
+}
+
+
+/* =========================================================
+   GRÁFICOS
+   ========================================================= */
 
 .graficos {
     display: grid;
@@ -215,17 +321,25 @@ body {
 
 .grafico-card {
     background: white;
+
     border-radius: 14px;
+
     padding: 16px;
+
     height: 320px;
+
     box-shadow: 0 3px 12px rgba(0,0,0,.08);
+
     box-sizing: border-box;
+
     min-width: 0;
 }
 
 .grafico-card h3 {
     color: #0b2f5b;
+
     font-size: 16px;
+
     margin: 0 0 10px;
 }
 
@@ -242,10 +356,150 @@ body {
     height: 315px !important;
 }
 
-html,
-body {
-    overflow-x: hidden !important;
+
+/* =========================================================
+   MODAL / POP-UP
+   ========================================================= */
+
+#modal.modal {
+    display: none;
+
+    position: fixed !important;
+
+    inset: 0 !important;
+
+    z-index: 999999 !important;
+
+    background: rgba(0, 0, 0, 0.45);
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 30px;
+
+    box-sizing: border-box;
 }
+
+#modal.modal.is-open {
+    display: flex !important;
+}
+
+#modal .modal-content {
+    background: white;
+
+    width: 90%;
+    max-width: 1500px;
+
+    max-height: 85vh;
+
+    overflow: auto;
+
+    border-radius: 14px;
+
+    box-shadow: 0 8px 30px rgba(0,0,0,.30);
+
+    padding: 0;
+}
+
+#modal .modal-header {
+    position: sticky;
+    top: 0;
+
+    z-index: 20;
+
+    background: white;
+
+    padding: 20px 24px 14px 24px;
+
+    border-bottom: 1px solid #ddd;
+}
+
+#modal .modal-header h2 {
+    margin: 0;
+
+    color: #0b2f5b;
+
+    font-size: 22px;
+}
+
+#modal .modal-close {
+    position: absolute;
+
+    top: 14px;
+    right: 18px;
+
+    border: none;
+
+    background: #0b2f5b;
+    color: white;
+
+    border-radius: 50%;
+
+    width: 34px;
+    height: 34px;
+
+    cursor: pointer;
+
+    font-size: 20px;
+    font-weight: bold;
+
+    line-height: 34px;
+}
+
+#modal .modal-close:hover {
+    background: #061d38;
+}
+
+#modalCorpo {
+    padding: 20px 24px 24px 24px;
+}
+
+
+/* Tabelas dentro dos modais */
+
+.tabela-modal {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    font-size: 13px;
+}
+
+.tabela-modal thead th {
+    position: sticky;
+    top: 69px;
+
+    z-index: 15;
+
+    background: #0b2f5b;
+    color: white;
+
+    padding: 8px;
+
+    text-align: left;
+}
+
+.tabela-modal td {
+    border-bottom: 1px solid #ddd;
+
+    padding: 7px;
+}
+
+.tabela-modal tbody tr:hover {
+    background: #f1f5f9;
+}
+
+
+/* Trava a rolagem da página quando o modal estiver aberto */
+
+body.modal-open {
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   RESPONSIVO
+   ========================================================= */
 
 @media (max-width: 1400px) {
     .cards-5 {
@@ -259,265 +513,44 @@ body {
 }
 
 @media (max-width: 800px) {
+    #header {
+        height: auto;
+        min-height: 110px;
+
+        flex-wrap: wrap;
+
+        padding-bottom: 10px;
+    }
+
+    #logo {
+        height: 130px;
+    }
+
+    #titulo {
+        font-size: 15px;
+        margin-left: 10px;
+    }
+
+    #menu {
+        width: 100%;
+
+        justify-content: center;
+
+        margin: 8px 0 0 0;
+    }
+
+    #dashboard {
+        margin-top: 130px;
+    }
+
     .cards-5,
     .graficos-3,
     .graficos-grandes {
         grid-template-columns: 1fr;
     }
-}
-.filtros-dashboard {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 22px;
-}
 
-.filtros-dashboard button {
-    border: none;
-    background: white;
-    color: #0b2f5b;
-    padding: 9px 14px;
-    border-radius: 8px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,.08);
-}
-
-.filtros-dashboard button:hover {
-    background: #0b2f5b;
-    color: white;
-}
-
-.card-click {
-    cursor: pointer;
-}
-
-.card-click:hover {
-    transform: translateY(-2px);
-    transition: .2s;
-}
-
-.modal {
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 999999;
-    inset: 0;
-    background: rgba(0,0,0,.45);
-}
-
-.modal-content {
-    background: white;
-    width: 85%;
-    max-height: 80vh;
-    overflow: auto;
-    margin: 80px auto;
-    padding: 0;
-    border-radius: 14px;
-    box-shadow: 0 6px 24px rgba(0,0,0,.25);
-}
-
-.modal-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: white;
-    padding: 20px 24px 14px 24px;
-    border-bottom: 1px solid #ddd;
-}
-
-.modal-header h2 {
-    margin: 0;
-    color: #0b2f5b;
-}
-
-.modal-close {
-    position: absolute;
-    top: 16px;
-    right: 20px;
-    border: none;
-    background: #0b2f5b;
-    color: white;
-    border-radius: 50%;
-    width: 34px;
-    height: 34px;
-    cursor: pointer;
-    font-size: 20px;
-}
-
-#modalCorpo {
-    padding: 20px 24px 24px 24px;
-}
-
-.tabela-modal {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-.tabela-modal thead th {
-    position: sticky;
-    top: 78px;
-    z-index: 9;
-    background: #0b2f5b;
-    color: white;
-    padding: 8px;
-    text-align: left;
-}
-
-.tabela-modal td {
-    border-bottom: 1px solid #ddd;
-    padding: 7px;
-}
-
-.titulo-click {
-    cursor: pointer;
-}
-
-.titulo-click:hover {
-    text-decoration: underline;
-}
-
-/* MODAL / POP-UP */
-
-.modal {
-    display: none;
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 999999 !important;
-    background: rgba(0,0,0,.45) !important;
-}
-
-.modal-content {
-    background: white;
-    width: 85%;
-    max-height: 80vh;
-    overflow: auto;
-    margin: 80px auto;
-    padding: 0;
-    border-radius: 14px;
-    box-shadow: 0 6px 24px rgba(0,0,0,.25);
-}
-
-.modal-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: white;
-    padding: 20px 24px 14px 24px;
-    border-bottom: 1px solid #ddd;
-}
-
-.modal-header h2 {
-    margin: 0;
-    color: #0b2f5b;
-}
-
-.modal-close {
-    position: absolute;
-    top: 16px;
-    right: 20px;
-    border: none;
-    background: #0b2f5b;
-    color: white;
-    border-radius: 50%;
-    width: 34px;
-    height: 34px;
-    cursor: pointer;
-    font-size: 20px;
-}
-
-#modalCorpo {
-    padding: 20px 24px 24px 24px;
-}
-
-/* MODAL / POP-UP */
-
-#modal.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 999999;
-    background: rgba(0,0,0,.45);
-}
-
-#modal .modal-content {
-    background: white;
-    width: 85%;
-    max-height: 80vh;
-    overflow: auto;
-    margin: 70px auto;
-    padding: 0;
-    border-radius: 14px;
-    box-shadow: 0 6px 24px rgba(0,0,0,.25);
-}
-
-#modal .modal-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: white;
-    padding: 20px 24px 14px 24px;
-    border-bottom: 1px solid #ddd;
-}
-
-#modal .modal-header h2 {
-    margin: 0;
-    color: #0b2f5b;
-}
-
-#modal .modal-close {
-    position: absolute;
-    top: 16px;
-    right: 20px;
-    border: none;
-    background: #0b2f5b;
-    color: white;
-    border-radius: 50%;
-    width: 34px;
-    height: 34px;
-    cursor: pointer;
-    font-size: 20px;
-}
-
-#modalCorpo {
-    padding: 20px 24px 24px 24px;
-}
-
-.tabela-modal {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-.tabela-modal thead th {
-    position: sticky;
-    top: 0;
-    z-index: 9;
-    background: #0b2f5b;
-    color: white;
-    padding: 8px;
-    text-align: left;
-}
-
-.tabela-modal td {
-    border-bottom: 1px solid #ddd;
-    padding: 7px;
-}
-
-.card-click {
-    cursor: pointer;
-}
-
-.card-click:hover {
-    transform: translateY(-2px);
-    transition: .2s;
-}
-
-.titulo-click {
-    cursor: pointer;
-}
-
-.titulo-click:hover {
-    text-decoration: underline;
+    #modal .modal-content {
+        width: 95%;
+        max-height: 88vh;
+    }
 }
