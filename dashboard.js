@@ -557,238 +557,17 @@ function criarGraficosFixos() {
     });
 }
 
-function abrirModal(titulo, conteudo) {
-    document.getElementById("modalTitulo").innerText = titulo;
-    document.getElementById("modalCorpo").innerHTML = conteudo;
-    document.getElementById("modal").style.display = "block";
-}
-
-function fecharModal() {
-    document.getElementById("modal").style.display = "none";
-}
-
-document.addEventListener("keydown", function(event) {
-    if (event.key === "Escape") {
-        fecharModal();
-    }
-});
-
-function tabelaDeAtributos(features, campos) {
-    if (!features || features.length === 0) {
-        return "<p>Nenhum registro encontrado.</p>";
-    }
-
-    let html = "<table class='tabela-modal'><thead><tr>";
-
-    campos.forEach(campo => {
-        html += "<th>" + campo + "</th>";
-    });
-
-    html += "</tr></thead><tbody>";
-
-    features.forEach(feature => {
-        const p = feature.properties || {};
-        html += "<tr>";
-
-        campos.forEach(campo => {
-            html += "<td>" + (p[campo] ?? "") + "</td>";
-        });
-
-        html += "</tr>";
-    });
-
-    html += "</tbody></table>";
-
-    return html;
-}
-
-function cardMetaHtml(titulo, previsto, realizado, unidade = "") {
-    return `
-        <div class="card">
-            <h3>${titulo}</h3>
-            <strong>${unidade === "R$" ? formatarMoeda(realizado) : formatarNumero(realizado) + unidade}</strong>
-            <span>${percentual(realizado, previsto).toFixed(2)}%</span>
-            <p>Previsto: ${unidade === "R$" ? formatarMoeda(previsto) : formatarNumero(previsto) + unidade}</p>
-        </div>
-    `;
-}
-
-function abrirDetalhesMetas() {
-    const atual = `
-        <h3 style="color:#0b2f5b;margin-top:0;">Metas consolidadas atuais</h3>
-
-        <div class="cards cards-5">
-
-            ${cardMetaHtml("Economias Fator U", metas.economias.fatorU.previsto, metas.economias.fatorU.realizado)}
-
-            ${cardMetaHtml("Economias Contrato", metas.economias.contrato.previsto, metas.economias.contrato.realizado)}
-
-            ${cardMetaHtml("Imobilizado", metas.imobilizado.previsto, metas.imobilizado.realizado, "R$")}
-
-            ${cardMetaHtml("Produção Integra", metas.producao.integra.previsto, metas.producao.integra.realizado, " m")}
-
-            ${cardMetaHtml("Produção Andamento", metas.producao.andamento.previsto, metas.producao.andamento.realizado, " m")}
-
-        </div>
-    `;
-
-    const prox = metas.proximoMes;
-
-    const proximoMesHtml = `
-        <h3 style="color:#0b2f5b;margin-top:28px;">Previsão para o próximo mês - ${prox.referencia}</h3>
-
-        <div class="cards cards-5">
-
-            ${cardMetaHtml("Economias Fator U", prox.economias.fatorU.previsto, prox.economias.fatorU.realizado)}
-
-            ${cardMetaHtml("Economias Contrato", prox.economias.contrato.previsto, prox.economias.contrato.realizado)}
-
-            ${cardMetaHtml("Imobilizado", prox.imobilizado.previsto, prox.imobilizado.realizado, "R$")}
-
-            ${cardMetaHtml("Produção Integra", prox.producao.integra.previsto, prox.producao.integra.realizado, " m")}
-
-            ${cardMetaHtml("Produção Andamento", prox.producao.andamento.previsto, prox.producao.andamento.realizado, " m")}
-
-        </div>
-    `;
-
-    abrirModal("Metas Gerais", atual + proximoMesHtml);
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    carregarMetasGerais();
-    atualizarDashboard();
-    criarGraficosFixos();
-});
-
-function abrirModal(titulo, conteudo) {
-    document.getElementById("modalTitulo").innerText = titulo;
-    document.getElementById("modalCorpo").innerHTML = conteudo;
-    document.getElementById("modal").style.display = "block";
-}
-
-function fecharModal() {
-    document.getElementById("modal").style.display = "none";
-}
-
-function tabelaDeAtributos(features, campos) {
-    if (!features || features.length === 0) {
-        return "<p>Nenhum registro encontrado.</p>";
-    }
-
-    let html = "<table class='tabela-modal'><thead><tr>";
-
-    campos.forEach(campo => {
-        html += "<th>" + campo + "</th>";
-    });
-
-    html += "</tr></thead><tbody>";
-
-    features.forEach(feature => {
-        const p = feature.properties || {};
-        html += "<tr>";
-
-        campos.forEach(campo => {
-            html += "<td>" + (p[campo] ?? "") + "</td>";
-        });
-
-        html += "</tr>";
-    });
-
-    html += "</tbody></table>";
-
-    return html;
-}
-
-function abrirDetalhesObras() {
-    const obrasTodas = obterFeatures("json_OBRAS_EMN2_4");
-    const obras = filtrarPorContrato(obrasTodas, "NUM_CONTRA");
-
-    abrirModal(
-        "Detalhes das Obras",
-        tabelaDeAtributos(obras, ["NUM_CONTRA", "FRENTE", "STATUS_C", "METODO", "DIAMETR_MM", "MUNICIPIO", "BAIRRO", "LOGRADOURO"])
-    );
-}
-
-function abrirDetalhesFrentes() {
-    const frentesTodas = obterFeatures("json_EMN2Frentes_em_Andamento_9");
-
-    const frentes = filtrarPorContratoMultiplosCampos(frentesTodas, [
-        "CONTRATO",
-        "Contrato",
-        "contrato",
-        "NUM_CONTRA",
-        "NUM_CONTRATO"
-    ]);
-
-    abrirModal(
-        "Frentes em Campo",
-        tabelaDeAtributos(frentes, ["CONTRATO", "FRENTE", "MÉTODO", "STATUS", "ENGENHEIRO", "FISCAL", "ENCARREGADO", "EQUIPE", "DATA", "ENDEREÇO"])
-    );
-}
-
-function abrirDetalhesSinistros() {
-    const sinistrosTodas = obterFeatures("json_SinistroEMN2_7");
-    const sinistros = filtrarPorContrato(sinistrosTodas, "Contrato");
-
-    abrirModal(
-        "Sinistros",
-        tabelaDeAtributos(sinistros, ["Contrato", "Ficha", "Frente", "Sinistro", "Critério"])
-    );
-}
-
-function abrirDetalhesEEE() {
-    const eeeTodas = obterFeatures("json_EEE_6");
-
-    const eee = filtrarPorContratoMultiplosCampos(eeeTodas, [
-        "CONTRATO",
-        "Contrato",
-        "contrato",
-        "NUM_CONTRA",
-        "NUM_CONTRATO"
-    ]);
-
-    abrirModal(
-        "Elevatórias - EEE",
-        tabelaDeAtributos(eee, ["CONTRATO", "EEE", "STATUS", "LOCAL", "MUNICIPIO", "Q", "OPERAÇÃO"])
-    );
-}
-
-function abrirDetalhesLancamentos() {
-    const lancamentosTodas = obterCamadaPorParteDoNome("PONTOSDELANAMENTO");
-
-    const lancamentos = filtrarPorContratoMultiplosCampos(lancamentosTodas, [
-        "CONTRATO",
-        "Contrato",
-        "contrato",
-        "NUM_CONTRA",
-        "NUM_CONTRATO"
-    ]);
-
-    abrirModal(
-        "Pontos de Lançamento",
-        tabelaDeAtributos(lancamentos, ["Contrato", "Pacote", "Nome_Lanca", "Municipio", "Bacia", "Status"])
-    );
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    carregarMetasGerais();
-    atualizarDashboard();
-    criarGraficosFixos();
-    ativarCliquesDosCards();
-});
-
 /* ========================= */
-/* POP-UPS DOS CARDS */
+/* MODAL / POP-UPS */
 /* ========================= */
 
 window.abrirModal = function(titulo, conteudo) {
+    const modal = document.getElementById("modal");
     const modalTitulo = document.getElementById("modalTitulo");
     const modalCorpo = document.getElementById("modalCorpo");
-    const modal = document.getElementById("modal");
 
-    if (!modalTitulo || !modalCorpo || !modal) {
-        console.error("Modal não encontrado no dashboard.html");
+    if (!modal || !modalTitulo || !modalCorpo) {
+        console.error("Modal não encontrado no HTML.");
         return;
     }
 
@@ -847,6 +626,55 @@ function filtrarContratoModal(features, camposContrato) {
         );
     });
 }
+
+function cardMetaHtml(titulo, previsto, realizado, unidade = "") {
+    const valorRealizado = unidade === "R$"
+        ? formatarMoeda(realizado)
+        : formatarNumero(realizado) + unidade;
+
+    const valorPrevisto = unidade === "R$"
+        ? formatarMoeda(previsto)
+        : formatarNumero(previsto) + unidade;
+
+    return `
+        <div class="card">
+            <h3>${titulo}</h3>
+            <strong>${valorRealizado}</strong>
+            <span>${percentual(realizado, previsto).toFixed(2)}%</span>
+            <p>Previsto: ${valorPrevisto}</p>
+        </div>
+    `;
+}
+
+window.abrirDetalhesMetas = function() {
+    const atual = `
+        <h3 style="color:#0b2f5b;margin-top:0;">Metas consolidadas atuais</h3>
+
+        <div class="cards cards-5">
+            ${cardMetaHtml("Economias Fator U", metas.economias.fatorU.previsto, metas.economias.fatorU.realizado)}
+            ${cardMetaHtml("Economias Contrato", metas.economias.contrato.previsto, metas.economias.contrato.realizado)}
+            ${cardMetaHtml("Imobilizado", metas.imobilizado.previsto, metas.imobilizado.realizado, "R$")}
+            ${cardMetaHtml("Produção Integra", metas.producao.integra.previsto, metas.producao.integra.realizado, " m")}
+            ${cardMetaHtml("Produção Andamento", metas.producao.andamento.previsto, metas.producao.andamento.realizado, " m")}
+        </div>
+    `;
+
+    const prox = metas.proximoMes;
+
+    const proximoMesHtml = `
+        <h3 style="color:#0b2f5b;margin-top:28px;">Previsão para o próximo mês - ${prox.referencia}</h3>
+
+        <div class="cards cards-5">
+            ${cardMetaHtml("Economias Fator U", prox.economias.fatorU.previsto, prox.economias.fatorU.realizado)}
+            ${cardMetaHtml("Economias Contrato", prox.economias.contrato.previsto, prox.economias.contrato.realizado)}
+            ${cardMetaHtml("Imobilizado", prox.imobilizado.previsto, prox.imobilizado.realizado, "R$")}
+            ${cardMetaHtml("Produção Integra", prox.producao.integra.previsto, prox.producao.integra.realizado, " m")}
+            ${cardMetaHtml("Produção Andamento", prox.producao.andamento.previsto, prox.producao.andamento.realizado, " m")}
+        </div>
+    `;
+
+    abrirModal("Metas Gerais", atual + proximoMesHtml);
+};
 
 window.abrirDetalhesObras = function() {
     const obrasTodas = obterFeatures("json_OBRAS_EMN2_4");
@@ -974,83 +802,33 @@ window.abrirDetalhesLancamentos = function() {
     );
 };
 
-window.abrirDetalhesMetas = function() {
-    const atual = `
-        <h3 style="color:#0b2f5b;margin-top:0;">Metas consolidadas atuais</h3>
+function ativarCliquesDosCards() {
+    const itens = [
+        ["tituloMetasGerais", abrirDetalhesMetas],
+        ["cardObras", abrirDetalhesObras],
+        ["cardFrentes", abrirDetalhesFrentes],
+        ["cardSinistros", abrirDetalhesSinistros],
+        ["cardEEE", abrirDetalhesEEE],
+        ["cardLancamentos", abrirDetalhesLancamentos]
+    ];
 
-        <div class="cards cards-5">
+    itens.forEach(([id, funcao]) => {
+        const elemento = document.getElementById(id);
 
-            ${cardMetaHtml("Economias Fator U", metas.economias.fatorU.previsto, metas.economias.fatorU.realizado)}
+        if (elemento) {
+            elemento.addEventListener("click", funcao);
+        } else {
+            console.warn("Elemento clicável não encontrado:", id);
+        }
+    });
+}
 
-            ${cardMetaHtml("Economias Contrato", metas.economias.contrato.previsto, metas.economias.contrato.realizado)}
-
-            ${cardMetaHtml("Imobilizado", metas.imobilizado.previsto, metas.imobilizado.realizado, "R$")}
-
-            ${cardMetaHtml("Produção Integra", metas.producao.integra.previsto, metas.producao.integra.realizado, " m")}
-
-            ${cardMetaHtml("Produção Andamento", metas.producao.andamento.previsto, metas.producao.andamento.realizado, " m")}
-
-        </div>
-    `;
-
-    const prox = metas.proximoMes;
-
-    const proximoMesHtml = `
-        <h3 style="color:#0b2f5b;margin-top:28px;">Previsão para o próximo mês - ${prox.referencia}</h3>
-
-        <div class="cards cards-5">
-
-            ${cardMetaHtml("Economias Fator U", prox.economias.fatorU.previsto, prox.economias.fatorU.realizado)}
-
-            ${cardMetaHtml("Economias Contrato", prox.economias.contrato.previsto, prox.economias.contrato.realizado)}
-
-            ${cardMetaHtml("Imobilizado", prox.imobilizado.previsto, prox.imobilizado.realizado, "R$")}
-
-            ${cardMetaHtml("Produção Integra", prox.producao.integra.previsto, prox.producao.integra.realizado, " m")}
-
-            ${cardMetaHtml("Produção Andamento", prox.producao.andamento.previsto, prox.producao.andamento.realizado, " m")}
-
-        </div>
-    `;
-
-    abrirModal("Metas Gerais", atual + proximoMesHtml);
-};
+document.addEventListener("DOMContentLoaded", function() {
+    ativarCliquesDosCards();
+});
 
 document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") {
         fecharModal();
     }
 });
-
-function ativarCliquesDosCards() {
-    const tituloMetas = document.getElementById("tituloMetasGerais");
-    const cardObras = document.getElementById("cardObras");
-    const cardFrentes = document.getElementById("cardFrentes");
-    const cardSinistros = document.getElementById("cardSinistros");
-    const cardEEE = document.getElementById("cardEEE");
-    const cardLancamentos = document.getElementById("cardLancamentos");
-
-    if (tituloMetas) {
-        tituloMetas.addEventListener("click", abrirDetalhesMetas);
-    }
-
-    if (cardObras) {
-        cardObras.addEventListener("click", abrirDetalhesObras);
-    }
-
-    if (cardFrentes) {
-        cardFrentes.addEventListener("click", abrirDetalhesFrentes);
-    }
-
-    if (cardSinistros) {
-        cardSinistros.addEventListener("click", abrirDetalhesSinistros);
-    }
-
-    if (cardEEE) {
-        cardEEE.addEventListener("click", abrirDetalhesEEE);
-    }
-
-    if (cardLancamentos) {
-        cardLancamentos.addEventListener("click", abrirDetalhesLancamentos);
-    }
-}
