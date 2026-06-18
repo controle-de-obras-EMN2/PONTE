@@ -1,3 +1,7 @@
+/* =========================================================
+   DASHBOARD PONTE
+   ========================================================= */
+
 let contratoSelecionado = "TODOS";
 
 let graficoStatusObras = null;
@@ -9,6 +13,11 @@ let graficoEEEStatus = null;
 let graficoManchas = null;
 let graficoValores = null;
 let graficoExtensao = null;
+
+
+/* =========================================================
+   FORMATADORES
+   ========================================================= */
 
 function formatarNumero(valor) {
     return Number(valor || 0).toLocaleString("pt-BR");
@@ -26,6 +35,19 @@ function percentual(realizado, previsto) {
     return (realizado / previsto) * 100;
 }
 
+function normalizarTexto(texto) {
+    return String(texto || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .trim();
+}
+
+
+/* =========================================================
+   LEITURA DAS CAMADAS
+   ========================================================= */
+
 function obterFeatures(nomeVariavel) {
     if (!window[nomeVariavel]) {
         console.warn("Camada não encontrada:", nomeVariavel);
@@ -35,10 +57,37 @@ function obterFeatures(nomeVariavel) {
     return window[nomeVariavel].features || [];
 }
 
-function filtrarContrato(contrato) {
+function obterCamadaPorParteDoNome(partesNome) {
+    const partes = Array.isArray(partesNome) ? partesNome : [partesNome];
+
+    const nome = Object.keys(window).find(chave => {
+        if (!chave.startsWith("json_")) return false;
+
+        const chaveNormalizada = normalizarTexto(chave);
+
+        return partes.some(parte =>
+            chaveNormalizada.includes(normalizarTexto(parte))
+        );
+    });
+
+    if (!nome) {
+        console.warn("Camada não encontrada contendo:", partes.join(", "));
+        return [];
+    }
+
+    console.log("Camada encontrada:", nome);
+    return window[nome].features || [];
+}
+
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+
+window.filtrarContrato = function(contrato) {
     contratoSelecionado = contrato;
     atualizarDashboard();
-}
+};
 
 function filtrarPorContrato(features, campoContrato) {
     if (contratoSelecionado === "TODOS") return features;
@@ -47,6 +96,23 @@ function filtrarPorContrato(features, campoContrato) {
         String(feature.properties?.[campoContrato] || "").trim() === contratoSelecionado
     );
 }
+
+function filtrarPorContratoMultiplosCampos(features, camposPossiveis) {
+    if (contratoSelecionado === "TODOS") return features;
+
+    return features.filter(feature => {
+        const p = feature.properties || {};
+
+        return camposPossiveis.some(campo =>
+            String(p[campo] || "").trim() === contratoSelecionado
+        );
+    });
+}
+
+
+/* =========================================================
+   AGRUPAMENTOS E CONTAGENS
+   ========================================================= */
 
 function agruparFrentesUnicas(obras) {
     const mapa = {};
@@ -62,7 +128,7 @@ function agruparFrentesUnicas(obras) {
                 status: p.STATUS_C || "Não informado",
                 metodo: p.METODO || "Não informado",
                 diametro: p.DIAMETR_MM || "Não informado",
-                material: p.MATERIAL || p.TIPO || "Não informado"
+                material: p.MATERIAL || p.Material || p.material || ""
             };
         }
     });
@@ -92,6 +158,21 @@ function contarPorCampoArray(lista, campo) {
     return contagem;
 }
 
+function somarMaterialPreparado(obras) {
+    const resultado = {};
+
+    obras.forEach(feature => {
+        const p = feature.properties || {};
+        const material = p.MATERIAL || p.Material || p.material;
+
+        if (!material) return;
+
+        resultado[material] = (resultado[material] || 0) + 1;
+    });
+
+    return resultado;
+}
+
 function manchasPorCor(features) {
     const resultado = {};
 
@@ -112,6 +193,50 @@ function manchasPorCor(features) {
 
     return resultado;
 }
+
+function contarStatusLancamentos(features) {
+    const resultado = {
+        total: features.length,
+        ativos: 0,
+        suprimidos: 0
+    };
+
+    features.forEach(feature => {
+        const p = feature.properties || {};
+
+        const status = normalizarTexto(
+            p.STATUS ||
+            p.Status ||
+            p.status ||
+            p.SITUACAO ||
+            p.Situação ||
+            ""
+        );
+
+        if (
+            status.includes("ATIVO") ||
+            status.includes("EXISTENTE") ||
+            status.includes("PENDENTE")
+        ) {
+            resultado.ativos++;
+        }
+
+        if (
+            status.includes("SUPRIMIDO") ||
+            status.includes("ELIMINADO") ||
+            status.includes("INATIVO")
+        ) {
+            resultado.suprimidos++;
+        }
+    });
+
+    return resultado;
+}
+
+
+/* =========================================================
+   GRÁFICOS
+   ========================================================= */
 
 function destruirGrafico(grafico) {
     if (grafico) {
@@ -213,6 +338,11 @@ function criarGraficoManchas(idCanvas, dados, graficoExistente) {
     });
 }
 
+
+/* =========================================================
+   METAS GERAIS
+   ========================================================= */
+
 function carregarMetasGerais() {
     const ecoFU = metas.economias.fatorU;
     const ecoContrato = metas.economias.contrato;
@@ -241,81 +371,10 @@ function carregarMetasGerais() {
     document.getElementById("prodAndamentoMeta").innerText = "Meta: " + formatarNumero(prodAndamento.previsto) + " m";
 }
 
-function filtrarPorContratoMultiplosCampos(features, camposPossiveis) {
-    if (contratoSelecionado === "TODOS") return features;
 
-    return features.filter(feature => {
-        const p = feature.properties || {};
-
-        return camposPossiveis.some(campo =>
-            String(p[campo] || "").trim() === contratoSelecionado
-        );
-    });
-}
-
-function somarMaterialPreparado(obras) {
-    const resultado = {};
-
-    obras.forEach(feature => {
-        const p = feature.properties || {};
-
-        const material = p.MATERIAL || p.Material || p.material;
-
-        if (!material) return;
-
-        resultado[material] = (resultado[material] || 0) + 1;
-    });
-
-    return resultado;
-}
-
-function obterCamadaPorParteDoNome(parteNome) {
-    const nome = Object.keys(window).find(chave =>
-        chave.startsWith("json_") &&
-        chave.toLowerCase().includes(parteNome.toLowerCase())
-    );
-
-    if (!nome) {
-        console.warn("Camada não encontrada contendo:", parteNome);
-        return [];
-    }
-
-    console.log("Camada encontrada:", nome);
-    return window[nome].features || [];
-}
-
-function contarStatusLancamentos(features) {
-    const resultado = {
-        total: features.length,
-        ativos: 0,
-        suprimidos: 0
-    };
-
-    features.forEach(feature => {
-        const p = feature.properties || {};
-        const status = String(
-            p.STATUS || p.Status || p.status || p.SITUACAO || p.Situação || ""
-        ).toUpperCase();
-
-        if (
-            status.includes("ATIVO") ||
-            status.includes("EXISTENTE") ||
-            status.includes("PENDENTE")
-        ) {
-            resultado.ativos++;
-        }
-
-        if (
-            status.includes("SUPRIMIDO") ||
-            status.includes("ELIMINADO") ||
-            status.includes("INATIVO")
-        ) {
-            resultado.suprimidos++;
-        }
-    });
-
-    return resultado;
-}
+/* =========================================================
+   ATUALIZAÇÃO DO DASHBOARD
+   ========================================================= */
 
 function atualizarDashboard() {
     const obrasTodas = obterFeatures("json_OBRAS_EMN2_4");
@@ -324,15 +383,23 @@ function atualizarDashboard() {
     const frentesTodas = obterFeatures("json_EMN2Frentes_em_Andamento_9");
     const manchasTodas = obterFeatures("json_VIRADADEMANCHA_2");
 
-    const lancamentosTodas =
-    obterCamadaPorParteDoNome("LANCA").length ? obterCamadaPorParteDoNome("LANCA") :
-    obterCamadaPorParteDoNome("LANÇ").length ? obterCamadaPorParteDoNome("LANÇ") :
-    obterCamadaPorParteDoNome("PONTOS").length ? obterCamadaPorParteDoNome("PONTOS") :
-    obterCamadaPorParteDoNome("PONTO");
+    const lancamentosTodas = obterCamadaPorParteDoNome([
+        "PONTOSDELANAMENTO",
+        "PONTOS",
+        "LANCA",
+        "LANCAMENTO",
+        "LANÇAMENTO"
+    ]);
 
     const obras = filtrarPorContrato(obrasTodas, "NUM_CONTRA");
 
-    const sinistros = filtrarPorContrato(sinistrosTodas, "Contrato");
+    const sinistros = filtrarPorContratoMultiplosCampos(sinistrosTodas, [
+        "Contrato",
+        "CONTRATO",
+        "contrato",
+        "NUM_CONTRA",
+        "NUM_CONTRATO"
+    ]);
 
     const frentes = filtrarPorContratoMultiplosCampos(frentesTodas, [
         "CONTRATO",
@@ -343,8 +410,8 @@ function atualizarDashboard() {
     ]);
 
     const lancamentos = filtrarPorContratoMultiplosCampos(lancamentosTodas, [
-        "CONTRATO",
         "Contrato",
+        "CONTRATO",
         "contrato",
         "NUM_CONTRA",
         "NUM_CONTRATO"
@@ -371,7 +438,7 @@ function atualizarDashboard() {
     ];
 
     const prontas = frentesUnicas.filter(item =>
-        statusProntos.includes(String(item.status).trim().toUpperCase())
+        statusProntos.includes(normalizarTexto(item.status))
     ).length;
 
     const percentualProntas = frentesUnicas.length
@@ -381,7 +448,8 @@ function atualizarDashboard() {
     document.getElementById("totalObras").innerText = frentesUnicas.length.toLocaleString("pt-BR");
 
     if (document.getElementById("percentualObrasProntas")) {
-        document.getElementById("percentualObrasProntas").innerText = percentualProntas.toFixed(1) + "% prontas";
+        document.getElementById("percentualObrasProntas").innerText =
+            percentualProntas.toFixed(1) + "% prontas";
     }
 
     document.getElementById("totalFrentes").innerText = frentes.length.toLocaleString("pt-BR");
@@ -390,15 +458,16 @@ function atualizarDashboard() {
 
     const resumoLancamentos = contarStatusLancamentos(lancamentos);
 
-if (document.getElementById("totalLancamentos")) {
-    document.getElementById("totalLancamentos").innerText = resumoLancamentos.total.toLocaleString("pt-BR");
-}
+    if (document.getElementById("totalLancamentos")) {
+        document.getElementById("totalLancamentos").innerText =
+            resumoLancamentos.total.toLocaleString("pt-BR");
+    }
 
-if (document.getElementById("statusLancamentos")) {
-    document.getElementById("statusLancamentos").innerText =
-        "Ativos: " + resumoLancamentos.ativos.toLocaleString("pt-BR") +
-        " | Suprimidos: " + resumoLancamentos.suprimidos.toLocaleString("pt-BR");
-}
+    if (document.getElementById("statusLancamentos")) {
+        document.getElementById("statusLancamentos").innerText =
+            "Ativos: " + resumoLancamentos.ativos.toLocaleString("pt-BR") +
+            " | Suprimidos: " + resumoLancamentos.suprimidos.toLocaleString("pt-BR");
+    }
 
     graficoStatusObras = criarGraficoBarra(
         "graficoStatusObras",
@@ -449,117 +518,130 @@ if (document.getElementById("statusLancamentos")) {
     );
 }
 
-function criarGraficosFixos() {
-    graficoValores = new Chart(document.getElementById("graficoValores"), {
-        type: "bar",
-        data: {
-            labels: metas.valoresContratos.map(item => item.contrato),
-            datasets: [
-                {
-                    label: "Valor Contratual",
-                    data: metas.valoresContratos.map(item => item.valorContratual)
-                },
-                {
-                    label: "Total Pedido",
-                    data: metas.valoresContratos.map(item => item.totalPedido)
-                },
-                {
-                    label: "Total Unitizado",
-                    data: metas.valoresContratos.map(item => item.totalUnitizado)
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: "index",
-                intersect: false
-            },
-            plugins: {
-                tooltip: {
-                    enabled: true,
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ": " + formatarMoeda(context.raw);
-                        }
-                    }
-                },
-                legend: {
-                    position: "bottom"
-                }
-            },
-            scales: {
-                y: {
-                    ticks: {
-                        callback: function(value) {
-                            return "R$ " + (value / 1000000).toFixed(0) + " mi";
-                        }
-                    }
-                }
-            }
-        }
-    });
 
-    graficoExtensao = new Chart(document.getElementById("graficoExtensao"), {
-        type: "bar",
-        data: {
-            labels: metas.extensaoContratos.map(item => item.contrato),
-            datasets: [
-                {
-                    label: "Extensão Contratual",
-                    data: metas.extensaoContratos.map(item => item.contratual)
-                },
-                {
-                    label: "Extensão Atual",
-                    data: metas.extensaoContratos.map(item => item.atual)
-                },
-                {
-                    label: "Extensão Executada",
-                    data: metas.extensaoContratos.map(item => item.executada)
-                },
-                {
-                    label: "Extensão Unitizada",
-                    data: metas.extensaoContratos.map(item => item.unitizada)
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: "index",
-                intersect: false
+/* =========================================================
+   GRÁFICOS FIXOS DE CONTRATOS
+   ========================================================= */
+
+function criarGraficosFixos() {
+    const canvasValores = document.getElementById("graficoValores");
+    const canvasExtensao = document.getElementById("graficoExtensao");
+
+    if (canvasValores) {
+        graficoValores = new Chart(canvasValores, {
+            type: "bar",
+            data: {
+                labels: metas.valoresContratos.map(item => item.contrato),
+                datasets: [
+                    {
+                        label: "Valor Contratual",
+                        data: metas.valoresContratos.map(item => item.valorContratual)
+                    },
+                    {
+                        label: "Total Pedido",
+                        data: metas.valoresContratos.map(item => item.totalPedido)
+                    },
+                    {
+                        label: "Total Unitizado",
+                        data: metas.valoresContratos.map(item => item.totalUnitizado)
+                    }
+                ]
             },
-            plugins: {
-                tooltip: {
-                    enabled: true,
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ": " + formatarNumero(context.raw) + " m";
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ": " + formatarMoeda(context.raw);
+                            }
                         }
+                    },
+                    legend: {
+                        position: "bottom"
                     }
                 },
-                legend: {
-                    position: "bottom"
-                }
-            },
-            scales: {
-                y: {
-                    ticks: {
-                        callback: function(value) {
-                            return formatarNumero(value) + " m";
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value) {
+                                return "R$ " + (value / 1000000).toFixed(0) + " mi";
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
+    }
+
+    if (canvasExtensao) {
+        graficoExtensao = new Chart(canvasExtensao, {
+            type: "bar",
+            data: {
+                labels: metas.extensaoContratos.map(item => item.contrato),
+                datasets: [
+                    {
+                        label: "Extensão Contratual",
+                        data: metas.extensaoContratos.map(item => item.contratual)
+                    },
+                    {
+                        label: "Extensão Atual",
+                        data: metas.extensaoContratos.map(item => item.atual)
+                    },
+                    {
+                        label: "Extensão Executada",
+                        data: metas.extensaoContratos.map(item => item.executada)
+                    },
+                    {
+                        label: "Extensão Unitizada",
+                        data: metas.extensaoContratos.map(item => item.unitizada)
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ": " + formatarNumero(context.raw) + " m";
+                            }
+                        }
+                    },
+                    legend: {
+                        position: "bottom"
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value) {
+                                return formatarNumero(value) + " m";
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 }
 
-/* ========================= */
-/* MODAL / POP-UPS */
-/* ========================= */
+
+/* =========================================================
+   MODAL / POP-UPS
+   ========================================================= */
 
 window.abrirModal = function(titulo, conteudo) {
     const modal = document.getElementById("modal");
@@ -573,15 +655,22 @@ window.abrirModal = function(titulo, conteudo) {
 
     modalTitulo.innerText = titulo;
     modalCorpo.innerHTML = conteudo;
-    modal.style.display = "block";
+
+    modal.style.display = "flex";
+    modal.classList.add("is-open");
+
+    document.body.classList.add("modal-open");
 };
 
 window.fecharModal = function() {
     const modal = document.getElementById("modal");
 
     if (modal) {
+        modal.classList.remove("is-open");
         modal.style.display = "none";
     }
+
+    document.body.classList.remove("modal-open");
 };
 
 function gerarTabelaModal(features, campos) {
@@ -614,17 +703,7 @@ function gerarTabelaModal(features, campos) {
 }
 
 function filtrarContratoModal(features, camposContrato) {
-    if (contratoSelecionado === "TODOS") {
-        return features;
-    }
-
-    return features.filter(feature => {
-        const p = feature.properties || {};
-
-        return camposContrato.some(campo =>
-            String(p[campo] || "").trim() === contratoSelecionado
-        );
-    });
+    return filtrarPorContratoMultiplosCampos(features, camposContrato);
 }
 
 function cardMetaHtml(titulo, previsto, realizado, unidade = "") {
@@ -779,7 +858,13 @@ window.abrirDetalhesEEE = function() {
 };
 
 window.abrirDetalhesLancamentos = function() {
-    const lancamentosTodas = obterCamadaPorParteDoNome("PONTOSDELANAMENTO");
+    const lancamentosTodas = obterCamadaPorParteDoNome([
+        "PONTOSDELANAMENTO",
+        "PONTOS",
+        "LANCA",
+        "LANCAMENTO",
+        "LANÇAMENTO"
+    ]);
 
     const lancamentos = filtrarContratoModal(lancamentosTodas, [
         "Contrato",
@@ -804,12 +889,12 @@ window.abrirDetalhesLancamentos = function() {
 
 function ativarCliquesDosCards() {
     const itens = [
-        ["tituloMetasGerais", abrirDetalhesMetas],
-        ["cardObras", abrirDetalhesObras],
-        ["cardFrentes", abrirDetalhesFrentes],
-        ["cardSinistros", abrirDetalhesSinistros],
-        ["cardEEE", abrirDetalhesEEE],
-        ["cardLancamentos", abrirDetalhesLancamentos]
+        ["tituloMetasGerais", window.abrirDetalhesMetas],
+        ["cardObras", window.abrirDetalhesObras],
+        ["cardFrentes", window.abrirDetalhesFrentes],
+        ["cardSinistros", window.abrirDetalhesSinistros],
+        ["cardEEE", window.abrirDetalhesEEE],
+        ["cardLancamentos", window.abrirDetalhesLancamentos]
     ];
 
     itens.forEach(([id, funcao]) => {
@@ -823,7 +908,15 @@ function ativarCliquesDosCards() {
     });
 }
 
+
+/* =========================================================
+   INICIALIZAÇÃO
+   ========================================================= */
+
 document.addEventListener("DOMContentLoaded", function() {
+    carregarMetasGerais();
+    atualizarDashboard();
+    criarGraficosFixos();
     ativarCliquesDosCards();
 });
 
