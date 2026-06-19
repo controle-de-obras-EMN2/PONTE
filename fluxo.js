@@ -1,485 +1,264 @@
-/* =========================================================
-   FLUXO PONTE
-   Lê dados/fluxo.csv e desenha o fluxograma interativo
-   ========================================================= */
+let dadosFluxo = [];
+let filtroAtual = "TODOS";
+let modoCoordenada = false;
+let primeiroPonto = null;
 
-let fluxoNodes = [];
-let fluxoLinks = [];
-let fluxoFiltroAtual = "TODOS";
-let fluxoBuscaAtual = "";
-let fluxoNodePorId = {};
+document.addEventListener("DOMContentLoaded", function() {
+    prepararImagem();
+    carregarFluxoInterativo();
+    configurarBusca();
+});
 
-function normalizarFluxo(texto) {
-    return String(texto || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase()
-        .trim();
+function prepararImagem() {
+    const imagem = document.getElementById("imagemFluxo");
+
+    imagem.addEventListener("load", function() {
+        centralizarFluxo();
+    });
+
+    imagem.addEventListener("click", function(event) {
+        if (!modoCoordenada) return;
+
+        capturarCoordenada(event);
+    });
 }
 
-function numeroFluxo(valor) {
-    if (valor === null || valor === undefined || valor === "") return 0;
+async function carregarFluxoInterativo() {
+    try {
+        const texto = await carregarCSVComFallback([
+            "dados/fluxo_interativo.csv",
+            "./dados/fluxo_interativo.csv",
+            "/PONTE/dados/fluxo_interativo.csv"
+        ]);
 
-    let texto = String(valor).trim();
+        dadosFluxo = parseCSV(texto);
 
-    if (texto.includes(",") && texto.includes(".")) {
-        texto = texto.replace(/\./g, "").replace(",", ".");
-    } else if (texto.includes(",")) {
-        texto = texto.replace(",", ".");
+        desenharHotspots();
+
+    } catch (erro) {
+        console.warn("Nenhum CSV de interatividade encontrado. A imagem continuará funcionando sem áreas clicáveis.", erro);
+
+        dadosFluxo = [];
+        desenharHotspots();
     }
-
-    return Number(texto) || 0;
 }
 
-function formatarFluxo(valor) {
-    return Number(valor || 0).toLocaleString("pt-BR");
-}
+async function carregarCSVComFallback(caminhos) {
+    for (const caminho of caminhos) {
+        try {
+            const resposta = await fetch(caminho + "?v=" + Date.now());
 
-function parseCSVFluxo(texto, separador = ";") {
-    texto = texto.replace(/^\uFEFF/, "");
-
-    const linhas = [];
-    let linha = [];
-    let campo = "";
-    let dentroAspas = false;
-
-    for (let i = 0; i < texto.length; i++) {
-        const char = texto[i];
-        const prox = texto[i + 1];
-
-        if (char === '"') {
-            if (dentroAspas && prox === '"') {
-                campo += '"';
-                i++;
-            } else {
-                dentroAspas = !dentroAspas;
+            if (resposta.ok) {
+                console.log("CSV de fluxo carregado em:", caminho);
+                return await resposta.text();
             }
-        } else if (char === separador && !dentroAspas) {
-            linha.push(campo);
-            campo = "";
-        } else if ((char === "\n" || char === "\r") && !dentroAspas) {
-            if (char === "\r" && prox === "\n") i++;
-
-            linha.push(campo);
-            campo = "";
-
-            if (linha.some(item => String(item).trim() !== "")) {
-                linhas.push(linha);
-            }
-
-            linha = [];
-        } else {
-            campo += char;
+        } catch (erro) {
+            console.warn("Falha ao tentar carregar:", caminho);
         }
     }
 
-    if (campo.length || linha.length) {
-        linha.push(campo);
-        if (linha.some(item => String(item).trim() !== "")) {
-            linhas.push(linha);
-        }
-    }
+    throw new Error("Não foi possível carregar o CSV de fluxo.");
+}
 
-    const cabecalho = linhas.shift().map(item => item.trim());
+function parseCSV(texto) {
+    const linhas = texto
+        .replace(/\r/g, "")
+        .split("\n")
+        .filter(linha => linha.trim() !== "");
 
-    return linhas.map(linhaAtual => {
+    if (linhas.length <= 1) return [];
+
+    const separador = linhas[0].includes(";") ? ";" : ",";
+
+    const cabecalho = linhas[0]
+        .split(separador)
+        .map(c => c.trim());
+
+    return linhas.slice(1).map(linha => {
+        const valores = dividirLinhaCSV(linha, separador);
         const obj = {};
 
-        cabecalho.forEach((campoCabecalho, indice) => {
-            obj[campoCabecalho] = (linhaAtual[indice] || "").trim();
+        cabecalho.forEach((campo, index) => {
+            obj[campo] = valores[index] ? valores[index].trim() : "";
         });
 
         return obj;
     });
 }
 
-async function carregarFluxo() {
-    try {
-        const resposta = await fetch("dados/fluxo.csv", { cache: "no-store" });
+function dividirLinhaCSV(linha, separador) {
+    const resultado = [];
+    let atual = "";
+    let dentroAspas = false;
 
-        if (!resposta.ok) {
-            throw new Error("Não foi possível carregar dados/fluxo.csv");
+    for (let i = 0; i < linha.length; i++) {
+        const caractere = linha[i];
+
+        if (caractere === '"') {
+            dentroAspas = !dentroAspas;
+            continue;
         }
 
-        const texto = await resposta.text();
-        const linhas = parseCSVFluxo(texto, ";");
+        if (caractere === separador && !dentroAspas) {
+            resultado.push(atual);
+            atual = "";
+            continue;
+        }
 
-        fluxoNodes = linhas
-            .filter(item => item.tipo === "node")
-            .map(item => ({
-                ...item,
-                x: numeroFluxo(item.x),
-                y: numeroFluxo(item.y),
-                meta_2025_num: numeroFluxo(item.meta_2025),
-                meta_2026_num: numeroFluxo(item.meta_2026),
-                economias_recebidas_num: numeroFluxo(item.economias_recebidas),
-                economias_liberadas_num: numeroFluxo(item.economias_liberadas),
-                extensao_km_num: numeroFluxo(item.extensao_km)
-            }));
+        atual += caractere;
+    }
 
-        fluxoLinks = linhas.filter(item => item.tipo === "link");
+    resultado.push(atual);
 
-        fluxoNodePorId = {};
-        fluxoNodes.forEach(node => {
-            fluxoNodePorId[node.id] = node;
+    return resultado;
+}
+
+function desenharHotspots() {
+    const canvas = document.getElementById("fluxoCanvas");
+
+    document.querySelectorAll(".hotspot").forEach(item => item.remove());
+
+    dadosFluxo.forEach(item => {
+        const hotspot = document.createElement("div");
+
+        hotspot.className = "hotspot tipo-" + limparClasse(item.tipo);
+        hotspot.dataset.id = item.id || "";
+        hotspot.dataset.tipo = item.tipo || "";
+        hotspot.dataset.nome = item.nome || "";
+        hotspot.dataset.contrato = item.contrato || "";
+
+        hotspot.style.left = numeroCSS(item.x) + "%";
+        hotspot.style.top = numeroCSS(item.y) + "%";
+        hotspot.style.width = numeroCSS(item.largura) + "%";
+        hotspot.style.height = numeroCSS(item.altura) + "%";
+
+        hotspot.addEventListener("mouseenter", function(event) {
+            mostrarTooltip(event, item);
         });
 
-        calcularEconomiasRecebidasPorLigacao();
-        desenharFluxo();
-        ativarEventosFluxo();
-
-    } catch (erro) {
-        console.error(erro);
-
-        const container = document.getElementById("fluxoContainer");
-        if (container) {
-            container.innerHTML = `
-                <div class="erro-fluxo">
-                    <h2>Não foi possível carregar o fluxo</h2>
-                    <p>Confira se o arquivo <strong>dados/fluxo.csv</strong> existe no repositório.</p>
-                </div>
-            `;
-        }
-    }
-}
-
-function calcularEconomiasRecebidasPorLigacao() {
-    fluxoLinks.forEach(link => {
-        const origem = fluxoNodePorId[link.origem];
-        const destino = fluxoNodePorId[link.destino];
-
-        if (!origem || !destino) return;
-
-        const valorOrigem = origem.economias_liberadas_num || origem.meta_2026_num || origem.meta_2025_num || 0;
-
-        if (!destino.economias_recebidas_num) {
-            destino.economias_recebidas_num = 0;
-        }
-
-        destino.economias_recebidas_num += valorOrigem;
-    });
-}
-
-function corCategoria(categoria) {
-    const cores = {
-        contrato: { fill: "#eaf2ff", stroke: "#0b2f5b" },
-        elevatoria: { fill: "#fff4d6", stroke: "#b77900" },
-        coletor: { fill: "#e8f5e9", stroke: "#2e7d32" },
-        linha_recalque: { fill: "#f3e8ff", stroke: "#6d28d9" },
-        existente: { fill: "#eeeeee", stroke: "#555555" },
-        ete: { fill: "#e0f7fa", stroke: "#00838f" },
-        ponto_critico: { fill: "#fde2e2", stroke: "#c62828" },
-        outro: { fill: "#ffffff", stroke: "#777777" }
-    };
-
-    return cores[categoria] || cores.outro;
-}
-
-function tamanhoNode(node) {
-    if (node.categoria === "contrato") return { w: 300, h: 120 };
-    if (node.categoria === "elevatoria") return { w: 230, h: 82 };
-    if (node.categoria === "ponto_critico") return { w: 150, h: 52 };
-    if (node.categoria === "ete") return { w: 170, h: 58 };
-    return { w: 180, h: 58 };
-}
-
-function quebraTexto(texto, limite) {
-    const palavras = String(texto || "").split(/\s+/);
-    const linhas = [];
-    let linha = "";
-
-    palavras.forEach(palavra => {
-        const teste = linha ? linha + " " + palavra : palavra;
-
-        if (teste.length > limite && linha) {
-            linhas.push(linha);
-            linha = palavra;
-        } else {
-            linha = teste;
-        }
-    });
-
-    if (linha) linhas.push(linha);
-
-    return linhas.slice(0, 4);
-}
-
-function nodeVisivel(node) {
-    const filtroOk = fluxoFiltroAtual === "TODOS" || node.categoria === fluxoFiltroAtual;
-    const busca = normalizarFluxo(fluxoBuscaAtual);
-
-    if (!busca) return filtroOk;
-
-    const textoBusca = normalizarFluxo([
-        node.nome,
-        node.categoria,
-        node.contrato,
-        node.descricao,
-        node.metodo,
-        node.status
-    ].join(" "));
-
-    return filtroOk && textoBusca.includes(busca);
-}
-
-function desenharFluxo() {
-    const svg = document.getElementById("fluxoSvg");
-    if (!svg) return;
-
-    svg.innerHTML = "";
-
-    const nodesVisiveis = fluxoNodes.filter(nodeVisivel);
-    const idsVisiveis = new Set(nodesVisiveis.map(node => node.id));
-    const linksVisiveis = fluxoLinks.filter(link =>
-        idsVisiveis.has(link.origem) && idsVisiveis.has(link.destino)
-    );
-
-    const minX = Math.min(...fluxoNodes.map(n => n.x));
-    const minY = Math.min(...fluxoNodes.map(n => n.y));
-    const maxX = Math.max(...fluxoNodes.map(n => n.x));
-    const maxY = Math.max(...fluxoNodes.map(n => n.y));
-
-    const escalaX = 58;
-    const escalaY = 32;
-    const margem = 80;
-
-    const largura = Math.max(1800, (maxX - minX) * escalaX + margem * 2 + 320);
-    const altura = Math.max(1200, (maxY - minY) * escalaY + margem * 2 + 180);
-
-    svg.setAttribute("width", largura);
-    svg.setAttribute("height", altura);
-    svg.setAttribute("viewBox", `0 0 ${largura} ${altura}`);
-
-    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    defs.innerHTML = `
-        <marker id="setaFluxo" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-            <path d="M0,0 L0,6 L9,3 z" fill="#54616f"></path>
-        </marker>
-    `;
-    svg.appendChild(defs);
-
-    const grupoLinks = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    grupoLinks.setAttribute("class", "fluxo-links");
-    svg.appendChild(grupoLinks);
-
-    const grupoNodes = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    grupoNodes.setAttribute("class", "fluxo-nodes");
-    svg.appendChild(grupoNodes);
-
-    const posicoes = {};
-
-    fluxoNodes.forEach(node => {
-        const tamanho = tamanhoNode(node);
-        const x = margem + (node.x - minX) * escalaX;
-        const y = margem + (node.y - minY) * escalaY;
-
-        posicoes[node.id] = {
-            x,
-            y,
-            cx: x + tamanho.w / 2,
-            cy: y + tamanho.h / 2,
-            ...tamanho
-        };
-    });
-
-    linksVisiveis.forEach(link => {
-        const origem = posicoes[link.origem];
-        const destino = posicoes[link.destino];
-
-        if (!origem || !destino) return;
-
-        const linha = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        linha.setAttribute("x1", origem.cx);
-        linha.setAttribute("y1", origem.cy);
-        linha.setAttribute("x2", destino.cx);
-        linha.setAttribute("y2", destino.cy);
-        linha.setAttribute("class", "fluxo-link");
-        linha.setAttribute("marker-end", "url(#setaFluxo)");
-
-        linha.addEventListener("click", () => abrirDetalhesLink(link));
-
-        grupoLinks.appendChild(linha);
-    });
-
-    nodesVisiveis.forEach(node => {
-        const pos = posicoes[node.id];
-        const cores = corCategoria(node.categoria);
-        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-
-        g.setAttribute("class", "fluxo-node");
-        g.setAttribute("data-categoria", node.categoria);
-        g.setAttribute("transform", `translate(${pos.x}, ${pos.y})`);
-
-        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rect.setAttribute("width", pos.w);
-        rect.setAttribute("height", pos.h);
-        rect.setAttribute("rx", 12);
-        rect.setAttribute("fill", cores.fill);
-        rect.setAttribute("stroke", cores.stroke);
-        rect.setAttribute("stroke-width", 3);
-
-        g.appendChild(rect);
-
-        const linhasNome = quebraTexto(node.nome, node.categoria === "contrato" ? 30 : 22);
-
-        linhasNome.forEach((linhaTexto, i) => {
-            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            text.setAttribute("x", 14);
-            text.setAttribute("y", 24 + i * 16);
-            text.setAttribute("class", "fluxo-node-texto");
-            text.textContent = linhaTexto;
-            g.appendChild(text);
+        hotspot.addEventListener("mousemove", function(event) {
+            moverTooltip(event);
         });
 
-        const resumo = montarResumoNode(node);
+        hotspot.addEventListener("mouseleave", function() {
+            esconderTooltip();
+        });
 
-        if (resumo) {
-            const sub = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            sub.setAttribute("x", 14);
-            sub.setAttribute("y", pos.h - 12);
-            sub.setAttribute("class", "fluxo-node-subtexto");
-            sub.textContent = resumo;
-            g.appendChild(sub);
-        }
+        hotspot.addEventListener("click", function(event) {
+            event.stopPropagation();
+            abrirDetalheFluxo(item);
+        });
 
-        g.addEventListener("mousemove", event => mostrarTooltipFluxo(event, node));
-        g.addEventListener("mouseleave", esconderTooltipFluxo);
-        g.addEventListener("click", () => abrirDetalhesNode(node));
-
-        grupoNodes.appendChild(g);
+        canvas.appendChild(hotspot);
     });
+
+    aplicarFiltroVisual();
 }
 
-function montarResumoNode(node) {
-    if (node.categoria === "contrato") {
-        const meta = node.meta_2026_num || node.meta_2025_num;
-        const ano = node.meta_2026_num ? "2026" : "2025";
-
-        if (meta) return `${formatarFluxo(meta)} ECO - ${ano}`;
-        if (node.extensao_km) return `${node.extensao_km} km`;
-    }
-
-    if (node.categoria === "elevatoria") {
-        if (node.economias_recebidas_num) {
-            return `${formatarFluxo(node.economias_recebidas_num)} ECO recebidas`;
-        }
-
-        if (node.vazao_ls) return `Q=${node.vazao_ls}`;
-    }
-
-    if (node.categoria === "ponto_critico") return "Interferência";
-
-    return "";
+function numeroCSS(valor) {
+    const numero = Number(String(valor || "0").replace(",", "."));
+    return isNaN(numero) ? 0 : numero;
 }
 
-function htmlDetalhesNode(node) {
-    return `
-        <div class="detalhes-fluxo">
-            <div class="detalhe-linha"><strong>Nome:</strong><span>${node.nome || "-"}</span></div>
-            <div class="detalhe-linha"><strong>Categoria:</strong><span>${node.categoria || "-"}</span></div>
-            <div class="detalhe-linha"><strong>Contrato:</strong><span>${node.contrato || "-"}</span></div>
-            <div class="detalhe-linha"><strong>Meta 2025:</strong><span>${node.meta_2025_num ? formatarFluxo(node.meta_2025_num) + " economias" : "-"}</span></div>
-            <div class="detalhe-linha"><strong>Meta 2026:</strong><span>${node.meta_2026_num ? formatarFluxo(node.meta_2026_num) + " economias" : "-"}</span></div>
-            <div class="detalhe-linha"><strong>Economias recebidas:</strong><span>${node.economias_recebidas_num ? formatarFluxo(node.economias_recebidas_num) + " economias" : "-"}</span></div>
-            <div class="detalhe-linha"><strong>Economias liberadas:</strong><span>${node.economias_liberadas_num ? formatarFluxo(node.economias_liberadas_num) + " economias" : "-"}</span></div>
-            <div class="detalhe-linha"><strong>Extensão:</strong><span>${node.extensao_km ? node.extensao_km + " km" : "-"}</span></div>
-            <div class="detalhe-linha"><strong>Método:</strong><span>${node.metodo || "-"}</span></div>
-            <div class="detalhe-linha"><strong>Vazão:</strong><span>${node.vazao_ls || "-"}</span></div>
-            <div class="detalhe-linha"><strong>Status:</strong><span>${node.status || "-"}</span></div>
-            <div class="detalhe-linha"><strong>Observação:</strong><span>${node.descricao || "-"}</span></div>
-        </div>
-    `;
+function limparClasse(texto) {
+    return String(texto || "Geral")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]/g, "");
 }
 
-function abrirDetalhesNode(node) {
-    abrirModal(`Fluxo - ${node.nome}`, htmlDetalhesNode(node));
-}
-
-function abrirDetalhesLink(link) {
-    const origem = fluxoNodePorId[link.origem];
-    const destino = fluxoNodePorId[link.destino];
-
-    abrirModal(
-        "Conexão do Fluxo",
-        `
-        <div class="detalhes-fluxo">
-            <div class="detalhe-linha"><strong>Origem:</strong><span>${origem ? origem.nome : link.origem}</span></div>
-            <div class="detalhe-linha"><strong>Destino:</strong><span>${destino ? destino.nome : link.destino}</span></div>
-            <div class="detalhe-linha"><strong>Descrição:</strong><span>${link.descricao || "Conexão extraída do fluxograma"}</span></div>
-        </div>
-        `
-    );
-}
-
-function mostrarTooltipFluxo(event, node) {
+function mostrarTooltip(event, item) {
     const tooltip = document.getElementById("tooltipFluxo");
-    const container = document.getElementById("fluxoContainer");
-
-    if (!tooltip || !container) return;
 
     tooltip.innerHTML = `
-        <strong>${node.nome}</strong><br>
-        ${node.categoria ? "Tipo: " + node.categoria + "<br>" : ""}
-        ${node.meta_2026_num ? "Meta 2026: " + formatarFluxo(node.meta_2026_num) + " ECO<br>" : ""}
-        ${node.meta_2025_num ? "Meta 2025: " + formatarFluxo(node.meta_2025_num) + " ECO<br>" : ""}
-        ${node.economias_recebidas_num ? "Recebe: " + formatarFluxo(node.economias_recebidas_num) + " ECO<br>" : ""}
-        ${node.extensao_km ? "Extensão: " + node.extensao_km + " km<br>" : ""}
-        ${node.metodo ? "Método: " + node.metodo + "<br>" : ""}
-        <em>Clique para detalhes</em>
+        <strong>${item.nome || "Sem nome"}</strong>
+        ${item.tipo ? item.tipo + "<br>" : ""}
+        ${item.contrato ? "Contrato: " + item.contrato + "<br>" : ""}
+        ${item.economias ? "Economias: " + item.economias + "<br>" : ""}
+        ${item.status ? "Status: " + item.status : ""}
     `;
 
-    const rect = container.getBoundingClientRect();
-    tooltip.style.left = event.clientX - rect.left + 18 + "px";
-    tooltip.style.top = event.clientY - rect.top + 18 + "px";
     tooltip.style.display = "block";
+
+    moverTooltip(event);
 }
 
-function esconderTooltipFluxo() {
+function moverTooltip(event) {
     const tooltip = document.getElementById("tooltipFluxo");
-    if (tooltip) tooltip.style.display = "none";
+
+    tooltip.style.left = (event.clientX + 14) + "px";
+    tooltip.style.top = (event.clientY + 14) + "px";
 }
 
-function ativarEventosFluxo() {
-    const busca = document.getElementById("buscaFluxo");
-
-    if (busca) {
-        busca.addEventListener("input", function() {
-            fluxoBuscaAtual = this.value;
-            desenharFluxo();
-        });
-    }
-
-    document.querySelectorAll(".fluxo-legenda button").forEach(botao => {
-        botao.addEventListener("click", function() {
-            document.querySelectorAll(".fluxo-legenda button").forEach(btn => btn.classList.remove("ativo"));
-            this.classList.add("ativo");
-
-            fluxoFiltroAtual = this.dataset.filtro;
-            desenharFluxo();
-        });
-    });
+function esconderTooltip() {
+    const tooltip = document.getElementById("tooltipFluxo");
+    tooltip.style.display = "none";
 }
 
-window.centralizarFluxo = function() {
-    const container = document.getElementById("fluxoContainer");
-    if (!container) return;
+function abrirDetalheFluxo(item) {
+    const titulo = item.nome || "Detalhes do Fluxo";
 
-    container.scrollLeft = 0;
-    container.scrollTop = 0;
-};
+    const conteudo = `
+        <div class="modal-fluxo-info">
+
+            <div>
+                <span>Tipo</span>
+                <strong>${item.tipo || "-"}</strong>
+            </div>
+
+            <div>
+                <span>Contrato</span>
+                <strong>${item.contrato || "-"}</strong>
+            </div>
+
+            <div>
+                <span>Status</span>
+                <strong>${item.status || "-"}</strong>
+            </div>
+
+            <div>
+                <span>Economias</span>
+                <strong>${item.economias || "-"}</strong>
+            </div>
+
+            <div>
+                <span>Economias recebidas</span>
+                <strong>${item.economias_recebidas || "-"}</strong>
+            </div>
+
+            <div>
+                <span>Economias liberadas</span>
+                <strong>${item.economias_liberadas || "-"}</strong>
+            </div>
+
+        </div>
+
+        <h3 style="color:#0b2f5b;">Descrição</h3>
+        <p>${item.descricao || "Sem descrição cadastrada."}</p>
+
+        <h3 style="color:#0b2f5b;">Dependência / Interferência</h3>
+        <p>${item.dependencia || "Sem dependência cadastrada."}</p>
+    `;
+
+    abrirModal(titulo, conteudo);
+}
 
 window.abrirModal = function(titulo, conteudo) {
     const modal = document.getElementById("modal");
     const modalTitulo = document.getElementById("modalTitulo");
     const modalCorpo = document.getElementById("modalCorpo");
 
-    if (!modal || !modalTitulo || !modalCorpo) return;
+    if (!modal || !modalTitulo || !modalCorpo) {
+        console.error("Modal não encontrado.");
+        return;
+    }
 
     modalTitulo.innerText = titulo;
     modalCorpo.innerHTML = conteudo;
 
     modal.style.display = "flex";
     modal.classList.add("is-open");
+
     document.body.classList.add("modal-open");
 };
 
@@ -494,8 +273,143 @@ window.fecharModal = function() {
     document.body.classList.remove("modal-open");
 };
 
-document.addEventListener("keydown", function(event) {
-    if (event.key === "Escape") fecharModal();
-});
+function configurarBusca() {
+    const input = document.getElementById("buscaFluxo");
 
-document.addEventListener("DOMContentLoaded", carregarFluxo);
+    input.addEventListener("input", function() {
+        aplicarFiltroVisual();
+    });
+}
+
+function filtrarFluxo(tipo, botao) {
+    filtroAtual = tipo;
+
+    document.querySelectorAll(".fluxo-filtros button").forEach(btn => {
+        btn.classList.remove("ativo");
+    });
+
+    if (botao) {
+        botao.classList.add("ativo");
+    }
+
+    aplicarFiltroVisual();
+}
+
+function aplicarFiltroVisual() {
+    const busca = normalizarTexto(document.getElementById("buscaFluxo").value);
+
+    document.querySelectorAll(".hotspot").forEach(hotspot => {
+        const tipo = hotspot.dataset.tipo || "";
+        const texto = normalizarTexto(
+            hotspot.dataset.nome + " " +
+            hotspot.dataset.contrato + " " +
+            hotspot.dataset.tipo
+        );
+
+        let visivel = true;
+
+        if (filtroAtual !== "TODOS" && normalizarTexto(tipo) !== normalizarTexto(filtroAtual)) {
+            visivel = false;
+        }
+
+        if (busca && !texto.includes(busca)) {
+            visivel = false;
+        }
+
+        hotspot.classList.toggle("oculto", !visivel);
+        hotspot.classList.toggle("destacado", busca && texto.includes(busca));
+    });
+}
+
+function normalizarTexto(texto) {
+    return String(texto || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .trim();
+}
+
+function centralizarFluxo() {
+    const area = document.getElementById("fluxoArea");
+
+    area.scrollLeft = 0;
+    area.scrollTop = 0;
+}
+
+function alternarModoCoordenada() {
+    modoCoordenada = !modoCoordenada;
+    primeiroPonto = null;
+
+    if (modoCoordenada) {
+        alert("Modo coordenada ativado.\n\nClique primeiro no canto superior esquerdo da área.\nDepois clique no canto inferior direito.");
+    } else {
+        alert("Modo coordenada desativado.");
+    }
+}
+
+function capturarCoordenada(event) {
+    const imagem = document.getElementById("imagemFluxo");
+    const rect = imagem.getBoundingClientRect();
+
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+    const ponto = {
+        x: Number(x.toFixed(2)),
+        y: Number(y.toFixed(2))
+    };
+
+    if (!primeiroPonto) {
+        primeiroPonto = ponto;
+
+        alert(
+            "Primeiro ponto capturado:\n" +
+            "x: " + ponto.x + "\n" +
+            "y: " + ponto.y + "\n\n" +
+            "Agora clique no canto inferior direito da área."
+        );
+
+        return;
+    }
+
+    const x1 = Math.min(primeiroPonto.x, ponto.x);
+    const y1 = Math.min(primeiroPonto.y, ponto.y);
+    const x2 = Math.max(primeiroPonto.x, ponto.x);
+    const y2 = Math.max(primeiroPonto.y, ponto.y);
+
+    const largura = Number((x2 - x1).toFixed(2));
+    const altura = Number((y2 - y1).toFixed(2));
+
+    const linhaCSV =
+        "id;tipo;nome;contrato;x;y;largura;altura;economias;economias_recebidas;economias_liberadas;status;descricao;dependencia\n" +
+        "novo_item;Contrato;Nome do item;;" +
+        x1.toFixed(2) + ";" +
+        y1.toFixed(2) + ";" +
+        largura.toFixed(2) + ";" +
+        altura.toFixed(2) + ";" +
+        "0;0;0;Status;Descricao;Dependencia";
+
+    console.log("Linha para o CSV:");
+    console.log(linhaCSV);
+
+    navigator.clipboard.writeText(linhaCSV).then(() => {
+        alert(
+            "Área capturada e copiada.\n\n" +
+            "Cole a segunda linha no arquivo dados/fluxo_interativo.csv.\n\n" +
+            "Também deixei no console do navegador."
+        );
+    }).catch(() => {
+        alert(
+            "Área capturada.\n\n" +
+            "Abra o console para copiar a linha do CSV."
+        );
+    });
+
+    primeiroPonto = null;
+}
+
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+        fecharModal();
+    }
+});
