@@ -1,0 +1,57 @@
+tipo;contrato;indicador;periodo;previsto;realizado;unidade;valor_contratual;total_pedido;total_unitizado;ext_contratual;ext_atual;ext_executada;ext_unitizada;item;avanco;status;
+meta;;Economias Fator U;Atual;21085;998;un;;;;;;;;;;;
+meta;;Economias Contrato;Atual;18505;4508;un;;;;;;;;;;;
+meta;;Imobilizado;Atual;191599373;25179529,76;R$;;;;;;;;;;;
+meta;;Producao Integra;Atual;39969,24;26421,69;m;;;;;;;;;;;
+meta;;Producao Andamento;Atual;2423,4;1065,55;m;;;;;;;;;;;
+meta;;Economias Fator U;Proximo mes;0;0;un;;;;;;;;;;;
+meta;;Economias Contrato;Proximo mes;0;0;un;;;;;;;;;;;
+meta;;Imobilizado;Proximo mes;0;0;R$;;;;;;;;;;;
+meta;;Producao Integra;Proximo mes;0;0;m;;;;;;;;;;;
+meta;;Producao Andamento;Proximo mes;0;0;m;;;;;;;;;;;
+contrato_valor;00268/24;;;;;;188927409,8;11298600;1091136,69;;;;;;;;
+contrato_valor;00272/24;;;;;;161552735;51158366,05;2264704,29;;;;;;;;
+contrato_valor;00274/24;;;;;;57501876,48;42493886,73;24251441,15;;;;;;;;
+contrato_valor;00277/24;;;;;;165043827,9;99673527,45;21529551,8;;;;;;;;
+contrato_valor;00797/24;;;;;;330252968,1;297918027,7;115681884,4;;;;;;;;
+contrato_valor;00900/24;;;;;;95688794,88;35059623,94;17376952,55;;;;;;;;
+contrato_valor;01151/21;;;;;;138333835,9;113844092,5;70672707,17;;;;;;;;
+contrato_valor;03179/23;;;;;;51575428,16;40625621,67;11428205,74;;;;;;;;
+contrato_extensao;00268/24;;;;;;;;;;16139,56;16207,74;4464,77;127,53;;;
+contrato_extensao;00272/24;;;;;;;;;;20210,13;11178,51;7801,36;497,85;;;
+contrato_extensao;00274/24;;;;;;;;;;8633,92;7839,64;5243,15;1930,13;;;
+contrato_extensao;00277/24;;;;;;;;;;26650,21;16551,35;9889,31;2628,5;;;
+contrato_extensao;00797/24;;;;;;;;;;33894,77;29024,15;15471,98;7931,81;;;
+contrato_extensao;00900/24;;;;;;;;;;19586,28;21332,44;7493,03;2638,68;;;
+contrato_extensao;01151/21;;;;;;;;;;26936,92;25228,33;22263,2;15927,07;;;
+contrato_extensao;03179/23;;;;;;;;;;12788,14;12788,14;10793,75;3132,79;;;
+avanco_popup;00268/24;;;;;;;;;;;;;;EEE 18-A2;0;EM CONSTRUÇÃO
+avanco_popup;00797/24;;;;;;;;;;;;;;EEE 7;0;EM CONSTRUÇÃO
+avanco_popup;00900/24;;;;;;;;;;;;;;EEE 23-B1;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE 23-B2;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE 23-B3;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE 23-A3;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE 23-A4;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE A1;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE B1;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE C1;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE D1;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE E;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE F;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE G;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE H;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE I;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE J1;0;A INICIAR
+avanco_popup;;;;;;;;;;;;;;;EEE J2;47,2;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE JARDIM REAL;0;A INICIAR
+avanco_popup;;;;;;;;;;;;;;;EEE PARQUE DAS NAÇÕES;0;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE CARLÓPOLIS;0,13;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE JARDIM FÁTIMA;4,2;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE MARIA DIRCE;0;A INICIAR
+avanco_popup;;;;;;;;;;;;;;;EEE DAS INDÚSTRIAS;0,81;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE PARQUE INDUSTRIAL;0;A INICIAR
+avanco_popup;;;;;;;;;;;;;;;EEE VILA PARAISO;0;A INICIAR
+avanco_popup;;;;;;;;;;;;;;;EEE BONSUCESSO;26,77;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE FORTALEZA;17,39;EM CONSTRUÇÃO
+avanco_popup;;;;;;;;;;;;;;;EEE SANTA PAULA;0;A INICIAR
+avanco_popup;;;;;;;;;;;;;;;EEE VÁRZEA DAS FONTES;5,93;EM CONSTRUÇÃO
