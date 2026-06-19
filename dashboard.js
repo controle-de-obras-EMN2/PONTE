@@ -1,432 +1,305 @@
-let dadosFluxo = [];
+/* =========================================================
+   CORREÇÃO DESKTOP - CARDS E FILTROS
+   ========================================================= */
 
-let zoomAtual = 1;
-let zoomMinimo = 0.2;
-let zoomMaximo = 5;
-
-let larguraNatural = 0;
-let alturaNatural = 0;
-
-let posicaoX = 0;
-let posicaoY = 0;
-
-let arrastando = false;
-let inicioMouseX = 0;
-let inicioMouseY = 0;
-let inicioPosicaoX = 0;
-let inicioPosicaoY = 0;
-
-document.addEventListener("DOMContentLoaded", function() {
-    prepararFluxo();
-    carregarFluxoInterativo();
-});
-
-function prepararFluxo() {
-    const area = document.getElementById("fluxoArea");
-    const imagem = document.getElementById("imagemFluxo");
-
-    imagem.addEventListener("load", function() {
-        larguraNatural = imagem.naturalWidth;
-        alturaNatural = imagem.naturalHeight;
-
-        ajustarZoomInicial();
-        centralizarFluxo();
-        aplicarTransformacao();
-    });
-
-    area.addEventListener("wheel", zoomComScroll, { passive: false });
-    area.addEventListener("mousedown", iniciarArrasto);
-    area.addEventListener("mousemove", moverArrasto);
-    area.addEventListener("mouseup", finalizarArrasto);
-    area.addEventListener("mouseleave", finalizarArrasto);
-
-    area.addEventListener("dblclick", function() {
-        ajustarZoomInicial();
-        centralizarFluxo();
-        aplicarTransformacao();
-    });
-
-    window.addEventListener("wheel", function(event) {
-        if (!area.contains(event.target)) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-    }, { passive: false, capture: true });
+/* Garante que o dashboard fique acima de qualquer sobra visual do header */
+#dashboard {
+    position: relative;
+    z-index: 2;
 }
 
-function ajustarZoomInicial() {
-    const area = document.getElementById("fluxoArea");
+/* Evita que o logo ou qualquer sobra do header capture clique fora dele */
+#header {
+    overflow: hidden;
+}
 
-    if (!larguraNatural || !alturaNatural) return;
+#logo {
+    height: 95px !important;
+    max-height: 95px !important;
+    pointer-events: none !important;
+}
 
-    const margem = 40;
+/* Filtros sempre clicáveis */
+.filtros-dashboard {
+    position: relative !important;
+    z-index: 100001 !important;
 
-    const escalaLargura = (area.clientWidth - margem) / larguraNatural;
-    const escalaAltura = (area.clientHeight - margem) / alturaNatural;
+    display: flex !important;
+    flex-wrap: wrap !important;
 
-    zoomAtual = Math.min(escalaLargura, escalaAltura);
+    gap: 12px !important;
 
-    if (zoomAtual > 1) {
-        zoomAtual = 1;
+    margin-bottom: 28px !important;
+
+    pointer-events: auto !important;
+}
+
+.filtros-dashboard button {
+    position: relative !important;
+    z-index: 100002 !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    min-width: 115px !important;
+    height: 52px !important;
+
+    padding: 0 18px !important;
+
+    border: none !important;
+    border-radius: 10px !important;
+
+    background: white !important;
+    color: #0b2f5b !important;
+
+    font-size: 16px !important;
+    font-weight: 700 !important;
+
+    cursor: pointer !important;
+
+    box-shadow: 0 2px 8px rgba(0,0,0,.08) !important;
+
+    pointer-events: auto !important;
+
+    line-height: 1 !important;
+
+    transition: transform .2s ease, background .2s ease, color .2s ease, box-shadow .2s ease !important;
+}
+
+.filtros-dashboard button:hover {
+    background: #0b2f5b !important;
+    color: white !important;
+
+    transform: translateY(-2px) !important;
+
+    box-shadow: 0 6px 18px rgba(0,0,0,.16) !important;
+}
+
+
+/* =========================================================
+   DESKTOP / NOTEBOOK
+   Mantém 5 cards na mesma linha mesmo em janela menor
+   ========================================================= */
+
+@media (hover: hover) and (pointer: fine) {
+
+    .cards-5 {
+        grid-template-columns: repeat(5, minmax(120px, 1fr)) !important;
+        gap: 12px !important;
     }
 
-    if (zoomAtual < zoomMinimo) {
-        zoomAtual = zoomMinimo;
+    .card {
+        padding: 14px !important;
+    }
+
+    .card h3 {
+        font-size: clamp(11px, 0.9vw, 14px) !important;
+        line-height: 1.2 !important;
+    }
+
+    .card strong {
+        font-size: clamp(17px, 1.6vw, 24px) !important;
+        line-height: 1.2 !important;
+    }
+
+    .card span {
+        font-size: clamp(12px, 1vw, 15px) !important;
+    }
+
+    .card p {
+        font-size: clamp(10px, 0.85vw, 13px) !important;
     }
 }
 
-function centralizarFluxo() {
-    const area = document.getElementById("fluxoArea");
 
-    const larguraZoom = larguraNatural * zoomAtual;
-    const alturaZoom = alturaNatural * zoomAtual;
+/* Janela de computador minimizada */
+@media (hover: hover) and (pointer: fine) and (max-width: 1100px) {
 
-    posicaoX = (area.clientWidth - larguraZoom) / 2;
-    posicaoY = (area.clientHeight - alturaZoom) / 2;
-}
-
-function aplicarTransformacao() {
-    const canvas = document.getElementById("fluxoCanvas");
-    const indicador = document.getElementById("zoomIndicador");
-
-    canvas.style.width = larguraNatural + "px";
-    canvas.style.height = alturaNatural + "px";
-
-    canvas.style.transformOrigin = "0 0";
-    canvas.style.transform =
-        "translate(" + posicaoX + "px, " + posicaoY + "px) scale(" + zoomAtual + ")";
-
-    if (indicador) {
-        indicador.innerText = Math.round(zoomAtual * 100) + "%";
-    }
-}
-
-function zoomComScroll(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const area = document.getElementById("fluxoArea");
-    const rect = area.getBoundingClientRect();
-
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-
-    const zoomAnterior = zoomAtual;
-
-    const fatorZoom = event.deltaY < 0 ? 1.15 : 0.85;
-
-    zoomAtual = zoomAtual * fatorZoom;
-
-    if (zoomAtual < zoomMinimo) {
-        zoomAtual = zoomMinimo;
+    #dashboard {
+        padding: 14px !important;
     }
 
-    if (zoomAtual > zoomMaximo) {
-        zoomAtual = zoomMaximo;
+    .cards-5 {
+        grid-template-columns: repeat(5, minmax(95px, 1fr)) !important;
+        gap: 10px !important;
     }
 
-    const pontoImagemX = (mouseX - posicaoX) / zoomAnterior;
-    const pontoImagemY = (mouseY - posicaoY) / zoomAnterior;
+    .card {
+        padding: 12px !important;
+        border-left-width: 4px !important;
+    }
 
-    posicaoX = mouseX - pontoImagemX * zoomAtual;
-    posicaoY = mouseY - pontoImagemY * zoomAtual;
+    .card h3 {
+        font-size: 11px !important;
+    }
 
-    aplicarTransformacao();
-}
+    .card strong {
+        font-size: 18px !important;
+    }
 
-function iniciarArrasto(event) {
-    if (event.target.classList.contains("hotspot")) return;
+    .card p {
+        font-size: 10px !important;
+    }
 
-    event.preventDefault();
-
-    const area = document.getElementById("fluxoArea");
-
-    arrastando = true;
-
-    inicioMouseX = event.clientX;
-    inicioMouseY = event.clientY;
-
-    inicioPosicaoX = posicaoX;
-    inicioPosicaoY = posicaoY;
-
-    area.classList.add("arrastando");
-}
-
-function moverArrasto(event) {
-    if (!arrastando) return;
-
-    event.preventDefault();
-
-    const deslocamentoX = event.clientX - inicioMouseX;
-    const deslocamentoY = event.clientY - inicioMouseY;
-
-    posicaoX = inicioPosicaoX + deslocamentoX;
-    posicaoY = inicioPosicaoY + deslocamentoY;
-
-    aplicarTransformacao();
-}
-
-function finalizarArrasto() {
-    const area = document.getElementById("fluxoArea");
-
-    arrastando = false;
-
-    if (area) {
-        area.classList.remove("arrastando");
+    .filtros-dashboard button {
+        min-width: 95px !important;
+        height: 46px !important;
+        font-size: 14px !important;
+        padding: 0 12px !important;
     }
 }
 
 
 /* =========================================================
-   ÁREAS CLICÁVEIS FUTURAS
+   MOBILE
+   Só aplica layout mobile em tela de toque
    ========================================================= */
 
-async function carregarFluxoInterativo() {
-    try {
-        const texto = await carregarCSVComFallback([
-            "dados/fluxo_interativo.csv",
-            "./dados/fluxo_interativo.csv",
-            "/PONTE/dados/fluxo_interativo.csv"
-        ]);
+@media (hover: none) and (pointer: coarse) and (max-width: 800px) {
 
-        dadosFluxo = parseCSV(texto);
+    #header {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
 
-        desenharHotspots();
+        height: auto !important;
+        min-height: auto !important;
 
-    } catch (erro) {
-        console.warn("Nenhum CSV de interatividade encontrado. A imagem carregou sem áreas clicáveis.", erro);
-        dadosFluxo = [];
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        padding: 18px 16px 16px 16px !important;
+
+        box-sizing: border-box !important;
+    }
+
+    #logo {
+        height: 90px !important;
+        width: auto !important;
+
+        margin: 0 0 12px 0 !important;
+
+        pointer-events: none !important;
+    }
+
+    #titulo {
+        margin: 0 !important;
+
+        text-align: center !important;
+
+        font-size: 18px !important;
+        line-height: 1.25 !important;
+
+        max-width: 100% !important;
+    }
+
+    #menu {
+        width: 100% !important;
+
+        margin: 18px 0 0 0 !important;
+
+        display: flex !important;
+        justify-content: center !important;
+        gap: 14px !important;
+    }
+
+    .menu-btn {
+        padding: 12px 18px !important;
+
+        font-size: 18px !important;
+
+        border-radius: 8px !important;
+    }
+
+    #dashboard {
+        margin-top: 0 !important;
+
+        padding: 16px !important;
+
+        min-height: auto !important;
+    }
+
+    .filtros-dashboard {
+        display: flex !important;
+
+        flex-wrap: nowrap !important;
+
+        gap: 10px !important;
+
+        overflow-x: auto !important;
+
+        padding: 0 0 12px 0 !important;
+
+        margin-bottom: 22px !important;
+
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .filtros-dashboard button {
+        flex: 0 0 auto !important;
+
+        min-width: 100px !important;
+        height: 46px !important;
+
+        padding: 0 14px !important;
+
+        font-size: 15px !important;
+
+        border-radius: 9px !important;
+    }
+
+    .cards-5 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+
+        gap: 14px !important;
+    }
+
+    .card {
+        padding: 16px !important;
+
+        border-left-width: 5px !important;
+    }
+
+    .card h3 {
+        font-size: 15px !important;
+        line-height: 1.2 !important;
+    }
+
+    .card strong {
+        font-size: 24px !important;
+    }
+
+    .card span {
+        font-size: 15px !important;
+    }
+
+    .card p {
+        font-size: 13px !important;
+    }
+
+    .graficos-3,
+    .graficos-grandes {
+        grid-template-columns: 1fr !important;
     }
 }
 
-async function carregarCSVComFallback(caminhos) {
-    for (const caminho of caminhos) {
-        try {
-            const resposta = await fetch(caminho + "?v=" + Date.now());
 
-            if (resposta.ok) {
-                console.log("CSV de fluxo carregado em:", caminho);
-                return await resposta.text();
-            }
-        } catch (erro) {
-            console.warn("Falha ao tentar carregar:", caminho);
-        }
+/* Celulares muito estreitos */
+@media (hover: none) and (pointer: coarse) and (max-width: 360px) {
+
+    .cards-5 {
+        grid-template-columns: 1fr !important;
     }
 
-    throw new Error("Não foi possível carregar o CSV de fluxo.");
-}
-
-function parseCSV(texto) {
-    const linhas = texto
-        .replace(/\r/g, "")
-        .split("\n")
-        .filter(linha => linha.trim() !== "");
-
-    if (linhas.length <= 1) return [];
-
-    const separador = linhas[0].includes(";") ? ";" : ",";
-
-    const cabecalho = linhas[0]
-        .split(separador)
-        .map(c => c.trim());
-
-    return linhas.slice(1).map(linha => {
-        const valores = dividirLinhaCSV(linha, separador);
-        const obj = {};
-
-        cabecalho.forEach((campo, index) => {
-            obj[campo] = valores[index] ? valores[index].trim() : "";
-        });
-
-        return obj;
-    });
-}
-
-function dividirLinhaCSV(linha, separador) {
-    const resultado = [];
-    let atual = "";
-    let dentroAspas = false;
-
-    for (let i = 0; i < linha.length; i++) {
-        const caractere = linha[i];
-
-        if (caractere === '"') {
-            dentroAspas = !dentroAspas;
-            continue;
-        }
-
-        if (caractere === separador && !dentroAspas) {
-            resultado.push(atual);
-            atual = "";
-            continue;
-        }
-
-        atual += caractere;
+    .menu-btn {
+        font-size: 16px !important;
+        padding: 10px 14px !important;
     }
 
-    resultado.push(atual);
-
-    return resultado;
-}
-
-function desenharHotspots() {
-    const canvas = document.getElementById("fluxoCanvas");
-
-    document.querySelectorAll(".hotspot").forEach(item => item.remove());
-
-    dadosFluxo.forEach(item => {
-        const hotspot = document.createElement("div");
-
-        hotspot.className = "hotspot";
-        hotspot.dataset.id = item.id || "";
-        hotspot.dataset.tipo = item.tipo || "";
-        hotspot.dataset.nome = item.nome || "";
-        hotspot.dataset.contrato = item.contrato || "";
-
-        hotspot.style.left = numeroCSS(item.x) + "%";
-        hotspot.style.top = numeroCSS(item.y) + "%";
-        hotspot.style.width = numeroCSS(item.largura) + "%";
-        hotspot.style.height = numeroCSS(item.altura) + "%";
-
-        hotspot.addEventListener("mouseenter", function(event) {
-            mostrarTooltip(event, item);
-        });
-
-        hotspot.addEventListener("mousemove", function(event) {
-            moverTooltip(event);
-        });
-
-        hotspot.addEventListener("mouseleave", function() {
-            esconderTooltip();
-        });
-
-        hotspot.addEventListener("click", function(event) {
-            event.stopPropagation();
-            abrirDetalheFluxo(item);
-        });
-
-        canvas.appendChild(hotspot);
-    });
-}
-
-function numeroCSS(valor) {
-    const numero = Number(String(valor || "0").replace(",", "."));
-    return isNaN(numero) ? 0 : numero;
-}
-
-function mostrarTooltip(event, item) {
-    const tooltip = document.getElementById("tooltipFluxo");
-
-    tooltip.innerHTML = `
-        <strong>${item.nome || "Sem nome"}</strong>
-        ${item.tipo ? item.tipo + "<br>" : ""}
-        ${item.contrato ? "Contrato: " + item.contrato + "<br>" : ""}
-        ${item.economias ? "Economias: " + item.economias + "<br>" : ""}
-        ${item.status ? "Status: " + item.status : ""}
-    `;
-
-    tooltip.style.display = "block";
-
-    moverTooltip(event);
-}
-
-function moverTooltip(event) {
-    const tooltip = document.getElementById("tooltipFluxo");
-
-    tooltip.style.left = (event.clientX + 14) + "px";
-    tooltip.style.top = (event.clientY + 14) + "px";
-}
-
-function esconderTooltip() {
-    const tooltip = document.getElementById("tooltipFluxo");
-    tooltip.style.display = "none";
-}
-
-function abrirDetalheFluxo(item) {
-    const titulo = item.nome || "Detalhes do Fluxo";
-
-    const conteudo = `
-        <div class="modal-fluxo-info">
-
-            <div>
-                <span>Tipo</span>
-                <strong>${item.tipo || "-"}</strong>
-            </div>
-
-            <div>
-                <span>Contrato</span>
-                <strong>${item.contrato || "-"}</strong>
-            </div>
-
-            <div>
-                <span>Status</span>
-                <strong>${item.status || "-"}</strong>
-            </div>
-
-            <div>
-                <span>Economias</span>
-                <strong>${item.economias || "-"}</strong>
-            </div>
-
-            <div>
-                <span>Economias recebidas</span>
-                <strong>${item.economias_recebidas || "-"}</strong>
-            </div>
-
-            <div>
-                <span>Economias liberadas</span>
-                <strong>${item.economias_liberadas || "-"}</strong>
-            </div>
-
-        </div>
-
-        <h3 style="color:#0b2f5b;">Descrição</h3>
-        <p>${item.descricao || "Sem descrição cadastrada."}</p>
-
-        <h3 style="color:#0b2f5b;">Dependência / Interferência</h3>
-        <p>${item.dependencia || "Sem dependência cadastrada."}</p>
-    `;
-
-    abrirModal(titulo, conteudo);
-}
-
-
-/* =========================================================
-   MODAL
-   ========================================================= */
-
-window.abrirModal = function(titulo, conteudo) {
-    const modal = document.getElementById("modal");
-    const modalTitulo = document.getElementById("modalTitulo");
-    const modalCorpo = document.getElementById("modalCorpo");
-
-    if (!modal || !modalTitulo || !modalCorpo) {
-        console.error("Modal não encontrado.");
-        return;
+    .card strong {
+        font-size: 22px !important;
     }
-
-    modalTitulo.innerText = titulo;
-    modalCorpo.innerHTML = conteudo;
-
-    modal.style.display = "flex";
-    modal.classList.add("is-open");
-
-    document.body.classList.add("modal-open");
-};
-
-window.fecharModal = function() {
-    const modal = document.getElementById("modal");
-
-    if (modal) {
-        modal.classList.remove("is-open");
-        modal.style.display = "none";
-    }
-
-    document.body.classList.remove("modal-open");
-};
-
-document.addEventListener("keydown", function(event) {
-    if (event.key === "Escape") {
-        fecharModal();
-    }
-});
+}
