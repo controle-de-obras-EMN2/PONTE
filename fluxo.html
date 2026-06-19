@@ -29,16 +29,18 @@
         }
 
         .fluxo-area {
-            position: relative;
-            height: calc(100vh - 180px);
-            min-height: 560px;
-            background: white;
-            border-radius: 14px;
-            box-shadow: 0 3px 12px rgba(0,0,0,.08);
-            overflow: auto;
-            border: 1px solid #e2e8f0;
-            cursor: grab;
-        }
+    position: relative;
+    height: calc(100vh - 180px);
+    min-height: 560px;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 3px 12px rgba(0,0,0,.08);
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    cursor: grab;
+    touch-action: none;
+    overscroll-behavior: contain;
+}
 
         .fluxo-area.arrastando {
             cursor: grabbing;
