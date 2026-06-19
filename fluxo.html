@@ -28,74 +28,32 @@
             font-weight: 800;
         }
 
-        .fluxo-area {
-    position: relative;
-    height: calc(100vh - 180px);
-    min-height: 560px;
-    background: white;
-    border-radius: 14px;
-    box-shadow: 0 3px 12px rgba(0,0,0,.08);
-    overflow: hidden;
-    border: 1px solid #e2e8f0;
-    cursor: grab;
-    touch-action: none;
-    overscroll-behavior: contain;
-}
+        .pdf-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 180px);
+            min-height: 620px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 3px 12px rgba(0,0,0,.08);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            cursor: grab;
+            touch-action: none;
+            overscroll-behavior: contain;
+        }
 
-        .fluxo-area.arrastando {
+        .pdf-container.arrastando {
             cursor: grabbing;
         }
 
-        .fluxo-canvas {
-            position: relative;
-            display: block;
-            transform-origin: top left;
-        }
-
-        #imagemFluxo {
-            display: block;
-            width: 100%;
-            height: 100%;
+        #pdfCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
             user-select: none;
             -webkit-user-drag: none;
-            pointer-events: none;
-        }
-
-        .hotspot {
-            position: absolute;
-            border: 2px solid rgba(11, 47, 91, .18);
-            background: rgba(11, 47, 91, .04);
-            border-radius: 8px;
-            cursor: pointer;
-            box-sizing: border-box;
-            transition: .15s;
-            pointer-events: auto;
-        }
-
-        .hotspot:hover {
-            border-color: #0b2f5b;
-            background: rgba(11, 47, 91, .16);
-            box-shadow: 0 0 0 4px rgba(11, 47, 91, .12);
-        }
-
-        .tooltip-fluxo {
-            position: fixed;
-            z-index: 999999;
-            background: #0b2f5b;
-            color: white;
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            max-width: 320px;
-            pointer-events: none;
-            display: none;
-            box-shadow: 0 6px 18px rgba(0,0,0,.25);
-        }
-
-        .tooltip-fluxo strong {
-            display: block;
-            font-size: 14px;
-            margin-bottom: 4px;
         }
 
         .zoom-indicador {
@@ -110,34 +68,25 @@
             font-size: 13px;
             font-weight: 700;
             pointer-events: none;
-            opacity: .9;
+            opacity: .95;
         }
 
-        .modal-fluxo-info {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 14px;
-            margin-bottom: 18px;
-        }
-
-        .modal-fluxo-info div {
-            background: #f8fafc;
-            border-left: 5px solid #0b2f5b;
-            border-radius: 10px;
-            padding: 12px;
-        }
-
-        .modal-fluxo-info span {
-            display: block;
-            color: #64748b;
-            font-size: 12px;
-            margin-bottom: 4px;
-        }
-
-        .modal-fluxo-info strong {
-            display: block;
-            color: #111;
+        .carregando-pdf {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0b2f5b;
             font-size: 18px;
+            font-weight: 700;
+            pointer-events: none;
+        }
+
+        .erro-pdf {
+            padding: 24px;
+            color: #0b2f5b;
+            font-weight: 700;
         }
 
         @media (max-width: 800px) {
@@ -150,13 +99,9 @@
                 font-size: 24px;
             }
 
-            .fluxo-area {
-                height: 68vh;
-                min-height: 420px;
-            }
-
-            .modal-fluxo-info {
-                grid-template-columns: 1fr;
+            .pdf-container {
+                height: 70vh;
+                min-height: 460px;
             }
         }
     </style>
@@ -196,33 +141,23 @@
             <h1>Fluxo dos Pacotes</h1>
         </section>
 
-        <section class="fluxo-area" id="fluxoArea">
-            <div class="fluxo-canvas" id="fluxoCanvas">
-                <iframe src="images/fluxograma_pacotes.pdf"></iframe>
+        <section class="pdf-container" id="pdfContainer">
+
+            <canvas id="pdfCanvas"></canvas>
+
+            <div class="carregando-pdf" id="carregandoPdf">
+                Carregando fluxograma...
             </div>
 
             <div class="zoom-indicador" id="zoomIndicador">
                 100%
             </div>
+
         </section>
 
     </main>
 
-    <div id="modal" class="modal" style="display:none;">
-        <div class="modal-content">
-
-            <div class="modal-header">
-                <h2 id="modalTitulo"></h2>
-                <button class="modal-close" type="button" onclick="fecharModal()">×</button>
-            </div>
-
-            <div id="modalCorpo"></div>
-
-        </div>
-    </div>
-
-    <div id="tooltipFluxo" class="tooltip-fluxo"></div>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="fluxo.js"></script>
 
 </body>
