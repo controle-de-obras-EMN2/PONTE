@@ -86,7 +86,9 @@ function obterCamadaPorParteDoNome(partesNome) {
 
 window.filtrarContrato = function(contrato) {
     contratoSelecionado = contrato;
+
     atualizarDashboard();
+    atualizarBotaoContratoAtivo();
 };
 
 function filtrarPorContrato(features, campoContrato) {
@@ -908,6 +910,26 @@ function ativarCliquesDosCards() {
     });
 }
 
+function atualizarBotaoContratoAtivo() {
+    const botoes = document.querySelectorAll(".filtros-dashboard button");
+
+    botoes.forEach(botao => {
+        const textoBotao = botao.innerText.trim();
+
+        botao.classList.remove("ativo");
+
+        if (
+            contratoSelecionado === "TODOS" &&
+            textoBotao.toUpperCase() === "TODOS"
+        ) {
+            botao.classList.add("ativo");
+        }
+
+        if (textoBotao === contratoSelecionado) {
+            botao.classList.add("ativo");
+        }
+    });
+}
 
 /* =========================================================
    INICIALIZAÇÃO
@@ -918,6 +940,7 @@ document.addEventListener("DOMContentLoaded", function() {
     atualizarDashboard();
     criarGraficosFixos();
     ativarCliquesDosCards();
+    atualizarBotaoContratoAtivo();
 });
 
 document.addEventListener("keydown", function(event) {
