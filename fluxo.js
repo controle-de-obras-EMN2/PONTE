@@ -2,16 +2,19 @@ let dadosFluxo = [];
 
 let zoomAtual = 1;
 let zoomMinimo = 0.2;
-let zoomMaximo = 4;
+let zoomMaximo = 5;
 
 let larguraNatural = 0;
 let alturaNatural = 0;
 
+let posicaoX = 0;
+let posicaoY = 0;
+
 let arrastando = false;
-let inicioX = 0;
-let inicioY = 0;
-let scrollInicioX = 0;
-let scrollInicioY = 0;
+let inicioMouseX = 0;
+let inicioMouseY = 0;
+let inicioPosicaoX = 0;
+let inicioPosicaoY = 0;
 
 document.addEventListener("DOMContentLoaded", function() {
     prepararFluxo();
@@ -27,12 +30,11 @@ function prepararFluxo() {
         alturaNatural = imagem.naturalHeight;
 
         ajustarZoomInicial();
-        aplicarZoom();
         centralizarFluxo();
+        aplicarTransformacao();
     });
 
-    area.addEventListener("wheel", aplicarZoomComScroll, { passive: false });
-
+    area.addEventListener("wheel", zoomComScroll, { passive: false });
     area.addEventListener("mousedown", iniciarArrasto);
     area.addEventListener("mousemove", moverArrasto);
     area.addEventListener("mouseup", finalizarArrasto);
@@ -40,9 +42,16 @@ function prepararFluxo() {
 
     area.addEventListener("dblclick", function() {
         ajustarZoomInicial();
-        aplicarZoom();
         centralizarFluxo();
+        aplicarTransformacao();
     });
+
+    window.addEventListener("wheel", function(event) {
+        if (!area.contains(event.target)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+    }, { passive: false, capture: true });
 }
 
 function ajustarZoomInicial() {
@@ -66,28 +75,47 @@ function ajustarZoomInicial() {
     }
 }
 
-function aplicarZoom() {
+function centralizarFluxo() {
+    const area = document.getElementById("fluxoArea");
+
+    const larguraZoom = larguraNatural * zoomAtual;
+    const alturaZoom = alturaNatural * zoomAtual;
+
+    posicaoX = (area.clientWidth - larguraZoom) / 2;
+    posicaoY = (area.clientHeight - alturaZoom) / 2;
+}
+
+function aplicarTransformacao() {
     const canvas = document.getElementById("fluxoCanvas");
     const indicador = document.getElementById("zoomIndicador");
 
-    if (!larguraNatural || !alturaNatural) return;
+    canvas.style.width = larguraNatural + "px";
+    canvas.style.height = alturaNatural + "px";
 
-    canvas.style.width = (larguraNatural * zoomAtual) + "px";
-    canvas.style.height = (alturaNatural * zoomAtual) + "px";
+    canvas.style.transformOrigin = "0 0";
+    canvas.style.transform =
+        "translate(" + posicaoX + "px, " + posicaoY + "px) scale(" + zoomAtual + ")";
 
-    indicador.innerText = Math.round(zoomAtual * 100) + "%";
+    if (indicador) {
+        indicador.innerText = Math.round(zoomAtual * 100) + "%";
+    }
 }
 
-function aplicarZoomComScroll(event) {
+function zoomComScroll(event) {
     event.preventDefault();
+    event.stopPropagation();
 
     const area = document.getElementById("fluxoArea");
+    const rect = area.getBoundingClientRect();
+
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
 
     const zoomAnterior = zoomAtual;
 
-    const fator = event.deltaY < 0 ? 1.12 : 0.88;
+    const fatorZoom = event.deltaY < 0 ? 1.15 : 0.85;
 
-    zoomAtual = zoomAtual * fator;
+    zoomAtual = zoomAtual * fatorZoom;
 
     if (zoomAtual < zoomMinimo) {
         zoomAtual = zoomMinimo;
@@ -97,40 +125,29 @@ function aplicarZoomComScroll(event) {
         zoomAtual = zoomMaximo;
     }
 
-    const rect = area.getBoundingClientRect();
+    const pontoImagemX = (mouseX - posicaoX) / zoomAnterior;
+    const pontoImagemY = (mouseY - posicaoY) / zoomAnterior;
 
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    posicaoX = mouseX - pontoImagemX * zoomAtual;
+    posicaoY = mouseY - pontoImagemY * zoomAtual;
 
-    const pontoImagemX = (area.scrollLeft + mouseX) / zoomAnterior;
-    const pontoImagemY = (area.scrollTop + mouseY) / zoomAnterior;
-
-    aplicarZoom();
-
-    area.scrollLeft = (pontoImagemX * zoomAtual) - mouseX;
-    area.scrollTop = (pontoImagemY * zoomAtual) - mouseY;
-}
-
-function centralizarFluxo() {
-    const area = document.getElementById("fluxoArea");
-    const canvas = document.getElementById("fluxoCanvas");
-
-    area.scrollLeft = Math.max(0, (canvas.offsetWidth - area.clientWidth) / 2);
-    area.scrollTop = Math.max(0, (canvas.offsetHeight - area.clientHeight) / 2);
+    aplicarTransformacao();
 }
 
 function iniciarArrasto(event) {
     if (event.target.classList.contains("hotspot")) return;
 
+    event.preventDefault();
+
     const area = document.getElementById("fluxoArea");
 
     arrastando = true;
 
-    inicioX = event.pageX;
-    inicioY = event.pageY;
+    inicioMouseX = event.clientX;
+    inicioMouseY = event.clientY;
 
-    scrollInicioX = area.scrollLeft;
-    scrollInicioY = area.scrollTop;
+    inicioPosicaoX = posicaoX;
+    inicioPosicaoY = posicaoY;
 
     area.classList.add("arrastando");
 }
@@ -140,13 +157,13 @@ function moverArrasto(event) {
 
     event.preventDefault();
 
-    const area = document.getElementById("fluxoArea");
+    const deslocamentoX = event.clientX - inicioMouseX;
+    const deslocamentoY = event.clientY - inicioMouseY;
 
-    const deslocamentoX = event.pageX - inicioX;
-    const deslocamentoY = event.pageY - inicioY;
+    posicaoX = inicioPosicaoX + deslocamentoX;
+    posicaoY = inicioPosicaoY + deslocamentoY;
 
-    area.scrollLeft = scrollInicioX - deslocamentoX;
-    area.scrollTop = scrollInicioY - deslocamentoY;
+    aplicarTransformacao();
 }
 
 function finalizarArrasto() {
