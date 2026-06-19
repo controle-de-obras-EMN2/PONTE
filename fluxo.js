@@ -1,27 +1,168 @@
 let dadosFluxo = [];
-let filtroAtual = "TODOS";
-let modoCoordenada = false;
-let primeiroPonto = null;
+
+let zoomAtual = 1;
+let zoomMinimo = 0.2;
+let zoomMaximo = 4;
+
+let larguraNatural = 0;
+let alturaNatural = 0;
+
+let arrastando = false;
+let inicioX = 0;
+let inicioY = 0;
+let scrollInicioX = 0;
+let scrollInicioY = 0;
 
 document.addEventListener("DOMContentLoaded", function() {
-    prepararImagem();
+    prepararFluxo();
     carregarFluxoInterativo();
-    configurarBusca();
 });
 
-function prepararImagem() {
+function prepararFluxo() {
+    const area = document.getElementById("fluxoArea");
     const imagem = document.getElementById("imagemFluxo");
 
     imagem.addEventListener("load", function() {
+        larguraNatural = imagem.naturalWidth;
+        alturaNatural = imagem.naturalHeight;
+
+        ajustarZoomInicial();
+        aplicarZoom();
         centralizarFluxo();
     });
 
-    imagem.addEventListener("click", function(event) {
-        if (!modoCoordenada) return;
+    area.addEventListener("wheel", aplicarZoomComScroll, { passive: false });
 
-        capturarCoordenada(event);
+    area.addEventListener("mousedown", iniciarArrasto);
+    area.addEventListener("mousemove", moverArrasto);
+    area.addEventListener("mouseup", finalizarArrasto);
+    area.addEventListener("mouseleave", finalizarArrasto);
+
+    area.addEventListener("dblclick", function() {
+        ajustarZoomInicial();
+        aplicarZoom();
+        centralizarFluxo();
     });
 }
+
+function ajustarZoomInicial() {
+    const area = document.getElementById("fluxoArea");
+
+    if (!larguraNatural || !alturaNatural) return;
+
+    const margem = 40;
+
+    const escalaLargura = (area.clientWidth - margem) / larguraNatural;
+    const escalaAltura = (area.clientHeight - margem) / alturaNatural;
+
+    zoomAtual = Math.min(escalaLargura, escalaAltura);
+
+    if (zoomAtual > 1) {
+        zoomAtual = 1;
+    }
+
+    if (zoomAtual < zoomMinimo) {
+        zoomAtual = zoomMinimo;
+    }
+}
+
+function aplicarZoom() {
+    const canvas = document.getElementById("fluxoCanvas");
+    const indicador = document.getElementById("zoomIndicador");
+
+    if (!larguraNatural || !alturaNatural) return;
+
+    canvas.style.width = (larguraNatural * zoomAtual) + "px";
+    canvas.style.height = (alturaNatural * zoomAtual) + "px";
+
+    indicador.innerText = Math.round(zoomAtual * 100) + "%";
+}
+
+function aplicarZoomComScroll(event) {
+    event.preventDefault();
+
+    const area = document.getElementById("fluxoArea");
+
+    const zoomAnterior = zoomAtual;
+
+    const fator = event.deltaY < 0 ? 1.12 : 0.88;
+
+    zoomAtual = zoomAtual * fator;
+
+    if (zoomAtual < zoomMinimo) {
+        zoomAtual = zoomMinimo;
+    }
+
+    if (zoomAtual > zoomMaximo) {
+        zoomAtual = zoomMaximo;
+    }
+
+    const rect = area.getBoundingClientRect();
+
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    const pontoImagemX = (area.scrollLeft + mouseX) / zoomAnterior;
+    const pontoImagemY = (area.scrollTop + mouseY) / zoomAnterior;
+
+    aplicarZoom();
+
+    area.scrollLeft = (pontoImagemX * zoomAtual) - mouseX;
+    area.scrollTop = (pontoImagemY * zoomAtual) - mouseY;
+}
+
+function centralizarFluxo() {
+    const area = document.getElementById("fluxoArea");
+    const canvas = document.getElementById("fluxoCanvas");
+
+    area.scrollLeft = Math.max(0, (canvas.offsetWidth - area.clientWidth) / 2);
+    area.scrollTop = Math.max(0, (canvas.offsetHeight - area.clientHeight) / 2);
+}
+
+function iniciarArrasto(event) {
+    if (event.target.classList.contains("hotspot")) return;
+
+    const area = document.getElementById("fluxoArea");
+
+    arrastando = true;
+
+    inicioX = event.pageX;
+    inicioY = event.pageY;
+
+    scrollInicioX = area.scrollLeft;
+    scrollInicioY = area.scrollTop;
+
+    area.classList.add("arrastando");
+}
+
+function moverArrasto(event) {
+    if (!arrastando) return;
+
+    event.preventDefault();
+
+    const area = document.getElementById("fluxoArea");
+
+    const deslocamentoX = event.pageX - inicioX;
+    const deslocamentoY = event.pageY - inicioY;
+
+    area.scrollLeft = scrollInicioX - deslocamentoX;
+    area.scrollTop = scrollInicioY - deslocamentoY;
+}
+
+function finalizarArrasto() {
+    const area = document.getElementById("fluxoArea");
+
+    arrastando = false;
+
+    if (area) {
+        area.classList.remove("arrastando");
+    }
+}
+
+
+/* =========================================================
+   ÁREAS CLICÁVEIS FUTURAS
+   ========================================================= */
 
 async function carregarFluxoInterativo() {
     try {
@@ -36,10 +177,8 @@ async function carregarFluxoInterativo() {
         desenharHotspots();
 
     } catch (erro) {
-        console.warn("Nenhum CSV de interatividade encontrado. A imagem continuará funcionando sem áreas clicáveis.", erro);
-
+        console.warn("Nenhum CSV de interatividade encontrado. A imagem carregou sem áreas clicáveis.", erro);
         dadosFluxo = [];
-        desenharHotspots();
     }
 }
 
@@ -121,7 +260,7 @@ function desenharHotspots() {
     dadosFluxo.forEach(item => {
         const hotspot = document.createElement("div");
 
-        hotspot.className = "hotspot tipo-" + limparClasse(item.tipo);
+        hotspot.className = "hotspot";
         hotspot.dataset.id = item.id || "";
         hotspot.dataset.tipo = item.tipo || "";
         hotspot.dataset.nome = item.nome || "";
@@ -151,20 +290,11 @@ function desenharHotspots() {
 
         canvas.appendChild(hotspot);
     });
-
-    aplicarFiltroVisual();
 }
 
 function numeroCSS(valor) {
     const numero = Number(String(valor || "0").replace(",", "."));
     return isNaN(numero) ? 0 : numero;
-}
-
-function limparClasse(texto) {
-    return String(texto || "Geral")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-zA-Z0-9]/g, "");
 }
 
 function mostrarTooltip(event, item) {
@@ -243,6 +373,11 @@ function abrirDetalheFluxo(item) {
     abrirModal(titulo, conteudo);
 }
 
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
 window.abrirModal = function(titulo, conteudo) {
     const modal = document.getElementById("modal");
     const modalTitulo = document.getElementById("modalTitulo");
@@ -272,141 +407,6 @@ window.fecharModal = function() {
 
     document.body.classList.remove("modal-open");
 };
-
-function configurarBusca() {
-    const input = document.getElementById("buscaFluxo");
-
-    input.addEventListener("input", function() {
-        aplicarFiltroVisual();
-    });
-}
-
-function filtrarFluxo(tipo, botao) {
-    filtroAtual = tipo;
-
-    document.querySelectorAll(".fluxo-filtros button").forEach(btn => {
-        btn.classList.remove("ativo");
-    });
-
-    if (botao) {
-        botao.classList.add("ativo");
-    }
-
-    aplicarFiltroVisual();
-}
-
-function aplicarFiltroVisual() {
-    const busca = normalizarTexto(document.getElementById("buscaFluxo").value);
-
-    document.querySelectorAll(".hotspot").forEach(hotspot => {
-        const tipo = hotspot.dataset.tipo || "";
-        const texto = normalizarTexto(
-            hotspot.dataset.nome + " " +
-            hotspot.dataset.contrato + " " +
-            hotspot.dataset.tipo
-        );
-
-        let visivel = true;
-
-        if (filtroAtual !== "TODOS" && normalizarTexto(tipo) !== normalizarTexto(filtroAtual)) {
-            visivel = false;
-        }
-
-        if (busca && !texto.includes(busca)) {
-            visivel = false;
-        }
-
-        hotspot.classList.toggle("oculto", !visivel);
-        hotspot.classList.toggle("destacado", busca && texto.includes(busca));
-    });
-}
-
-function normalizarTexto(texto) {
-    return String(texto || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase()
-        .trim();
-}
-
-function centralizarFluxo() {
-    const area = document.getElementById("fluxoArea");
-
-    area.scrollLeft = 0;
-    area.scrollTop = 0;
-}
-
-function alternarModoCoordenada() {
-    modoCoordenada = !modoCoordenada;
-    primeiroPonto = null;
-
-    if (modoCoordenada) {
-        alert("Modo coordenada ativado.\n\nClique primeiro no canto superior esquerdo da área.\nDepois clique no canto inferior direito.");
-    } else {
-        alert("Modo coordenada desativado.");
-    }
-}
-
-function capturarCoordenada(event) {
-    const imagem = document.getElementById("imagemFluxo");
-    const rect = imagem.getBoundingClientRect();
-
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-    const ponto = {
-        x: Number(x.toFixed(2)),
-        y: Number(y.toFixed(2))
-    };
-
-    if (!primeiroPonto) {
-        primeiroPonto = ponto;
-
-        alert(
-            "Primeiro ponto capturado:\n" +
-            "x: " + ponto.x + "\n" +
-            "y: " + ponto.y + "\n\n" +
-            "Agora clique no canto inferior direito da área."
-        );
-
-        return;
-    }
-
-    const x1 = Math.min(primeiroPonto.x, ponto.x);
-    const y1 = Math.min(primeiroPonto.y, ponto.y);
-    const x2 = Math.max(primeiroPonto.x, ponto.x);
-    const y2 = Math.max(primeiroPonto.y, ponto.y);
-
-    const largura = Number((x2 - x1).toFixed(2));
-    const altura = Number((y2 - y1).toFixed(2));
-
-    const linhaCSV =
-        "id;tipo;nome;contrato;x;y;largura;altura;economias;economias_recebidas;economias_liberadas;status;descricao;dependencia\n" +
-        "novo_item;Contrato;Nome do item;;" +
-        x1.toFixed(2) + ";" +
-        y1.toFixed(2) + ";" +
-        largura.toFixed(2) + ";" +
-        altura.toFixed(2) + ";" +
-        "0;0;0;Status;Descricao;Dependencia";
-
-    console.log("Linha para o CSV:");
-    console.log(linhaCSV);
-
-    navigator.clipboard.writeText(linhaCSV).then(() => {
-        alert(
-            "Área capturada e copiada.\n\n" +
-            "Cole a segunda linha no arquivo dados/fluxo_interativo.csv.\n\n" +
-            "Também deixei no console do navegador."
-        );
-    }).catch(() => {
-        alert(
-            "Área capturada.\n\n" +
-            "Abra o console para copiar a linha do CSV."
-        );
-    });
-
-    primeiroPonto = null;
-}
 
 document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") {
