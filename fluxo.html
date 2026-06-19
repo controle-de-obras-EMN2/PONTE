@@ -5,7 +5,251 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PONTE | Fluxo</title>
+
     <link rel="stylesheet" href="ponte.css">
+
+    <style>
+        #pagina-fluxo {
+            margin-top: 110px;
+            padding: 22px;
+            background: #f4f6f8;
+            min-height: calc(100vh - 110px);
+            box-sizing: border-box;
+        }
+
+        .fluxo-topo {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 20px;
+            margin-bottom: 18px;
+        }
+
+        .fluxo-titulo h1 {
+            color: #0b2f5b;
+            margin: 0 0 6px 0;
+            font-size: 30px;
+        }
+
+        .fluxo-titulo p {
+            margin: 0;
+            color: #444;
+            font-size: 15px;
+        }
+
+        .fluxo-acoes {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .fluxo-acoes input {
+            height: 42px;
+            width: 310px;
+            max-width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 0 14px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .fluxo-acoes input:focus {
+            border-color: #0b2f5b;
+        }
+
+        .fluxo-acoes button,
+        .fluxo-filtros button {
+            height: 42px;
+            border: none;
+            border-radius: 10px;
+            padding: 0 16px;
+            background: white;
+            color: #0b2f5b;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+            transition: .2s;
+        }
+
+        .fluxo-acoes button:hover,
+        .fluxo-filtros button:hover,
+        .fluxo-filtros button.ativo {
+            background: #0b2f5b;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .fluxo-filtros {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .fluxo-area {
+            position: relative;
+            height: calc(100vh - 255px);
+            min-height: 520px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 3px 12px rgba(0,0,0,.08);
+            overflow: auto;
+            border: 1px solid #e2e8f0;
+        }
+
+        .fluxo-canvas {
+            position: relative;
+            display: inline-block;
+            min-width: 100%;
+            transform-origin: top left;
+        }
+
+        #imagemFluxo {
+            display: block;
+            max-width: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .hotspot {
+            position: absolute;
+            border: 2px solid rgba(11, 47, 91, .15);
+            background: rgba(11, 47, 91, .03);
+            border-radius: 10px;
+            cursor: pointer;
+            box-sizing: border-box;
+            transition: .15s;
+        }
+
+        .hotspot:hover,
+        .hotspot.destacado {
+            border-color: #0b2f5b;
+            background: rgba(11, 47, 91, .14);
+            box-shadow: 0 0 0 4px rgba(11, 47, 91, .12);
+        }
+
+        .hotspot.oculto {
+            display: none;
+        }
+
+        .hotspot.tipo-EEE {
+            border-color: rgba(194, 124, 0, .35);
+            background: rgba(194, 124, 0, .06);
+        }
+
+        .hotspot.tipo-Contrato {
+            border-color: rgba(46, 125, 50, .35);
+            background: rgba(46, 125, 50, .06);
+        }
+
+        .hotspot.tipo-Coletor {
+            border-color: rgba(0, 121, 145, .35);
+            background: rgba(0, 121, 145, .06);
+        }
+
+        .hotspot.tipo-Ponto {
+            border-color: rgba(198, 40, 40, .35);
+            background: rgba(198, 40, 40, .07);
+        }
+
+        .tooltip-fluxo {
+            position: fixed;
+            z-index: 999999;
+            background: #0b2f5b;
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            max-width: 320px;
+            pointer-events: none;
+            display: none;
+            box-shadow: 0 6px 18px rgba(0,0,0,.25);
+        }
+
+        .tooltip-fluxo strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .painel-ajuda {
+            margin-top: 12px;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .painel-ajuda code {
+            background: #e9eef4;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+
+        .modal-fluxo-info {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .modal-fluxo-info div {
+            background: #f8fafc;
+            border-left: 5px solid #0b2f5b;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .modal-fluxo-info span {
+            display: block;
+            color: #64748b;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .modal-fluxo-info strong {
+            display: block;
+            color: #111;
+            font-size: 18px;
+        }
+
+        .fluxo-erro {
+            background: white;
+            padding: 20px;
+            border-radius: 14px;
+            color: #0b2f5b;
+            box-shadow: 0 3px 12px rgba(0,0,0,.08);
+        }
+
+        @media (max-width: 800px) {
+            #pagina-fluxo {
+                margin-top: 0;
+                padding: 16px;
+            }
+
+            .fluxo-topo {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .fluxo-acoes {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .fluxo-acoes input {
+                width: auto;
+            }
+
+            .fluxo-area {
+                height: 65vh;
+                min-height: 420px;
+            }
+
+            .modal-fluxo-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -19,17 +263,28 @@
         </div>
 
         <div id="menu">
-            <a href="index.html" class="menu-btn">🗺️ Mapa</a>
-            <a href="dashboard.html" class="menu-btn">📊 Dashboard</a>
-            <a href="fluxo.html" class="menu-btn">🧭 Fluxo</a>
+
+            <a href="index.html" class="menu-btn">
+                🗺️ Mapa
+            </a>
+
+            <a href="dashboard.html" class="menu-btn">
+                📊 Dashboard
+            </a>
+
+            <a href="fluxo.html" class="menu-btn">
+                🧭 Fluxo
+            </a>
+
         </div>
 
     </header>
 
-    <main id="fluxo-page">
+    <main id="pagina-fluxo">
 
         <section class="fluxo-topo">
-            <div>
+
+            <div class="fluxo-titulo">
                 <h1>Fluxo dos Pacotes</h1>
                 <p>Visualização interativa do caminhamento dos contratos, elevatórias, coletores e interferências.</p>
             </div>
@@ -37,23 +292,28 @@
             <div class="fluxo-acoes">
                 <input type="text" id="buscaFluxo" placeholder="Buscar contrato, EEE, coletor...">
                 <button type="button" onclick="centralizarFluxo()">Centralizar</button>
+                <button type="button" onclick="alternarModoCoordenada()">Modo coordenada</button>
+            </div>
+
+        </section>
+
+        <section class="fluxo-filtros">
+            <button type="button" class="ativo" onclick="filtrarFluxo('TODOS', this)">Todos</button>
+            <button type="button" onclick="filtrarFluxo('Contrato', this)">Contratos</button>
+            <button type="button" onclick="filtrarFluxo('EEE', this)">EEE</button>
+            <button type="button" onclick="filtrarFluxo('Coletor', this)">Coletores</button>
+            <button type="button" onclick="filtrarFluxo('Ponto', this)">Pontos críticos</button>
+        </section>
+
+        <section class="fluxo-area" id="fluxoArea">
+            <div class="fluxo-canvas" id="fluxoCanvas">
+                <img src="images/fluxograma_pacotes.png" id="imagemFluxo" alt="Fluxograma dos Pacotes">
             </div>
         </section>
 
-        <section class="fluxo-legenda">
-            <button type="button" data-filtro="TODOS" class="ativo">Todos</button>
-            <button type="button" data-filtro="contrato">Contratos</button>
-            <button type="button" data-filtro="elevatoria">EEE</button>
-            <button type="button" data-filtro="coletor">Coletores</button>
-            <button type="button" data-filtro="linha_recalque">Linhas de recalque</button>
-            <button type="button" data-filtro="ponto_critico">Pontos críticos</button>
-            <button type="button" data-filtro="existente">Existente</button>
-        </section>
-
-        <section class="fluxo-container" id="fluxoContainer">
-            <svg id="fluxoSvg" xmlns="http://www.w3.org/2000/svg"></svg>
-            <div id="tooltipFluxo" class="tooltip-fluxo"></div>
-        </section>
+        <div class="painel-ajuda">
+            Para cadastrar uma área clicável, ative <strong>Modo coordenada</strong> e clique em dois pontos da imagem: canto superior esquerdo e canto inferior direito.
+        </div>
 
     </main>
 
@@ -69,6 +329,8 @@
 
         </div>
     </div>
+
+    <div id="tooltipFluxo" class="tooltip-fluxo"></div>
 
     <script src="fluxo.js"></script>
 
