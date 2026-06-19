@@ -1257,3 +1257,12 @@ body.modal-open {
         gap: 4px;
     }
 }
+
+/* BOTÃO DE CONTRATO SELECIONADO */
+
+.filtros-dashboard button.ativo {
+    background: #0b2f5b !important;
+    color: white !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,.16) !important;
+    transform: translateY(-2px);
+}
