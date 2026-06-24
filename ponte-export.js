@@ -1,13 +1,37 @@
-function obterJanelaMapa() {
-    const iframe = document.getElementById("iframeMapa");
-    return iframe ? iframe.contentWindow : null;
-}
+document.addEventListener("DOMContentLoaded", function() {
+    const botao = document.getElementById("btnExportarKMZ");
+
+    if (!botao) {
+        console.error("Botão btnExportarKMZ não encontrado.");
+        return;
+    }
+
+    botao.addEventListener("click", exportarVisualizacaoKMZ);
+});
 
 function obterMapaQgis2web() {
-    const janelaMapa = obterJanelaMapa();
+    const iframe = document.getElementById("iframeMapa");
 
-    if (!janelaMapa || !janelaMapa.map || !janelaMapa.ol) {
-        alert("O mapa ainda não carregou completamente.");
+    if (!iframe) {
+        alert("Iframe do mapa não encontrado. Confira se ele tem id='iframeMapa'.");
+        return null;
+    }
+
+    const janelaMapa = iframe.contentWindow;
+
+    if (!janelaMapa) {
+        alert("Não consegui acessar a janela do mapa.");
+        return null;
+    }
+
+    if (!janelaMapa.map) {
+        alert("O mapa ainda não carregou ou a variável 'map' não está acessível.");
+        console.log("Janela do iframe:", janelaMapa);
+        return null;
+    }
+
+    if (!janelaMapa.ol) {
+        alert("A biblioteca OpenLayers 'ol' não está acessível no iframe.");
         return null;
     }
 
@@ -32,7 +56,7 @@ function obterCamadasVisiveis(layerGroup, resultado = []) {
     return resultado;
 }
 
-function obterFeaturesVisiveisNoMapa() {
+function obterFeaturesVisiveisNoMapa(map, ol) {
     const extentAtual = map.getView().calculateExtent(map.getSize());
     const camadas = obterCamadasVisiveis(map);
 
@@ -58,10 +82,24 @@ function obterFeaturesVisiveisNoMapa() {
 }
 
 async function exportarVisualizacaoKMZ() {
-    const features = obterFeaturesVisiveisNoMapa();
+    const contexto = obterMapaQgis2web();
+
+    if (!contexto) return;
+
+    const map = contexto.map;
+    const ol = contexto.ol;
+
+    const features = obterFeaturesVisiveisNoMapa(map, ol);
+
+    console.log("Feições encontradas para exportar:", features.length);
 
     if (!features.length) {
         alert("Nenhuma feição visível para exportar.");
+        return;
+    }
+
+    if (typeof JSZip === "undefined") {
+        alert("JSZip não foi carregado. Confira o script do JSZip no index.html principal.");
         return;
     }
 
@@ -94,5 +132,3 @@ async function exportarVisualizacaoKMZ() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 }
-
-document.getElementById("btnExportarKMZ").addEventListener("click", exportarVisualizacaoKMZ);
