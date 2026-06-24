@@ -1,13 +1,34 @@
-document.addEventListener("DOMContentLoaded", function() {
-    const botao = document.getElementById("btnExportarKMZ");
+function obterMapaQgis2web() {
+    const iframe = document.getElementById("iframeMapa");
 
-    if (!botao) {
-        console.error("Botão btnExportarKMZ não encontrado.");
-        return;
+    if (!iframe) {
+        alert("Iframe do mapa não encontrado. Confira se ele tem id='iframeMapa'.");
+        return null;
     }
 
-    botao.addEventListener("click", exportarVisualizacaoKMZ);
-});
+    const janelaMapa = iframe.contentWindow;
+
+    if (!janelaMapa) {
+        alert("Não consegui acessar a janela do mapa.");
+        return null;
+    }
+
+    const map = janelaMapa.ponteMap || janelaMapa.map;
+    const ol = janelaMapa.ponteOl || janelaMapa.ol;
+
+    if (!map) {
+        criarPonteComMapaQgis2web();
+        alert("Ainda não consegui acessar o mapa. Aguarde alguns segundos e tente de novo.");
+        return null;
+    }
+
+    if (!ol) {
+        alert("A biblioteca OpenLayers 'ol' não está acessível no iframe.");
+        return null;
+    }
+
+    return { map, ol };
+}
 
 function obterMapaQgis2web() {
     const iframe = document.getElementById("iframeMapa");
@@ -132,3 +153,30 @@ async function exportarVisualizacaoKMZ() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 }
+
+function criarPonteComMapaQgis2web() {
+    const iframe = document.getElementById("iframeMapa");
+
+    if (!iframe || !iframe.contentDocument) return;
+
+    const script = iframe.contentDocument.createElement("script");
+
+    script.textContent = `
+        try {
+            if (typeof map !== "undefined") {
+                window.ponteMap = map;
+            }
+
+            if (typeof ol !== "undefined") {
+                window.ponteOl = ol;
+            }
+
+            console.log("Ponte com mapa qgis2web criada.");
+        } catch (erro) {
+            console.error("Erro ao criar ponte com mapa qgis2web:", erro);
+        }
+    `;
+
+    iframe.contentDocument.body.appendChild(script);
+}
+
