@@ -1266,3 +1266,84 @@ body.modal-open {
     box-shadow: 0 6px 18px rgba(0,0,0,.16) !important;
     transform: translateY(-2px);
 }
+
+/* =========================================================
+   BARRAS DE AVANÇO DAS EEE NO POP-UP
+   ========================================================= */
+
+.bloco-avanco-eee {
+    margin-bottom: 24px;
+}
+
+.bloco-avanco-eee h3 {
+    color: #0b2f5b;
+    margin: 0 0 14px 0;
+}
+
+.lista-avanco-eee {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.linha-avanco-eee {
+    display: grid;
+    grid-template-columns: 220px 1fr 80px;
+    gap: 12px;
+    align-items: center;
+
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 10px 12px;
+    border-left: 5px solid #0b2f5b;
+}
+
+.nome-avanco-eee {
+    color: #0b2f5b;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.trilho-avanco-eee {
+    height: 14px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.barra-avanco-eee {
+    height: 100%;
+    min-width: 2px;
+    border-radius: 999px;
+    background: #0b2f5b;
+}
+
+.valor-avanco-eee {
+    font-weight: 800;
+    color: #111;
+    text-align: right;
+    font-size: 13px;
+}
+
+.status-avanco-eee {
+    grid-column: 2 / 4;
+    color: #666;
+    font-size: 12px;
+    margin-top: -5px;
+}
+
+@media (max-width: 800px) {
+    .linha-avanco-eee {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .valor-avanco-eee {
+        text-align: left;
+    }
+
+    .status-avanco-eee {
+        grid-column: auto;
+        margin-top: 0;
+    }
+}
