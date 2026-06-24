@@ -862,10 +862,36 @@ window.abrirDetalhesEEE = function() {
         "NUM_CONTRATO"
     ]);
 
-    const avancosEEE = obterAvancosEEE();
+    function obterAvancosEEE() {
+    let avancos = linhasCSVPorTipo("avanco_popup");
 
-    const htmlAvanco = gerarBarrasAvancoEEE(avancosEEE);
+    if (contratoSelecionado !== "TODOS") {
+        avancos = avancos.filter(linha =>
+            String(linha.contrato || "").trim() === contratoSelecionado
+        );
+    }
 
+    return avancos.map(linha => {
+        const valores = Object.values(linha)
+            .map(valor => String(valor || "").trim())
+            .filter(valor => valor !== "");
+
+        const status = valores[valores.length - 1] || "";
+        const avanco = valores[valores.length - 2] || "0";
+        const item = valores[valores.length - 3] || "EEE sem nome";
+
+        return {
+            contrato: linha.contrato || "",
+            item,
+            avanco,
+            status
+        };
+    });
+}
+   const nome = linha.item || "EEE sem nome";
+const status = linha.status || "";
+const avancoOriginal = numeroCSV(linha.avanco);
+   
     const htmlTabela = `
         <h3 style="color:#0b2f5b;margin-top:24px;">Dados das EEE no mapa</h3>
         ${gerarTabelaModal(eee, [
