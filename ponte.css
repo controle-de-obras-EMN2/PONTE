@@ -1354,7 +1354,7 @@ body.modal-open {
 
 .botao-exportar-kmz {
     position: fixed;
-    top: 120px;
+    top: 100px;
     right: 200px;
     z-index: 10000;
     background: #0b2f5b;
@@ -1367,7 +1367,7 @@ body.modal-open {
 }
 .botao-limpar-camadas {
     position: fixed;
-    top: 120px;
+    top: 100px;
     right: 70px;
     z-index: 10000;
     background: #5f6b7a;
