@@ -1,28 +1,49 @@
 function limparCamadasDoMapa() {
-    const contexto = obterMapaQgis2web();
+    const iframe = document.getElementById("iframeMapa");
 
-    if (!contexto) {
-        alert("Não consegui acessar o mapa para limpar as camadas.");
+    if (!iframe || !iframe.contentDocument) {
+        alert("Não consegui acessar o iframe do mapa.");
         return;
     }
 
-    const map = contexto.map;
-    const ol = contexto.ol;
+    const documentoMapa = iframe.contentDocument;
 
-    let desligadas = 0;
+    const checkboxesMarcados = documentoMapa.querySelectorAll(
+        "input[type='checkbox']:checked"
+    );
 
-    map.getLayers().forEach(function(layer) {
-        desligadas += desligarLayerRecursivo(layer);
+    let total = 0;
+
+    checkboxesMarcados.forEach(function(checkbox) {
+        checkbox.click();
+        total++;
     });
 
-    map.render();
+    console.log("Camadas desmarcadas:", total);
 
-    console.log("Camadas desligadas:", desligadas);
-
-    if (desligadas === 0) {
-        alert("Nenhuma camada foi desligada. Vou precisar conferir os nomes das camadas no console.");
-        listarCamadasDoMapa();
+    if (total === 0) {
+        alert("Nenhuma camada marcada foi encontrada para limpar.");
     }
+}
+
+function ativarBotaoLimparCamadas() {
+    const botao = document.getElementById("btnLimparCamadas");
+
+    if (!botao) {
+        console.warn("Botão btnLimparCamadas não encontrado.");
+        return;
+    }
+
+    botao.addEventListener("click", function() {
+        console.log("Clique recebido no botão Limpar camadas");
+        limparCamadasDoMapa();
+    });
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", ativarBotaoLimparCamadas);
+} else {
+    ativarBotaoLimparCamadas();
 }
 
 function desligarLayerRecursivo(layer) {
