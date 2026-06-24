@@ -957,9 +957,11 @@ async function carregarBaseDashboardCSV() {
                 const resposta = await fetch(caminho + "?v=" + Date.now());
 
                 if (resposta.ok) {
-                    textoCSV = await resposta.text();
-                    console.log("Base CSV carregada em:", caminho);
-                    break;
+                   const buffer = await resposta.arrayBuffer();
+textoCSV = decodificarTextoCSV(buffer);
+
+console.log("Base CSV carregada em:", caminho);
+break;
                 }
             } catch (erro) {
                 console.warn("Falha ao tentar carregar CSV em:", caminho);
@@ -979,6 +981,17 @@ async function carregarBaseDashboardCSV() {
     } catch (erro) {
         console.error("Erro ao carregar base_dashboard_teste.csv:", erro);
     }
+}
+
+function decodificarTextoCSV(buffer) {
+    const textoUTF8 = new TextDecoder("utf-8").decode(buffer);
+    const temErroDeAcento = textoUTF8.includes("�");
+
+    if (temErroDeAcento) {
+        return new TextDecoder("windows-1252").decode(buffer);
+    }
+
+    return textoUTF8;
 }
 
 function parseCSVGenerico(texto) {
