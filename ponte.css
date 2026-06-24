@@ -1355,7 +1355,7 @@ body.modal-open {
 .botao-exportar-kmz {
     position: fixed;
     top: 120px;
-    right: 190px;
+    right: 250px;
     z-index: 10000;
     background: #0b2f5b;
     color: #fff;
