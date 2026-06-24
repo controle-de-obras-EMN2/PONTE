@@ -862,9 +862,13 @@ window.abrirDetalhesEEE = function() {
         "NUM_CONTRATO"
     ]);
 
-    abrirModal(
-        "Elevatórias - EEE",
-        gerarTabelaModal(eee, [
+    const avancosEEE = obterAvancosEEE();
+
+    const htmlAvanco = gerarBarrasAvancoEEE(avancosEEE);
+
+    const htmlTabela = `
+        <h3 style="color:#0b2f5b;margin-top:24px;">Dados das EEE no mapa</h3>
+        ${gerarTabelaModal(eee, [
             { titulo: "Contrato", campo: "CONTRATO" },
             { titulo: "EEE", campo: "EEE" },
             { titulo: "Status", campo: "STATUS" },
@@ -873,7 +877,12 @@ window.abrirDetalhesEEE = function() {
             { titulo: "Município", campo: "MUNICIPIO" },
             { titulo: "Vazão Q", campo: "Q" },
             { titulo: "Operação", campo: "OPERAÇÃO" }
-        ])
+        ])}
+    `;
+
+    abrirModal(
+        "Elevatórias - EEE",
+        htmlAvanco + htmlTabela
     );
 };
 
@@ -928,12 +937,293 @@ function ativarCliquesDosCards() {
     });
 }
 
+/* =========================================================
+   CSV ÚNICO DO DASHBOARD
+   ========================================================= */
+
+let baseDashboardCSV = [];
+
+async function carregarBaseDashboardCSV() {
+    try {
+        const caminhos = [
+            "dados/base_dashboard_teste.csv",
+            "./dados/base_dashboard_teste.csv",
+            "/PONTE/dados/base_dashboard_teste.csv"
+        ];
+
+        let textoCSV = null;
+
+        for (const caminho of caminhos) {
+            try {
+                const resposta = await fetch(caminho + "?v=" + Date.now());
+
+                if (resposta.ok) {
+                    textoCSV = await resposta.text();
+                    console.log("Base CSV carregada em:", caminho);
+                    break;
+                }
+            } catch (erro) {
+                console.warn("Falha ao tentar carregar CSV em:", caminho);
+            }
+        }
+
+        if (!textoCSV) {
+            console.warn("CSV não carregado. Mantendo dados do metas.js.");
+            return;
+        }
+
+        baseDashboardCSV = parseCSVGenerico(textoCSV);
+
+        aplicarCSVNasMetas();
+        aplicarCSVNosGraficosContratos();
+
+    } catch (erro) {
+        console.error("Erro ao carregar base_dashboard_teste.csv:", erro);
+    }
+}
+
+function parseCSVGenerico(texto) {
+    const linhas = texto
+        .replace(/\r/g, "")
+        .split("\n")
+        .filter(linha => linha.trim() !== "");
+
+    if (linhas.length <= 1) return [];
+
+    const separador = linhas[0].includes(";") ? ";" : ",";
+
+    const cabecalho = dividirLinhaCSVGenerico(linhas[0], separador)
+        .map(campo => campo.trim());
+
+    return linhas.slice(1).map(linha => {
+        const valores = dividirLinhaCSVGenerico(linha, separador);
+        const obj = {};
+
+        cabecalho.forEach((campo, index) => {
+            obj[campo] = valores[index] ? valores[index].trim() : "";
+        });
+
+        return obj;
+    });
+}
+
+function dividirLinhaCSVGenerico(linha, separador) {
+    const resultado = [];
+    let atual = "";
+    let dentroAspas = false;
+
+    for (let i = 0; i < linha.length; i++) {
+        const caractere = linha[i];
+
+        if (caractere === '"') {
+            dentroAspas = !dentroAspas;
+            continue;
+        }
+
+        if (caractere === separador && !dentroAspas) {
+            resultado.push(atual);
+            atual = "";
+            continue;
+        }
+
+        atual += caractere;
+    }
+
+    resultado.push(atual);
+
+    return resultado;
+}
+
+function numeroCSV(valor) {
+    let texto = String(valor || "")
+        .replace("R$", "")
+        .replace(/\s/g, "")
+        .trim();
+
+    if (!texto) return 0;
+
+    if (texto.includes(",") && texto.includes(".")) {
+        texto = texto.replace(/\./g, "").replace(",", ".");
+    } else {
+        texto = texto.replace(",", ".");
+    }
+
+    const numero = Number(texto);
+
+    return isNaN(numero) ? 0 : numero;
+}
+
+function linhasCSVPorTipo(tipo) {
+    return baseDashboardCSV.filter(linha =>
+        normalizarTexto(linha.tipo) === normalizarTexto(tipo)
+    );
+}
+
+function buscarMetaCSV(indicador, periodo) {
+    return baseDashboardCSV.find(linha =>
+        normalizarTexto(linha.tipo) === "META" &&
+        normalizarTexto(linha.indicador).includes(normalizarTexto(indicador)) &&
+        normalizarTexto(linha.periodo).includes(normalizarTexto(periodo))
+    );
+}
+
+function aplicarCSVNasMetas() {
+    if (!baseDashboardCSV.length) return;
+
+    const ecoFUAtual = buscarMetaCSV("Economias Fator U", "Atual");
+    const ecoContratoAtual = buscarMetaCSV("Economias Contrato", "Atual");
+    const imobilizadoAtual = buscarMetaCSV("Imobilizado", "Atual");
+    const prodIntegraAtual = buscarMetaCSV("Producao Integra", "Atual");
+    const prodAndamentoAtual = buscarMetaCSV("Producao Andamento", "Atual");
+
+    const ecoFUProx = buscarMetaCSV("Economias Fator U", "Proximo");
+    const ecoContratoProx = buscarMetaCSV("Economias Contrato", "Proximo");
+    const imobilizadoProx = buscarMetaCSV("Imobilizado", "Proximo");
+    const prodIntegraProx = buscarMetaCSV("Producao Integra", "Proximo");
+    const prodAndamentoProx = buscarMetaCSV("Producao Andamento", "Proximo");
+
+    if (ecoFUAtual) {
+        metas.economias.fatorU.previsto = numeroCSV(ecoFUAtual.previsto);
+        metas.economias.fatorU.realizado = numeroCSV(ecoFUAtual.realizado);
+    }
+
+    if (ecoContratoAtual) {
+        metas.economias.contrato.previsto = numeroCSV(ecoContratoAtual.previsto);
+        metas.economias.contrato.realizado = numeroCSV(ecoContratoAtual.realizado);
+    }
+
+    if (imobilizadoAtual) {
+        metas.imobilizado.previsto = numeroCSV(imobilizadoAtual.previsto);
+        metas.imobilizado.realizado = numeroCSV(imobilizadoAtual.realizado);
+    }
+
+    if (prodIntegraAtual) {
+        metas.producao.integra.previsto = numeroCSV(prodIntegraAtual.previsto);
+        metas.producao.integra.realizado = numeroCSV(prodIntegraAtual.realizado);
+    }
+
+    if (prodAndamentoAtual) {
+        metas.producao.andamento.previsto = numeroCSV(prodAndamentoAtual.previsto);
+        metas.producao.andamento.realizado = numeroCSV(prodAndamentoAtual.realizado);
+    }
+
+    if (ecoFUProx) {
+        metas.proximoMes.economias.fatorU.previsto = numeroCSV(ecoFUProx.previsto);
+        metas.proximoMes.economias.fatorU.realizado = numeroCSV(ecoFUProx.realizado);
+    }
+
+    if (ecoContratoProx) {
+        metas.proximoMes.economias.contrato.previsto = numeroCSV(ecoContratoProx.previsto);
+        metas.proximoMes.economias.contrato.realizado = numeroCSV(ecoContratoProx.realizado);
+    }
+
+    if (imobilizadoProx) {
+        metas.proximoMes.imobilizado.previsto = numeroCSV(imobilizadoProx.previsto);
+        metas.proximoMes.imobilizado.realizado = numeroCSV(imobilizadoProx.realizado);
+    }
+
+    if (prodIntegraProx) {
+        metas.proximoMes.producao.integra.previsto = numeroCSV(prodIntegraProx.previsto);
+        metas.proximoMes.producao.integra.realizado = numeroCSV(prodIntegraProx.realizado);
+    }
+
+    if (prodAndamentoProx) {
+        metas.proximoMes.producao.andamento.previsto = numeroCSV(prodAndamentoProx.previsto);
+        metas.proximoMes.producao.andamento.realizado = numeroCSV(prodAndamentoProx.realizado);
+    }
+}
+
+function aplicarCSVNosGraficosContratos() {
+    if (!baseDashboardCSV.length) return;
+
+    const valores = linhasCSVPorTipo("contrato_valor");
+    const extensoes = linhasCSVPorTipo("contrato_extensao");
+
+    if (valores.length) {
+        metas.valoresContratos = valores.map(linha => ({
+            contrato: linha.contrato,
+            valorContratual: numeroCSV(linha.valor_contratual),
+            totalPedido: numeroCSV(linha.total_pedido),
+            totalUnitizado: numeroCSV(linha.total_unitizado)
+        }));
+    }
+
+    if (extensoes.length) {
+        metas.extensaoContratos = extensoes.map(linha => ({
+            contrato: linha.contrato,
+            contratual: numeroCSV(linha.ext_contratual),
+            atual: numeroCSV(linha.ext_atual),
+            executada: numeroCSV(linha.ext_executada),
+            unitizada: numeroCSV(linha.ext_unitizada)
+        }));
+    }
+}
+
+function obterAvancosEEE() {
+    let avancos = linhasCSVPorTipo("avanco_popup");
+
+    if (contratoSelecionado !== "TODOS") {
+        avancos = avancos.filter(linha =>
+            String(linha.contrato || "").trim() === contratoSelecionado
+        );
+    }
+
+    return avancos;
+}
+
+function gerarBarrasAvancoEEE(avancos) {
+    if (!avancos || avancos.length === 0) {
+        return `
+            <div class="bloco-avanco-eee">
+                <h3>Avanço das EEE</h3>
+                <p>Nenhum avanço cadastrado no CSV para o filtro atual.</p>
+            </div>
+        `;
+    }
+
+    let html = `
+        <div class="bloco-avanco-eee">
+            <h3>Avanço das EEE</h3>
+            <div class="lista-avanco-eee">
+    `;
+
+    avancos.forEach(linha => {
+        const nome = linha.item || "EEE sem nome";
+        const status = linha.status || "";
+        const avancoOriginal = numeroCSV(linha.avanco);
+
+        const avanco = Math.max(0, Math.min(100, avancoOriginal));
+
+        html += `
+            <div class="linha-avanco-eee">
+                <div class="nome-avanco-eee">${nome}</div>
+
+                <div class="trilho-avanco-eee" title="${nome} - ${avancoOriginal.toFixed(2)}%">
+                    <div class="barra-avanco-eee" style="width:${avanco}%"></div>
+                </div>
+
+                <div class="valor-avanco-eee">${avancoOriginal.toFixed(2)}%</div>
+
+                <div class="status-avanco-eee">${status}</div>
+            </div>
+        `;
+    });
+
+    html += `
+            </div>
+        </div>
+    `;
+
+    return html;
+}
 
 /* =========================================================
    INICIALIZAÇÃO
    ========================================================= */
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", async function() {
+    await carregarBaseDashboardCSV();
+
     carregarMetasGerais();
     atualizarDashboard();
     criarGraficosFixos();
