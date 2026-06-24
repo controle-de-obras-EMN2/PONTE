@@ -233,3 +233,52 @@ if (document.readyState === "loading") {
 } else {
     iniciarExportadorKMZ();
 }
+
+function desligarCamadasDoMapa() {
+    const contexto = obterMapaQgis2web();
+
+    if (!contexto) return;
+
+    const map = contexto.map;
+
+    map.getLayers().forEach(function(layer) {
+        desligarLayerRecursivo(layer);
+    });
+}
+
+function desligarLayerRecursivo(layer) {
+    if (layer.getLayers) {
+        layer.getLayers().forEach(function(subLayer) {
+            desligarLayerRecursivo(subLayer);
+        });
+
+        return;
+    }
+
+    const source = layer.getSource ? layer.getSource() : null;
+
+    const ehCamadaVetorial =
+        source &&
+        typeof source.getFeatures === "function";
+
+    if (ehCamadaVetorial && layer.setVisible) {
+        layer.setVisible(false);
+    }
+}
+
+function ativarBotaoLimparCamadas() {
+    const botao = document.getElementById("btnLimparCamadas");
+
+    if (!botao) {
+        console.warn("Botão btnLimparCamadas não encontrado.");
+        return;
+    }
+
+    botao.addEventListener("click", desligarCamadasDoMapa);
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", ativarBotaoLimparCamadas);
+} else {
+    ativarBotaoLimparCamadas();
+}
