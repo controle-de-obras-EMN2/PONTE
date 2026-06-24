@@ -98,27 +98,81 @@ function obterCamadasVisiveis(layerGroup, resultado = []) {
 
 function obterFeaturesVisiveisNoMapa(map, ol) {
     const extentAtual = map.getView().calculateExtent(map.getSize());
+    const resolution = map.getView().getResolution();
     const camadas = obterCamadasVisiveis(map);
 
-    let features = [];
+    let resultado = [];
 
     camadas.forEach(function(layer) {
         const source = layer.getSource ? layer.getSource() : null;
 
         if (!source || !source.getFeatures) return;
 
+        const nomeCamada =
+            layer.get("title") ||
+            layer.get("name") ||
+            "Camada sem nome";
+
+        const styleFunction = layer.getStyleFunction
+            ? layer.getStyleFunction()
+            : null;
+
         source.getFeatures().forEach(function(feature) {
             const geometria = feature.getGeometry();
 
             if (!geometria) return;
 
-            if (ol.extent.intersects(extentAtual, geometria.getExtent())) {
-                features.push(feature);
+            if (!ol.extent.intersects(extentAtual, geometria.getExtent())) return;
+
+            const copia = feature.clone();
+
+            const nomeFeicao = obterNomeFeicao(feature, nomeCamada);
+
+            copia.set("name", nomeFeicao);
+            copia.set("Nome", nomeFeicao);
+            copia.set("Camada", nomeCamada);
+
+            if (styleFunction) {
+                const estilo = styleFunction(feature, resolution);
+
+                if (estilo) {
+                    copia.setStyle(estilo);
+                }
             }
+
+            resultado.push(copia);
         });
     });
 
-    return features;
+    return resultado;
+}
+
+function obterNomeFeicao(feature, nomeCamada) {
+    const props = feature.getProperties();
+
+    const camposPreferidos = [
+        "NOME",
+        "Nome",
+        "nome",
+        "EEE",
+        "FRENTE",
+        "Frente",
+        "frente",
+        "NUM_CONTRA",
+        "CONTRATO",
+        "Contrato",
+        "STATUS",
+        "STATUS_C",
+        "Status"
+    ];
+
+    for (const campo of camposPreferidos) {
+        if (props[campo] !== undefined && props[campo] !== null && String(props[campo]).trim() !== "") {
+            return nomeCamada + " - " + String(props[campo]).trim();
+        }
+    }
+
+    return nomeCamada;
 }
 
 async function exportarVisualizacaoKMZ() {
@@ -145,7 +199,7 @@ async function exportarVisualizacaoKMZ() {
 
     const formatoKML = new ol.format.KML({
         extractStyles: false,
-        writeStyles: false
+        writeStyles: true
     });
 
     const kml = formatoKML.writeFeatures(features, {
