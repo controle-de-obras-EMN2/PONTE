@@ -1,8 +1,59 @@
+console.log("ponte-export.js carregado");
+
+function iniciarExportadorKMZ() {
+    const botao = document.getElementById("btnExportarKMZ");
+    const iframe = document.getElementById("iframeMapa");
+
+    if (!botao) {
+        console.error("Botão btnExportarKMZ não encontrado.");
+        return;
+    }
+
+    if (!iframe) {
+        console.error("Iframe iframeMapa não encontrado.");
+        return;
+    }
+
+    botao.addEventListener("click", function() {
+        console.log("Clique recebido no botão Exportar KMZ");
+        exportarVisualizacaoKMZ();
+    });
+
+    iframe.addEventListener("load", function() {
+        console.log("Iframe do mapa carregado.");
+        setTimeout(criarPonteComMapaQgis2web, 1000);
+    });
+
+    setTimeout(criarPonteComMapaQgis2web, 1500);
+}
+
+function criarPonteComMapaQgis2web() {
+    const iframe = document.getElementById("iframeMapa");
+
+    if (!iframe || !iframe.contentDocument) {
+        console.warn("Ainda não consegui acessar o documento do iframe.");
+        return;
+    }
+
+    const script = iframe.contentDocument.createElement("script");
+
+    script.textContent =
+        "try {" +
+        " if (typeof map !== 'undefined') { window.ponteMap = map; }" +
+        " if (typeof ol !== 'undefined') { window.ponteOl = ol; }" +
+        " console.log('Ponte qgis2web criada:', !!window.ponteMap, !!window.ponteOl);" +
+        "} catch (erro) {" +
+        " console.error('Erro ao criar ponte qgis2web:', erro);" +
+        "}";
+
+    iframe.contentDocument.body.appendChild(script);
+}
+
 function obterMapaQgis2web() {
     const iframe = document.getElementById("iframeMapa");
 
     if (!iframe) {
-        alert("Iframe do mapa não encontrado. Confira se ele tem id='iframeMapa'.");
+        alert("Iframe do mapa não encontrado.");
         return null;
     }
 
@@ -18,48 +69,16 @@ function obterMapaQgis2web() {
 
     if (!map) {
         criarPonteComMapaQgis2web();
-        alert("Ainda não consegui acessar o mapa. Aguarde alguns segundos e tente de novo.");
+        alert("Ainda não consegui acessar o objeto do mapa. Aguarde o mapa carregar totalmente e tente novamente.");
         return null;
     }
 
     if (!ol) {
-        alert("A biblioteca OpenLayers 'ol' não está acessível no iframe.");
+        alert("A biblioteca OpenLayers não está acessível.");
         return null;
     }
 
     return { map, ol };
-}
-
-function obterMapaQgis2web() {
-    const iframe = document.getElementById("iframeMapa");
-
-    if (!iframe) {
-        alert("Iframe do mapa não encontrado. Confira se ele tem id='iframeMapa'.");
-        return null;
-    }
-
-    const janelaMapa = iframe.contentWindow;
-
-    if (!janelaMapa) {
-        alert("Não consegui acessar a janela do mapa.");
-        return null;
-    }
-
-    if (!janelaMapa.map) {
-        alert("O mapa ainda não carregou ou a variável 'map' não está acessível.");
-        console.log("Janela do iframe:", janelaMapa);
-        return null;
-    }
-
-    if (!janelaMapa.ol) {
-        alert("A biblioteca OpenLayers 'ol' não está acessível no iframe.");
-        return null;
-    }
-
-    return {
-        map: janelaMapa.map,
-        ol: janelaMapa.ol
-    };
 }
 
 function obterCamadasVisiveis(layerGroup, resultado = []) {
@@ -112,7 +131,7 @@ async function exportarVisualizacaoKMZ() {
 
     const features = obterFeaturesVisiveisNoMapa(map, ol);
 
-    console.log("Feições encontradas para exportar:", features.length);
+    console.log("Feições encontradas:", features.length);
 
     if (!features.length) {
         alert("Nenhuma feição visível para exportar.");
@@ -120,7 +139,7 @@ async function exportarVisualizacaoKMZ() {
     }
 
     if (typeof JSZip === "undefined") {
-        alert("JSZip não foi carregado. Confira o script do JSZip no index.html principal.");
+        alert("JSZip não foi carregado no index.html principal.");
         return;
     }
 
@@ -147,36 +166,16 @@ async function exportarVisualizacaoKMZ() {
 
     link.href = url;
     link.download = "visualizacao_ponte.kmz";
+
     document.body.appendChild(link);
     link.click();
-
     document.body.removeChild(link);
+
     URL.revokeObjectURL(url);
 }
 
-function criarPonteComMapaQgis2web() {
-    const iframe = document.getElementById("iframeMapa");
-
-    if (!iframe || !iframe.contentDocument) return;
-
-    const script = iframe.contentDocument.createElement("script");
-
-    script.textContent = `
-        try {
-            if (typeof map !== "undefined") {
-                window.ponteMap = map;
-            }
-
-            if (typeof ol !== "undefined") {
-                window.ponteOl = ol;
-            }
-
-            console.log("Ponte com mapa qgis2web criada.");
-        } catch (erro) {
-            console.error("Erro ao criar ponte com mapa qgis2web:", erro);
-        }
-    `;
-
-    iframe.contentDocument.body.appendChild(script);
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", iniciarExportadorKMZ);
+} else {
+    iniciarExportadorKMZ();
 }
-
