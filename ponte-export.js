@@ -1,3 +1,22 @@
+function obterJanelaMapa() {
+    const iframe = document.getElementById("iframeMapa");
+    return iframe ? iframe.contentWindow : null;
+}
+
+function obterMapaQgis2web() {
+    const janelaMapa = obterJanelaMapa();
+
+    if (!janelaMapa || !janelaMapa.map || !janelaMapa.ol) {
+        alert("O mapa ainda não carregou completamente.");
+        return null;
+    }
+
+    return {
+        map: janelaMapa.map,
+        ol: janelaMapa.ol
+    };
+}
+
 function obterCamadasVisiveis(layerGroup, resultado = []) {
     layerGroup.getLayers().forEach(function(layer) {
         if (layer.getLayers) {
