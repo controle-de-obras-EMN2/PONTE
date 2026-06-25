@@ -1,11 +1,26 @@
 /* =========================================================
    PONTE MAP BRIDGE
    Controle interno das camadas do qgis2web
+   Funciona sem editar o index.html do mapa
    ========================================================= */
 
 (function() {
 
     console.log("ponte-map-bridge.js carregado dentro do mapa");
+
+    let sincronizadorAtivo = false;
+
+    function obterMapa() {
+        if (typeof map !== "undefined") {
+            return map;
+        }
+
+        if (window.map) {
+            return window.map;
+        }
+
+        return null;
+    }
 
     function ehCamadaBase(layer) {
         const titulo = String(
@@ -48,34 +63,115 @@
     }
 
     function obterListaDeCamadas() {
-        let camadas = [];
-
-        /*
-           O qgis2web normalmente cria uma lista global chamada layersList.
-           Ela é mais confiável que percorrer o map.getLayers().
-        */
         if (typeof layersList !== "undefined" && Array.isArray(layersList)) {
-            camadas = layersList;
-        } else if (window.layersList && Array.isArray(window.layersList)) {
-            camadas = window.layersList;
+            return layersList;
         }
+
+        if (window.layersList && Array.isArray(window.layersList)) {
+            return window.layersList;
+        }
+
+        const mapa = obterMapa();
+        const camadas = [];
+
+        if (!mapa || !mapa.getLayers) return camadas;
+
+        mapa.getLayers().forEach(function(layer) {
+            percorrerLayers(layer, function(subLayer) {
+                camadas.push(subLayer);
+            });
+        });
 
         return camadas;
     }
 
-    function desligarCamada(layer) {
-        if (!layer) return false;
+    function percorrerLayers(layer, callback) {
+        if (!layer) return;
 
-        if (ehCamadaBase(layer)) {
-            return false;
+        if (layer.getLayers) {
+            layer.getLayers().forEach(function(subLayer) {
+                percorrerLayers(subLayer, callback);
+            });
+
+            return;
         }
+
+        callback(layer);
+    }
+
+    function ehCamadaVetorial(layer) {
+        if (!layer || ehCamadaBase(layer)) return false;
+
+        const source = layer.getSource ? layer.getSource() : null;
+
+        return (
+            source &&
+            typeof source.getFeatures === "function" &&
+            typeof source.clear === "function" &&
+            typeof source.addFeatures === "function"
+        );
+    }
+
+    function guardarBackupDaCamada(layer) {
+        if (!ehCamadaVetorial(layer)) return false;
+
+        const source = layer.getSource();
+
+        if (!layer.get("ponte_features_backup")) {
+            layer.set("ponte_features_backup", source.getFeatures().slice());
+        }
+
+        if (layer.get("ponte_opacidade_original") === undefined) {
+            const opacidade = typeof layer.getOpacity === "function"
+                ? layer.getOpacity()
+                : 1;
+
+            layer.set("ponte_opacidade_original", opacidade);
+        }
+
+        return true;
+    }
+
+    function esvaziarCamada(layer) {
+        if (!guardarBackupDaCamada(layer)) return false;
+
+        const source = layer.getSource();
+
+        source.clear(true);
 
         if (typeof layer.setVisible === "function") {
             layer.setVisible(false);
         }
 
         if (typeof layer.setOpacity === "function") {
-            layer.setOpacity(0);
+            layer.setOpacity(1);
+        }
+
+        if (typeof layer.changed === "function") {
+            layer.changed();
+        }
+
+        return true;
+    }
+
+    function restaurarCamada(layer) {
+        if (!ehCamadaVetorial(layer)) return false;
+
+        const source = layer.getSource();
+        const backup = layer.get("ponte_features_backup");
+
+        if (!backup || !backup.length) return false;
+
+        if (source.getFeatures().length === 0) {
+            source.addFeatures(backup);
+        }
+
+        const opacidadeOriginal = layer.get("ponte_opacidade_original");
+
+        if (typeof layer.setOpacity === "function") {
+            layer.setOpacity(
+                opacidadeOriginal !== undefined ? opacidadeOriginal : 1
+            );
         }
 
         if (typeof layer.changed === "function") {
@@ -86,42 +182,35 @@
     }
 
     function limparCamadas() {
-        let total = 0;
+        const mapa = obterMapa();
+
+        if (!mapa) {
+            console.error("Mapa não encontrado dentro do iframe.");
+            return 0;
+        }
 
         const camadas = obterListaDeCamadas();
 
-        if (!camadas.length) {
-            console.warn("layersList não encontrada. Tentando fallback pelo map.");
+        let total = 0;
 
-            if (typeof map !== "undefined" && map.getLayers) {
-                map.getLayers().forEach(function(layer) {
-                    if (desligarCamada(layer)) {
-                        total++;
-                    }
-                });
+        camadas.forEach(function(layer) {
+            if (esvaziarCamada(layer)) {
+                total++;
             }
-        } else {
-            camadas.forEach(function(layer) {
-                if (desligarCamada(layer)) {
-                    total++;
-                }
-            });
-        }
+        });
 
         atualizarCheckboxes(false);
-        atualizarPainelDoLayerSwitcher();
+        ativarSincronizador();
 
-        if (typeof map !== "undefined") {
-            if (typeof map.render === "function") {
-                map.render();
-            }
-
-            if (typeof map.renderSync === "function") {
-                map.renderSync();
-            }
+        if (typeof mapa.render === "function") {
+            mapa.render();
         }
 
-        console.log("Camadas limpas pelo layersList:", total);
+        if (typeof mapa.renderSync === "function") {
+            mapa.renderSync();
+        }
+
+        console.log("Camadas esvaziadas pelo bridge:", total);
 
         return total;
     }
@@ -132,42 +221,91 @@
         checkboxes.forEach(function(checkbox) {
             checkbox.checked = marcado;
             checkbox.removeAttribute("checked");
-
-            checkbox.dispatchEvent(new Event("change", {
-                bubbles: true
-            }));
         });
     }
 
-    function atualizarPainelDoLayerSwitcher() {
-        /*
-           O qgis2web costuma criar a variável layerSwitcher.
-           Esse comando força o painel a se redesenhar depois do setVisible(false).
-        */
-        try {
-            if (
-                typeof layerSwitcher !== "undefined" &&
-                layerSwitcher &&
-                typeof layerSwitcher.renderPanel === "function"
-            ) {
-                layerSwitcher.renderPanel();
-            }
+    function ativarSincronizador() {
+        if (sincronizadorAtivo) return;
 
-            if (
-                window.layerSwitcher &&
-                typeof window.layerSwitcher.renderPanel === "function"
-            ) {
-                window.layerSwitcher.renderPanel();
+        sincronizadorAtivo = true;
+
+        const camadas = obterListaDeCamadas();
+
+        camadas.forEach(function(layer) {
+            if (!ehCamadaVetorial(layer)) return;
+
+            if (layer.get("ponte_sync_ativo") === true) return;
+
+            layer.set("ponte_sync_ativo", true);
+
+            if (typeof layer.on === "function") {
+                layer.on("change:visible", function() {
+                    sincronizarCamada(layer);
+                });
             }
-        } catch (erro) {
-            console.warn("Não foi possível atualizar o layerSwitcher:", erro);
+        });
+
+        setInterval(function() {
+            sincronizarTodasAsCamadas();
+        }, 700);
+
+        observarCheckboxes();
+    }
+
+    function sincronizarTodasAsCamadas() {
+        const mapa = obterMapa();
+        const camadas = obterListaDeCamadas();
+
+        camadas.forEach(function(layer) {
+            sincronizarCamada(layer);
+        });
+
+        if (mapa && typeof mapa.render === "function") {
+            mapa.render();
         }
+    }
+
+    function sincronizarCamada(layer) {
+        if (!ehCamadaVetorial(layer)) return;
+
+        const visivel = layer.getVisible ? layer.getVisible() : true;
+
+        if (visivel) {
+            restaurarCamada(layer);
+        } else {
+            const source = layer.getSource();
+
+            if (source.getFeatures().length > 0) {
+                esvaziarCamada(layer);
+            }
+        }
+    }
+
+    function observarCheckboxes() {
+        const checkboxes = document.querySelectorAll("input[type='checkbox']");
+
+        checkboxes.forEach(function(checkbox) {
+            if (checkbox.getAttribute("data-ponte-sync") === "1") return;
+
+            checkbox.setAttribute("data-ponte-sync", "1");
+
+            checkbox.addEventListener("change", function() {
+                setTimeout(function() {
+                    sincronizarTodasAsCamadas();
+                }, 150);
+            });
+
+            checkbox.addEventListener("click", function() {
+                setTimeout(function() {
+                    sincronizarTodasAsCamadas();
+                }, 150);
+            });
+        });
     }
 
     function listarCamadas() {
         const camadas = obterListaDeCamadas();
 
-        console.log("layersList encontrada?", camadas.length > 0);
         console.log("Quantidade de camadas:", camadas.length);
 
         camadas.forEach(function(layer, index) {
@@ -178,8 +316,12 @@
                 titulo: layer.get("title"),
                 nome: layer.get("name"),
                 visivel: layer.getVisible ? layer.getVisible() : null,
-                opacidade: layer.getOpacity ? layer.getOpacity() : null,
+                quantidadeFeatures: source && source.getFeatures ? source.getFeatures().length : null,
+                backupFeatures: layer.get("ponte_features_backup")
+                    ? layer.get("ponte_features_backup").length
+                    : null,
                 ehBase: ehCamadaBase(layer),
+                ehVetorial: ehCamadaVetorial(layer),
                 source: source && source.constructor ? source.constructor.name : null
             });
         });
@@ -187,7 +329,8 @@
 
     window.PONTE_MAP_BRIDGE = {
         limparCamadas: limparCamadas,
-        listarCamadas: listarCamadas
+        listarCamadas: listarCamadas,
+        sincronizarTodasAsCamadas: sincronizarTodasAsCamadas
     };
 
 })();
