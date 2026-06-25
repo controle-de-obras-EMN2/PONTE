@@ -234,7 +234,7 @@ async function exportarVisualizacaoKMZ() {
 
 
 /* =========================================================
-   LIMPAR CAMADAS
+   LIMPAR CAMADAS VIA BRIDGE INTERNO DO MAPA
    ========================================================= */
 
 function ativarBotaoLimparCamadas() {
@@ -251,174 +251,71 @@ function ativarBotaoLimparCamadas() {
     });
 }
 
-function limparCamadasDoMapa() {
-    const contexto = obterMapaQgis2web();
+function prepararBridgeDoMapa(callback) {
+    const iframe = document.getElementById("iframeMapa");
 
-    if (!contexto) {
-        alert("Não consegui acessar o mapa para limpar as camadas.");
+    if (!iframe || !iframe.contentDocument || !iframe.contentWindow) {
+        alert("Não consegui acessar o iframe do mapa.");
         return;
     }
 
-    const map = contexto.map;
-    const janelaMapa = contexto.janelaMapa;
+    const janelaMapa = iframe.contentWindow;
 
-    let totalDesligadas = 0;
-
-    map.getLayers().forEach(function(layer) {
-        totalDesligadas += desligarLayerRecursivo(layer);
-    });
-
-    desligarVariaveisLyrDoQgis2web(janelaMapa);
-    atualizarCheckboxesDaLegenda(false);
-
-    if (typeof map.render === "function") {
-        map.render();
+    if (janelaMapa.PONTE_MAP_BRIDGE) {
+        if (callback) callback();
+        return;
     }
-
-    console.log("Camadas desligadas:", totalDesligadas);
-
-    if (totalDesligadas === 0) {
-        console.warn("Nenhuma camada foi desligada pela árvore do mapa.");
-        listarCamadasDoMapa(map);
-    }
-}
-
-function desligarLayerRecursivo(layer) {
-    let total = 0;
-
-    if (layer.getLayers) {
-        layer.getLayers().forEach(function(subLayer) {
-            total += desligarLayerRecursivo(subLayer);
-        });
-
-        return total;
-    }
-
-    const titulo = String(
-        layer.get("title") ||
-        layer.get("name") ||
-        ""
-    );
-
-    const source = layer.getSource ? layer.getSource() : null;
-
-    if (ehCamadaBase(titulo, source)) {
-        return total;
-    }
-
-    if (layer.setVisible) {
-        layer.setVisible(false);
-
-        if (layer.changed) {
-            layer.changed();
-        }
-
-        total++;
-    }
-
-    return total;
-}
-
-function desligarVariaveisLyrDoQgis2web(janelaMapa) {
-    if (!janelaMapa) return;
-
-    Object.keys(janelaMapa).forEach(function(nomeVariavel) {
-        if (!nomeVariavel.startsWith("lyr_")) return;
-
-        const layer = janelaMapa[nomeVariavel];
-
-        if (!layer || typeof layer.setVisible !== "function") return;
-
-        const titulo = String(
-            layer.get("title") ||
-            layer.get("name") ||
-            nomeVariavel
-        );
-
-        const source = layer.getSource ? layer.getSource() : null;
-
-        if (ehCamadaBase(titulo, source)) return;
-
-        layer.setVisible(false);
-
-        if (layer.changed) {
-            layer.changed();
-        }
-    });
-}
-
-function ehCamadaBase(titulo, source) {
-    const texto = String(titulo || "").toLowerCase();
-
-    if (
-        texto.includes("google") ||
-        texto.includes("satellite") ||
-        texto.includes("hybrid") ||
-        texto.includes("osm") ||
-        texto.includes("openstreetmap") ||
-        texto.includes("bing") ||
-        texto.includes("base") ||
-        texto.includes("terrain") ||
-        texto.includes("terreno")
-    ) {
-        return true;
-    }
-
-    if (source) {
-        const nomeSource = source.constructor && source.constructor.name
-            ? source.constructor.name.toLowerCase()
-            : "";
-
-        if (
-            nomeSource.includes("xyz") ||
-            nomeSource.includes("osm") ||
-            nomeSource.includes("tile")
-        ) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-function atualizarCheckboxesDaLegenda(marcado) {
-    const iframe = document.getElementById("iframeMapa");
-
-    if (!iframe || !iframe.contentDocument) return;
 
     const documentoMapa = iframe.contentDocument;
 
-    const checkboxes = documentoMapa.querySelectorAll("input[type='checkbox']");
-
-    checkboxes.forEach(function(checkbox) {
-        checkbox.checked = marcado;
-    });
-}
-
-function listarCamadasDoMapa(map) {
-    console.log("Lista de camadas encontradas:");
-
-    map.getLayers().forEach(function(layer, index) {
-        listarLayerRecursivo(layer, index);
-    });
-}
-
-function listarLayerRecursivo(layer, index) {
-    if (layer.getLayers) {
-        layer.getLayers().forEach(function(subLayer, subIndex) {
-            listarLayerRecursivo(subLayer, index + "." + subIndex);
-        });
+    if (documentoMapa.getElementById("ponte-map-bridge")) {
+        setTimeout(function() {
+            if (callback) callback();
+        }, 700);
 
         return;
     }
 
-    const source = layer.getSource ? layer.getSource() : null;
+    const script = documentoMapa.createElement("script");
 
-    console.log({
-        indice: index,
-        titulo: layer.get("title"),
-        nome: layer.get("name"),
-        visivel: layer.getVisible ? layer.getVisible() : null,
-        source: source && source.constructor ? source.constructor.name : null
+    script.id = "ponte-map-bridge";
+    script.src = "../ponte-map-bridge.js?v=" + Date.now();
+
+    script.onload = function() {
+        console.log("Bridge do mapa carregado.");
+        if (callback) callback();
+    };
+
+    script.onerror = function() {
+        alert("Não foi possível carregar o ponte-map-bridge.js dentro do mapa.");
+    };
+
+    documentoMapa.body.appendChild(script);
+}
+
+function limparCamadasDoMapa() {
+    prepararBridgeDoMapa(function() {
+        const iframe = document.getElementById("iframeMapa");
+        const janelaMapa = iframe.contentWindow;
+
+        if (!janelaMapa.PONTE_MAP_BRIDGE) {
+            alert("Bridge do mapa ainda não ficou disponível. Tente novamente em alguns segundos.");
+            return;
+        }
+
+        const total = janelaMapa.PONTE_MAP_BRIDGE.limparCamadas();
+
+        console.log("Resultado do limpar camadas:", total);
+
+        if (total === 0) {
+            console.warn("Nenhuma camada foi desligada. Listando camadas:");
+            janelaMapa.PONTE_MAP_BRIDGE.listarCamadas();
+        }
     });
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", ativarBotaoLimparCamadas);
+} else {
+    ativarBotaoLimparCamadas();
 }
