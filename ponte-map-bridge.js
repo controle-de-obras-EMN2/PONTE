@@ -1,23 +1,11 @@
 /* =========================================================
    PONTE MAP BRIDGE
-   Este arquivo roda dentro do iframe do qgis2web
+   Controle interno das camadas do qgis2web
    ========================================================= */
 
 (function() {
 
     console.log("ponte-map-bridge.js carregado dentro do mapa");
-
-    function obterMapa() {
-        if (typeof map !== "undefined") {
-            return map;
-        }
-
-        if (window.map) {
-            return window.map;
-        }
-
-        return null;
-    }
 
     function ehCamadaBase(layer) {
         const titulo = String(
@@ -59,57 +47,28 @@
         return false;
     }
 
-    function percorrerLayers(layer, callback) {
-        if (!layer) return;
+    function obterListaDeCamadas() {
+        let camadas = [];
 
-        if (layer.getLayers) {
-            layer.getLayers().forEach(function(subLayer) {
-                percorrerLayers(subLayer, callback);
-            });
-
-            return;
+        /*
+           O qgis2web normalmente cria uma lista global chamada layersList.
+           Ela é mais confiável que percorrer o map.getLayers().
+        */
+        if (typeof layersList !== "undefined" && Array.isArray(layersList)) {
+            camadas = layersList;
+        } else if (window.layersList && Array.isArray(window.layersList)) {
+            camadas = window.layersList;
         }
-
-        callback(layer);
-    }
-
-    function obterTodasAsCamadas() {
-        const mapa = obterMapa();
-        const camadas = [];
-
-        if (!mapa) return camadas;
-
-        if (typeof mapa.getAllLayers === "function") {
-            mapa.getAllLayers().forEach(function(layer) {
-                camadas.push(layer);
-            });
-
-            return camadas;
-        }
-
-        mapa.getLayers().forEach(function(layer) {
-            percorrerLayers(layer, function(subLayer) {
-                camadas.push(subLayer);
-            });
-        });
 
         return camadas;
     }
 
-    function guardarOpacidadeOriginal(layer) {
-        if (layer.get("ponte_opacidade_original") === undefined) {
-            const opacidade = typeof layer.getOpacity === "function"
-                ? layer.getOpacity()
-                : 1;
+    function desligarCamada(layer) {
+        if (!layer) return false;
 
-            layer.set("ponte_opacidade_original", opacidade);
+        if (ehCamadaBase(layer)) {
+            return false;
         }
-    }
-
-    function esconderLayer(layer) {
-        if (!layer || ehCamadaBase(layer)) return false;
-
-        guardarOpacidadeOriginal(layer);
 
         if (typeof layer.setVisible === "function") {
             layer.setVisible(false);
@@ -126,67 +85,43 @@
         return true;
     }
 
-    function mostrarLayer(layer) {
-        if (!layer || ehCamadaBase(layer)) return false;
-
-        const opacidadeOriginal = layer.get("ponte_opacidade_original");
-
-        if (typeof layer.setVisible === "function") {
-            layer.setVisible(true);
-        }
-
-        if (typeof layer.setOpacity === "function") {
-            layer.setOpacity(
-                opacidadeOriginal !== undefined ? opacidadeOriginal : 1
-            );
-        }
-
-        if (typeof layer.changed === "function") {
-            layer.changed();
-        }
-
-        return true;
-    }
-
     function limparCamadas() {
-        const mapa = obterMapa();
-
-        if (!mapa) {
-            console.error("Mapa não encontrado dentro do iframe.");
-            return 0;
-        }
-
         let total = 0;
 
-        const camadas = obterTodasAsCamadas();
+        const camadas = obterListaDeCamadas();
 
-        camadas.forEach(function(layer) {
-            if (esconderLayer(layer)) {
-                total++;
+        if (!camadas.length) {
+            console.warn("layersList não encontrada. Tentando fallback pelo map.");
+
+            if (typeof map !== "undefined" && map.getLayers) {
+                map.getLayers().forEach(function(layer) {
+                    if (desligarCamada(layer)) {
+                        total++;
+                    }
+                });
             }
-        });
-
-        Object.keys(window).forEach(function(nomeVariavel) {
-            if (!nomeVariavel.startsWith("lyr_")) return;
-
-            const layer = window[nomeVariavel];
-
-            if (!layer || typeof layer.setVisible !== "function") return;
-
-            esconderLayer(layer);
-        });
+        } else {
+            camadas.forEach(function(layer) {
+                if (desligarCamada(layer)) {
+                    total++;
+                }
+            });
+        }
 
         atualizarCheckboxes(false);
+        atualizarPainelDoLayerSwitcher();
 
-        if (typeof mapa.render === "function") {
-            mapa.render();
+        if (typeof map !== "undefined") {
+            if (typeof map.render === "function") {
+                map.render();
+            }
+
+            if (typeof map.renderSync === "function") {
+                map.renderSync();
+            }
         }
 
-        if (typeof mapa.renderSync === "function") {
-            mapa.renderSync();
-        }
-
-        console.log("Camadas limpas pelo bridge:", total);
+        console.log("Camadas limpas pelo layersList:", total);
 
         return total;
     }
@@ -196,64 +131,46 @@
 
         checkboxes.forEach(function(checkbox) {
             checkbox.checked = marcado;
+            checkbox.removeAttribute("checked");
+
+            checkbox.dispatchEvent(new Event("change", {
+                bubbles: true
+            }));
         });
     }
 
-    function tentarSincronizarCheckboxesComCamadas() {
-        const checkboxes = document.querySelectorAll("input[type='checkbox']");
-
-        checkboxes.forEach(function(checkbox) {
-            if (checkbox.getAttribute("data-ponte-sync") === "1") return;
-
-            checkbox.setAttribute("data-ponte-sync", "1");
-
-            checkbox.addEventListener("change", function() {
-                setTimeout(function() {
-                    restaurarOpacidadeDasCamadasMarcadas();
-                }, 100);
-            });
-        });
-    }
-
-    function restaurarOpacidadeDasCamadasMarcadas() {
-        const mapa = obterMapa();
-
-        if (!mapa) return;
-
-        const camadas = obterTodasAsCamadas();
-
-        camadas.forEach(function(layer) {
-            if (layer.getVisible && layer.getVisible()) {
-                const opacidadeOriginal = layer.get("ponte_opacidade_original");
-
-                if (typeof layer.setOpacity === "function") {
-                    layer.setOpacity(
-                        opacidadeOriginal !== undefined ? opacidadeOriginal : 1
-                    );
-                }
-
-                if (typeof layer.changed === "function") {
-                    layer.changed();
-                }
+    function atualizarPainelDoLayerSwitcher() {
+        /*
+           O qgis2web costuma criar a variável layerSwitcher.
+           Esse comando força o painel a se redesenhar depois do setVisible(false).
+        */
+        try {
+            if (
+                typeof layerSwitcher !== "undefined" &&
+                layerSwitcher &&
+                typeof layerSwitcher.renderPanel === "function"
+            ) {
+                layerSwitcher.renderPanel();
             }
-        });
 
-        if (typeof mapa.render === "function") {
-            mapa.render();
+            if (
+                window.layerSwitcher &&
+                typeof window.layerSwitcher.renderPanel === "function"
+            ) {
+                window.layerSwitcher.renderPanel();
+            }
+        } catch (erro) {
+            console.warn("Não foi possível atualizar o layerSwitcher:", erro);
         }
     }
 
     function listarCamadas() {
-        const mapa = obterMapa();
+        const camadas = obterListaDeCamadas();
 
-        if (!mapa) {
-            console.error("Mapa não encontrado.");
-            return;
-        }
+        console.log("layersList encontrada?", camadas.length > 0);
+        console.log("Quantidade de camadas:", camadas.length);
 
-        console.log("Camadas encontradas no mapa:");
-
-        obterTodasAsCamadas().forEach(function(layer, index) {
+        camadas.forEach(function(layer, index) {
             const source = layer.getSource ? layer.getSource() : null;
 
             console.log({
@@ -268,12 +185,9 @@
         });
     }
 
-    setInterval(tentarSincronizarCheckboxesComCamadas, 1000);
-
     window.PONTE_MAP_BRIDGE = {
         limparCamadas: limparCamadas,
-        listarCamadas: listarCamadas,
-        restaurarOpacidadeDasCamadasMarcadas: restaurarOpacidadeDasCamadasMarcadas
+        listarCamadas: listarCamadas
     };
 
 })();
