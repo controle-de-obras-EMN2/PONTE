@@ -1,12 +1,12 @@
-tipo;contrato;indicador;periodo;previsto;realizado;unidade;valor_contratual;total_pedido;total_unitizado;ext_contratual;ext_atual;ext_executada;ext_unitizada;item;avanco;status;
+Ôªøtipo;contrato;indicador;periodo;previsto;realizado;unidade;valor_contratual;total_pedido;total_unitizado;ext_contratual;ext_atual;ext_executada;ext_unitizada;item;avanco;status;
 meta;;Economias Fator U;Atual;21085;998;un;;;;;;;;;;;
 meta;;Economias Contrato;Atual;18505;4508;un;;;;;;;;;;;
 meta;;Imobilizado;Atual;191599373;25179529,76;R$;;;;;;;;;;;
 meta;;Producao Integra;Atual;39969,24;26421,69;m;;;;;;;;;;;
 meta;;Producao Andamento;Atual;2423,4;1065,55;m;;;;;;;;;;;
-meta;;Economias Fator U;Proximo mes;0;0;un;;;;;;;;;;;
-meta;;Economias Contrato;Proximo mes;0;0;un;;;;;;;;;;;
-meta;;Imobilizado;Proximo mes;0;0;R$;;;;;;;;;;;
+meta;;Economias Fator U;Proximo mes;12485;12434;un;;;;;;;;;;;
+meta;;Economias Contrato;Proximo mes;4838;0;un;;;;;;;;;;;
+meta;;Imobilizado;Proximo mes;19123797;10593319,08;R$;;;;;;;;;;;
 meta;;Producao Integra;Proximo mes;0;0;m;;;;;;;;;;;
 meta;;Producao Andamento;Proximo mes;0;0;m;;;;;;;;;;;
 contrato_valor;00268/24;;;;;;188927409,8;11298600;1091136,69;;;;;;;;
@@ -25,33 +25,33 @@ contrato_extensao;00797/24;;;;;;;;;;33894,77;29024,15;15471,98;7931,81;;;
 contrato_extensao;00900/24;;;;;;;;;;19586,28;21332,44;7493,03;2638,68;;;
 contrato_extensao;01151/21;;;;;;;;;;26936,92;25228,33;22263,2;15927,07;;;
 contrato_extensao;03179/23;;;;;;;;;;12788,14;12788,14;10793,75;3132,79;;;
-avanco_popup;00268/24;;;;;;;;;;;;;;EEE 18-A2;0;EM CONSTRU«√O
-avanco_popup;00797/24;;;;;;;;;;;;;;EEE 7;0;EM CONSTRU«√O
-avanco_popup;00900/24;;;;;;;;;;;;;;EEE 23-B1;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE 23-B2;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE 23-B3;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE 23-A3;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE 23-A4;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE A1;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE B1;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE C1;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE D1;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE E;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE F;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE G;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE H;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE I;0;EM CONSTRU«√O
+avanco_popup;00268/24;;;;;;;;;;;;;;EEE 18-A2;0;EM CONSTRU√á√ÉO
+avanco_popup;00797/24;;;;;;;;;;;;;;EEE 7;0;EM CONSTRU√á√ÉO
+avanco_popup;00900/24;;;;;;;;;;;;;;EEE 23-B1;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE 23-B2;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE 23-B3;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE 23-A3;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE 23-A4;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE A1;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE B1;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE C1;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE D1;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE E;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE F;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE G;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE H;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE I;0;EM CONSTRU√á√ÉO
 avanco_popup;;;;;;;;;;;;;;;EEE J1;0;A INICIAR
-avanco_popup;;;;;;;;;;;;;;;EEE J2;47,2;EM CONSTRU«√O
+avanco_popup;;;;;;;;;;;;;;;EEE J2;47,2;EM CONSTRU√á√ÉO
 avanco_popup;;;;;;;;;;;;;;;EEE JARDIM REAL;0;A INICIAR
-avanco_popup;;;;;;;;;;;;;;;EEE PARQUE DAS NA«’ES;0;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE CARL”POLIS;0,13;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE JARDIM F¡TIMA;4,2;EM CONSTRU«√O
+avanco_popup;;;;;;;;;;;;;;;EEE PARQUE DAS NA√á√ïES;0;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE CARL√ìPOLIS;0,13;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE JARDIM F√ÅTIMA;4,2;EM CONSTRU√á√ÉO
 avanco_popup;;;;;;;;;;;;;;;EEE MARIA DIRCE;0;A INICIAR
-avanco_popup;;;;;;;;;;;;;;;EEE DAS IND⁄STRIAS;0,81;EM CONSTRU«√O
+avanco_popup;;;;;;;;;;;;;;;EEE DAS IND√öSTRIAS;0,81;EM CONSTRU√á√ÉO
 avanco_popup;;;;;;;;;;;;;;;EEE PARQUE INDUSTRIAL;0;A INICIAR
 avanco_popup;;;;;;;;;;;;;;;EEE VILA PARAISO;0;A INICIAR
-avanco_popup;;;;;;;;;;;;;;;EEE BONSUCESSO;26,77;EM CONSTRU«√O
-avanco_popup;;;;;;;;;;;;;;;EEE FORTALEZA;17,39;EM CONSTRU«√O
+avanco_popup;;;;;;;;;;;;;;;EEE BONSUCESSO;26,77;EM CONSTRU√á√ÉO
+avanco_popup;;;;;;;;;;;;;;;EEE FORTALEZA;17,39;EM CONSTRU√á√ÉO
 avanco_popup;;;;;;;;;;;;;;;EEE SANTA PAULA;0;A INICIAR
-avanco_popup;;;;;;;;;;;;;;;EEE V¡RZEA DAS FONTES;5,93;EM CONSTRU«√O
+avanco_popup;;;;;;;;;;;;;;;EEE V√ÅRZEA DAS FONTES;5,93;EM CONSTRU√á√ÉO
