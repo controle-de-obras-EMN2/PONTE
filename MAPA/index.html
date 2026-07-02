@@ -64,9 +64,8 @@
         <script src="./resources/Autolinker.min.js"></script>
         <script src="./resources/qgis2web.js"></script>        
 
-     <!-- =========================================================
+    <!-- =========================================================
      INICIO BLOCO PONTE - LIMPAR CAMADAS
-     Manter este bloco ao atualizar o mapa pelo qgis2web
      ========================================================= -->
 
 <style>
@@ -92,35 +91,25 @@
     }
 </style>
 
-<button id="ponteBtnLimparCamadas" type="button">
+<button id="ponteBtnLimparCamadas" type="button" onclick="ponteLimparCamadas()">
     Limpar camadas
 </button>
 
 <script>
-(function() {
-    let ponteSincronizadorAtivo = false;
+console.log("PONTE - bloco limpar camadas carregado");
 
-    function ponteObterMapa() {
-        try {
-            if (typeof map !== "undefined") {
-                return map;
-            }
-        } catch (erro) {}
+window.ponteLimparCamadas = function() {
+    console.log("PONTE - clique recebido no botão Limpar camadas");
 
-        return window.map || window.ponteMap || null;
+    if (typeof map === "undefined") {
+        alert("O objeto map não está disponível neste index.");
+        console.error("PONTE - map não encontrado");
+        return;
     }
 
-    function ponteObterOl() {
-        try {
-            if (typeof ol !== "undefined") {
-                return ol;
-            }
-        } catch (erro) {}
+    let total = 0;
 
-        return window.ol || window.ponteOl || null;
-    }
-
-    function ponteEhCamadaBase(layer) {
+    function ehBase(layer) {
         const titulo = String(
             layer.get("title") ||
             layer.get("name") ||
@@ -128,8 +117,7 @@
         ).toLowerCase();
 
         const source = layer.getSource ? layer.getSource() : null;
-
-        const nomeSource = source && source.constructor
+        const sourceNome = source && source.constructor
             ? String(source.constructor.name).toLowerCase()
             : "";
 
@@ -141,220 +129,70 @@
             titulo.includes("openstreetmap") ||
             titulo.includes("bing") ||
             titulo.includes("base") ||
-            nomeSource.includes("xyz") ||
-            nomeSource.includes("osm") ||
-            nomeSource.includes("tile")
+            sourceNome.includes("xyz") ||
+            sourceNome.includes("osm") ||
+            sourceNome.includes("tile")
         );
     }
 
-    function pontePercorrerCamadas(layer, callback) {
+    function percorrer(layer, callback) {
         if (!layer) return;
 
         if (layer.getLayers) {
             layer.getLayers().forEach(function(subLayer) {
-                pontePercorrerCamadas(subLayer, callback);
+                percorrer(subLayer, callback);
             });
-
             return;
         }
 
         callback(layer);
     }
 
-    function ponteObterCamadas() {
-        const mapa = ponteObterMapa();
-        const camadas = [];
+    map.getLayers().forEach(function(layer) {
+        percorrer(layer, function(subLayer) {
+            if (ehBase(subLayer)) return;
 
-        try {
-            if (typeof layersList !== "undefined" && Array.isArray(layersList)) {
-                layersList.forEach(function(layer) {
-                    pontePercorrerCamadas(layer, function(subLayer) {
-                        camadas.push(subLayer);
-                    });
-                });
+            const source = subLayer.getSource ? subLayer.getSource() : null;
 
-                return camadas;
-            }
-        } catch (erro) {}
+            if (
+                source &&
+                typeof source.getFeatures === "function" &&
+                typeof source.clear === "function"
+            ) {
+                if (!subLayer.get("ponte_backup_features")) {
+                    subLayer.set("ponte_backup_features", source.getFeatures().slice());
+                }
 
-        if (mapa && typeof mapa.getAllLayers === "function") {
-            return mapa.getAllLayers();
-        }
-
-        if (mapa && mapa.getLayers) {
-            mapa.getLayers().forEach(function(layer) {
-                pontePercorrerCamadas(layer, function(subLayer) {
-                    camadas.push(subLayer);
-                });
-            });
-        }
-
-        return camadas;
-    }
-
-    function ponteGuardarBackup(layer) {
-        const source = layer.getSource ? layer.getSource() : null;
-
-        if (
-            source &&
-            typeof source.getFeatures === "function" &&
-            typeof source.clear === "function" &&
-            typeof source.addFeatures === "function"
-        ) {
-            if (!layer.get("ponte_backup_features")) {
-                layer.set("ponte_backup_features", source.getFeatures().slice());
+                source.clear();
             }
 
-            return true;
-        }
-
-        return false;
-    }
-
-    function ponteEsvaziarLayer(layer) {
-        if (!layer || ponteEhCamadaBase(layer)) return false;
-
-        const source = layer.getSource ? layer.getSource() : null;
-
-        ponteGuardarBackup(layer);
-
-        if (
-            source &&
-            typeof source.getFeatures === "function" &&
-            typeof source.clear === "function"
-        ) {
-            source.clear();
-
-            if (typeof source.changed === "function") {
-                source.changed();
+            if (typeof subLayer.setVisible === "function") {
+                subLayer.setVisible(false);
             }
-        }
 
-        if (typeof layer.setVisible === "function") {
-            layer.setVisible(false);
-        }
-
-        if (typeof layer.changed === "function") {
-            layer.changed();
-        }
-
-        return true;
-    }
-
-    function ponteRestaurarLayer(layer) {
-        if (!layer || ponteEhCamadaBase(layer)) return false;
-
-        const source = layer.getSource ? layer.getSource() : null;
-        const backup = layer.get("ponte_backup_features");
-
-        if (
-            source &&
-            backup &&
-            backup.length &&
-            typeof source.getFeatures === "function" &&
-            typeof source.addFeatures === "function" &&
-            source.getFeatures().length === 0
-        ) {
-            source.addFeatures(backup);
-
-            if (typeof source.changed === "function") {
-                source.changed();
+            if (typeof subLayer.changed === "function") {
+                subLayer.changed();
             }
-        }
 
-        if (typeof layer.changed === "function") {
-            layer.changed();
-        }
-
-        return true;
-    }
-
-    function ponteAtualizarCheckboxes(marcado) {
-        document.querySelectorAll("input[type='checkbox']").forEach(function(checkbox) {
-            checkbox.checked = marcado;
-
-            if (!marcado) {
-                checkbox.removeAttribute("checked");
-            }
+            total++;
         });
-    }
+    });
 
-    function ponteSincronizarCamadas() {
-        const mapa = ponteObterMapa();
-        const camadas = ponteObterCamadas();
+    document.querySelectorAll("input[type='checkbox']").forEach(function(checkbox) {
+        checkbox.checked = false;
+        checkbox.removeAttribute("checked");
+    });
 
-        camadas.forEach(function(layer) {
-            if (!layer || ponteEhCamadaBase(layer)) return;
+    if (typeof map.render === "function") map.render();
+    if (typeof map.renderSync === "function") map.renderSync();
 
-            const visivel = layer.getVisible ? layer.getVisible() : false;
-
-            if (visivel) {
-                ponteRestaurarLayer(layer);
-            }
-        });
-
-        if (mapa) {
-            if (typeof mapa.render === "function") mapa.render();
-            if (typeof mapa.renderSync === "function") mapa.renderSync();
-        }
-    }
-
-    function ponteAtivarSincronizador() {
-        if (ponteSincronizadorAtivo) return;
-
-        ponteSincronizadorAtivo = true;
-
-        document.addEventListener("change", function(event) {
-            if (event.target && event.target.matches("input[type='checkbox']")) {
-                setTimeout(ponteSincronizarCamadas, 150);
-            }
-        });
-
-        document.addEventListener("click", function(event) {
-            if (event.target && event.target.matches("input[type='checkbox']")) {
-                setTimeout(ponteSincronizarCamadas, 150);
-            }
-        });
-    }
-
-    function ponteLimparCamadas() {
-        const mapa = ponteObterMapa();
-
-        if (!mapa) {
-            alert("Mapa ainda não carregou completamente.");
-            return;
-        }
-
-        const camadas = ponteObterCamadas();
-        let total = 0;
-
-        camadas.forEach(function(layer) {
-            if (ponteEsvaziarLayer(layer)) {
-                total++;
-            }
-        });
-
-        ponteAtualizarCheckboxes(false);
-        ponteAtivarSincronizador();
-
-        if (typeof mapa.render === "function") mapa.render();
-        if (typeof mapa.renderSync === "function") mapa.renderSync();
-
-        console.log("PONTE - camadas limpas:", total);
-    }
-
-    window.ponteMap = ponteObterMapa();
-    window.ponteOl = ponteObterOl();
-
-    document
-        .getElementById("ponteBtnLimparCamadas")
-        .addEventListener("click", ponteLimparCamadas);
-})();
+    console.log("PONTE - camadas limpas:", total);
+};
 </script>
 
 <!-- =========================================================
      FIM BLOCO PONTE - LIMPAR CAMADAS
-     ========================================================= -->  
+     ========================================================= -->
     
     </body>
 </html>
