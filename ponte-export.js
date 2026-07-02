@@ -1,39 +1,64 @@
 /* =========================================================
-   PONTE EXPORT / CONTROLE DO MAPA
+   PONTE EXPORT / KMZ
+   Exporta somente camadas marcadas + feições dentro da tela
    ========================================================= */
 
 console.log("ponte-export.js carregado");
 
 document.addEventListener("click", function(event) {
     const botao = event.target.closest("#btnExportarKMZ");
+
     if (!botao) return;
 
     event.preventDefault();
+
     console.log("Clique recebido no botão Exportar KMZ");
     exportarVisualizacaoKMZ();
 });
 
+
+/* =========================================================
+   ACESSO AO MAPA
+   ========================================================= */
+
 function obterMapaQgis2web() {
     const iframe = document.getElementById("iframeMapa");
+
     if (!iframe) {
-        alert("Iframe do mapa não encontrado.");
+        alert("Iframe do mapa não encontrado. Confira se ele tem id='iframeMapa'.");
         return null;
     }
 
     const janelaMapa = iframe.contentWindow;
+
+    if (!janelaMapa) {
+        alert("Não consegui acessar a janela do mapa.");
+        return null;
+    }
+
     const map = janelaMapa.ponteMap || janelaMapa.map;
     const ol = janelaMapa.ponteOl || janelaMapa.ol;
 
     if (!map || !ol) {
-        alert("Mapa ainda não carregou completamente.");
+        alert("Mapa ainda não carregou completamente. Aguarde alguns segundos e tente novamente.");
         return null;
     }
 
-    return { map, ol, janelaMapa };
+    return {
+        map,
+        ol,
+        janelaMapa
+    };
 }
 
-function normalizarTextoExport(valor) {
+
+/* =========================================================
+   FUNÇÕES AUXILIARES
+   ========================================================= */
+
+function normalizarExport(valor) {
     return String(valor || "")
+        .replace(/<[^>]*>/g, " ")
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, " ")
@@ -41,23 +66,33 @@ function normalizarTextoExport(valor) {
         .toUpperCase();
 }
 
-function obterCamadasMarcadas(janelaMapa) {
-    const doc = janelaMapa.document;
-    const nomes = [];
+function textoLimpo(valor) {
+    return String(valor || "")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
 
-    doc.querySelectorAll("input[type='checkbox']").forEach(function(checkbox) {
-        if (!checkbox.checked) return;
+function ehCamadaBase(layer) {
+    const titulo = normalizarExport(layer.get("title") || layer.get("name") || "");
+    const source = layer.getSource ? layer.getSource() : null;
 
-        const item = checkbox.closest("li") || checkbox.parentElement;
-        const texto = item ? item.textContent : "";
+    const sourceNome = source && source.constructor
+        ? normalizarExport(source.constructor.name)
+        : "";
 
-        if (texto.trim()) {
-            nomes.push(texto.replace(/\s+/g, " ").trim());
-        }
-    });
-
-    console.log("Camadas marcadas na legenda:", nomes);
-    return nomes;
+    return (
+        titulo.includes("GOOGLE") ||
+        titulo.includes("SATELLITE") ||
+        titulo.includes("HYBRID") ||
+        titulo.includes("OSM") ||
+        titulo.includes("OPENSTREETMAP") ||
+        titulo.includes("BING") ||
+        titulo.includes("BASE") ||
+        sourceNome.includes("XYZ") ||
+        sourceNome.includes("OSM") ||
+        sourceNome.includes("TILE")
+    );
 }
 
 function percorrerCamadas(layer, callback) {
@@ -67,69 +102,166 @@ function percorrerCamadas(layer, callback) {
         layer.getLayers().forEach(function(subLayer) {
             percorrerCamadas(subLayer, callback);
         });
+
         return;
     }
 
     callback(layer);
 }
 
-function obterCamadasDoMapa(map, nomesMarcados) {
-    const resultado = [];
-    const nomesNormalizados = nomesMarcados.map(normalizarTextoExport);
+function obterCamadasVetoriais(map) {
+    const camadas = [];
 
     map.getLayers().forEach(function(layer) {
         percorrerCamadas(layer, function(subLayer) {
+            if (ehCamadaBase(subLayer)) return;
+
             const source = subLayer.getSource ? subLayer.getSource() : null;
-            if (!source || !source.getFeatures) return;
 
-            const nomeCamada = String(
-                subLayer.get("title") ||
-                subLayer.get("name") ||
-                ""
-            ).trim();
+            if (!source || typeof source.getFeatures !== "function") return;
 
-            const nomeCamadaNorm = normalizarTextoExport(nomeCamada);
-
-            const marcada = nomesNormalizados.some(function(nomeMarcado) {
-                return (
-                    nomeMarcado === nomeCamadaNorm ||
-                    nomeMarcado.includes(nomeCamadaNorm) ||
-                    nomeCamadaNorm.includes(nomeMarcado)
-                );
-            });
-
-            const visivel = subLayer.getVisible ? subLayer.getVisible() : true;
-            const temFeatures = source.getFeatures().length > 0;
-
-            if (marcada || (nomesMarcados.length === 0 && visivel && temFeatures)) {
-                resultado.push(subLayer);
-            }
+            camadas.push(subLayer);
         });
     });
 
-    console.log("Camadas consideradas para exportação:", resultado.map(layer =>
-        layer.get("title") || layer.get("name") || "sem nome"
+    return camadas;
+}
+
+
+/* =========================================================
+   LER CAMADAS MARCADAS NA LEGENDA
+   ========================================================= */
+
+function obterCheckboxesCamadas(janelaMapa) {
+    const doc = janelaMapa.document;
+
+    const checkboxes = Array.from(
+        doc.querySelectorAll("input[type='checkbox']")
+    );
+
+    const itens = checkboxes.map(function(checkbox, index) {
+        const li = checkbox.closest("li");
+        const label = checkbox.closest("label");
+
+        let texto = "";
+
+        if (li) {
+            const clone = li.cloneNode(true);
+
+            clone.querySelectorAll("ul, img, input").forEach(function(el) {
+                el.remove();
+            });
+
+            texto = clone.textContent || "";
+        }
+
+        if (!texto && label) {
+            texto = label.textContent || "";
+        }
+
+        if (!texto && checkbox.parentElement) {
+            texto = checkbox.parentElement.textContent || "";
+        }
+
+        return {
+            index,
+            checkbox,
+            checked: checkbox.checked,
+            texto: textoLimpo(texto),
+            textoNorm: normalizarExport(texto)
+        };
+    });
+
+    console.log("Checkboxes de camadas encontrados:", itens);
+
+    return itens;
+}
+
+function obterCamadasSelecionadasParaExportar(map, janelaMapa) {
+    const camadasVetoriais = obterCamadasVetoriais(map);
+
+    /*
+       No qgis2web, a legenda normalmente aparece na ordem inversa
+       da pilha de camadas do mapa.
+    */
+    const camadasNaOrdemDaLegenda = camadasVetoriais.slice().reverse();
+
+    const checkboxes = obterCheckboxesCamadas(janelaMapa);
+    const marcados = checkboxes.filter(item => item.checked);
+
+    console.log("Camadas vetoriais do mapa:", camadasVetoriais.map(layer =>
+        textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
     ));
 
-    return resultado;
+    console.log("Itens marcados na legenda:", marcados.map(item => item.texto));
+
+    if (!marcados.length) {
+        alert("Nenhuma camada está marcada na legenda para exportar.");
+        return [];
+    }
+
+    const selecionadas = [];
+
+    /*
+       1ª tentativa: associar pelo nome da camada.
+    */
+    marcados.forEach(function(itemMarcado) {
+        const camadaEncontrada = camadasVetoriais.find(function(layer) {
+            const nomeLayer = normalizarExport(layer.get("title") || layer.get("name") || "");
+
+            return (
+                itemMarcado.textoNorm.includes(nomeLayer) ||
+                nomeLayer.includes(itemMarcado.textoNorm)
+            );
+        });
+
+        if (camadaEncontrada && !selecionadas.includes(camadaEncontrada)) {
+            selecionadas.push(camadaEncontrada);
+        }
+    });
+
+    /*
+       2ª tentativa: associar pela ordem da legenda.
+       Isso resolve quando o qgis2web coloca título com HTML/imagem.
+    */
+    if (!selecionadas.length) {
+        marcados.forEach(function(itemMarcado) {
+            const camada = camadasNaOrdemDaLegenda[itemMarcado.index];
+
+            if (camada && !selecionadas.includes(camada)) {
+                selecionadas.push(camada);
+            }
+        });
+    }
+
+    console.log("Camadas selecionadas para exportar:", selecionadas.map(layer =>
+        textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
+    ));
+
+    return selecionadas;
 }
+
+
+/* =========================================================
+   FILTRAR FEIÇÕES NA TELA
+   ========================================================= */
 
 function obterFeaturesVisiveisNoMapa(map, ol, janelaMapa) {
     const extentAtual = map.getView().calculateExtent(map.getSize());
     const resolution = map.getView().getResolution();
 
-    const nomesMarcados = obterCamadasMarcadas(janelaMapa);
-    const camadas = obterCamadasDoMapa(map, nomesMarcados);
+    const camadas = obterCamadasSelecionadasParaExportar(map, janelaMapa);
 
     const resultado = [];
 
     camadas.forEach(function(layer) {
         const source = layer.getSource ? layer.getSource() : null;
-        if (!source || !source.getFeatures) return;
+
+        if (!source || typeof source.getFeatures !== "function") return;
 
         const nomeCamada =
-            layer.get("title") ||
-            layer.get("name") ||
+            textoLimpo(layer.get("title")) ||
+            textoLimpo(layer.get("name")) ||
             "Camada sem nome";
 
         const styleFunction = layer.getStyleFunction
@@ -138,8 +270,12 @@ function obterFeaturesVisiveisNoMapa(map, ol, janelaMapa) {
 
         source.getFeatures().forEach(function(feature) {
             const geometria = feature.getGeometry();
+
             if (!geometria) return;
-            if (!ol.extent.intersects(extentAtual, geometria.getExtent())) return;
+
+            if (!ol.extent.intersects(extentAtual, geometria.getExtent())) {
+                return;
+            }
 
             const copia = feature.clone();
             const nomeFeicao = obterNomeFeicao(feature, nomeCamada);
@@ -150,7 +286,10 @@ function obterFeaturesVisiveisNoMapa(map, ol, janelaMapa) {
 
             if (styleFunction) {
                 const estilo = styleFunction(feature, resolution);
-                if (estilo) copia.setStyle(estilo);
+
+                if (estilo) {
+                    copia.setStyle(estilo);
+                }
             }
 
             resultado.push(copia);
@@ -164,17 +303,29 @@ function obterNomeFeicao(feature, nomeCamada) {
     const props = feature.getProperties();
 
     const camposPreferidos = [
-        "NOME", "Nome", "nome",
+        "NOME",
+        "Nome",
+        "nome",
         "EEE",
-        "FRENTE", "Frente", "frente",
+        "FRENTE",
+        "Frente",
+        "frente",
         "Nome_Lanca",
         "Ficha",
-        "NUM_CONTRA", "CONTRATO", "Contrato",
-        "STATUS", "STATUS_C", "Status"
+        "NUM_CONTRA",
+        "CONTRATO",
+        "Contrato",
+        "STATUS",
+        "STATUS_C",
+        "Status"
     ];
 
     for (const campo of camposPreferidos) {
-        if (props[campo] !== undefined && props[campo] !== null && String(props[campo]).trim() !== "") {
+        if (
+            props[campo] !== undefined &&
+            props[campo] !== null &&
+            String(props[campo]).trim() !== ""
+        ) {
             return nomeCamada + " - " + String(props[campo]).trim();
         }
     }
@@ -182,8 +333,14 @@ function obterNomeFeicao(feature, nomeCamada) {
     return nomeCamada;
 }
 
+
+/* =========================================================
+   EXPORTAR KMZ
+   ========================================================= */
+
 async function exportarVisualizacaoKMZ() {
     const contexto = obterMapaQgis2web();
+
     if (!contexto) return;
 
     const features = obterFeaturesVisiveisNoMapa(
@@ -200,7 +357,7 @@ async function exportarVisualizacaoKMZ() {
     }
 
     if (typeof JSZip === "undefined") {
-        alert("JSZip não foi carregado.");
+        alert("JSZip não foi carregado. Confira o script do JSZip no index.html principal.");
         return;
     }
 
@@ -233,4 +390,4 @@ async function exportarVisualizacaoKMZ() {
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}
