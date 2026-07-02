@@ -3,7 +3,7 @@
    Exporta somente camadas marcadas + feições dentro da tela
    ========================================================= */
 
-console.log("ponte-export.js carregado");
+console.log("ponte-export-v2.js carregado");
 
 document.addEventListener("click", function(event) {
     const botao = event.target.closest("#btnExportarKMZ");
@@ -53,7 +53,7 @@ function obterMapaQgis2web() {
 
 
 /* =========================================================
-   FUNÇÕES AUXILIARES
+   AUXILIARES
    ========================================================= */
 
 function normalizarExport(valor) {
@@ -129,50 +129,33 @@ function obterCamadasVetoriais(map) {
 
 
 /* =========================================================
-   LER CAMADAS MARCADAS NA LEGENDA
+   CHECKBOXES DA LEGENDA
    ========================================================= */
 
-function obterCheckboxesCamadas(janelaMapa) {
+function obterCheckboxesPrincipaisDaLegenda(janelaMapa) {
     const doc = janelaMapa.document;
 
     const checkboxes = Array.from(
         doc.querySelectorAll("input[type='checkbox']")
     );
 
+    /*
+       O qgis2web usa checkbox para camadas principais.
+       Neste seu mapa são 9 checkboxes:
+       Frentes, Pontos, Sinistro, EEE, ETEs, Obras, Projeto, Virada e COMGÁS.
+    */
     const itens = checkboxes.map(function(checkbox, index) {
-        const li = checkbox.closest("li");
-        const label = checkbox.closest("label");
-
-        let texto = "";
-
-        if (li) {
-            const clone = li.cloneNode(true);
-
-            clone.querySelectorAll("ul, img, input").forEach(function(el) {
-                el.remove();
-            });
-
-            texto = clone.textContent || "";
-        }
-
-        if (!texto && label) {
-            texto = label.textContent || "";
-        }
-
-        if (!texto && checkbox.parentElement) {
-            texto = checkbox.parentElement.textContent || "";
-        }
-
         return {
-            index,
-            checkbox,
+            index: index,
             checked: checkbox.checked,
-            texto: textoLimpo(texto),
-            textoNorm: normalizarExport(texto)
+            checkbox: checkbox
         };
     });
 
-    console.log("Checkboxes de camadas encontrados:", itens);
+    console.log("Checkboxes principais encontrados:", itens.map(item => ({
+        index: item.index,
+        checked: item.checked
+    })));
 
     return itens;
 }
@@ -181,69 +164,47 @@ function obterCamadasSelecionadasParaExportar(map, janelaMapa) {
     const camadasVetoriais = obterCamadasVetoriais(map);
 
     /*
-       No qgis2web, a legenda normalmente aparece na ordem inversa
-       da pilha de camadas do mapa.
+       No qgis2web, a legenda normalmente aparece de cima para baixo
+       na ordem inversa da pilha de camadas do mapa.
     */
     const camadasNaOrdemDaLegenda = camadasVetoriais.slice().reverse();
 
-    const checkboxes = obterCheckboxesCamadas(janelaMapa);
-    const marcados = checkboxes.filter(item => item.checked);
+    const checkboxes = obterCheckboxesPrincipaisDaLegenda(janelaMapa);
+
+    const selecionadas = [];
+
+    checkboxes.forEach(function(item) {
+        if (!item.checked) return;
+
+        const camada = camadasNaOrdemDaLegenda[item.index];
+
+        if (camada && !selecionadas.includes(camada)) {
+            selecionadas.push(camada);
+        }
+    });
 
     console.log("Camadas vetoriais do mapa:", camadasVetoriais.map(layer =>
         textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
     ));
 
-    console.log("Itens marcados na legenda:", marcados.map(item => item.texto));
-
-    if (!marcados.length) {
-        alert("Nenhuma camada está marcada na legenda para exportar.");
-        return [];
-    }
-
-    const selecionadas = [];
-
-    /*
-       1ª tentativa: associar pelo nome da camada.
-    */
-    marcados.forEach(function(itemMarcado) {
-        const camadaEncontrada = camadasVetoriais.find(function(layer) {
-            const nomeLayer = normalizarExport(layer.get("title") || layer.get("name") || "");
-
-            return (
-                itemMarcado.textoNorm.includes(nomeLayer) ||
-                nomeLayer.includes(itemMarcado.textoNorm)
-            );
-        });
-
-        if (camadaEncontrada && !selecionadas.includes(camadaEncontrada)) {
-            selecionadas.push(camadaEncontrada);
-        }
-    });
-
-    /*
-       2ª tentativa: associar pela ordem da legenda.
-       Isso resolve quando o qgis2web coloca título com HTML/imagem.
-    */
-    if (!selecionadas.length) {
-        marcados.forEach(function(itemMarcado) {
-            const camada = camadasNaOrdemDaLegenda[itemMarcado.index];
-
-            if (camada && !selecionadas.includes(camada)) {
-                selecionadas.push(camada);
-            }
-        });
-    }
+    console.log("Camadas na ordem da legenda:", camadasNaOrdemDaLegenda.map(layer =>
+        textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
+    ));
 
     console.log("Camadas selecionadas para exportar:", selecionadas.map(layer =>
         textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
     ));
+
+    if (!selecionadas.length) {
+        alert("Nenhuma camada está marcada na legenda para exportar.");
+    }
 
     return selecionadas;
 }
 
 
 /* =========================================================
-   FILTRAR FEIÇÕES NA TELA
+   FEIÇÕES DENTRO DA TELA
    ========================================================= */
 
 function obterFeaturesVisiveisNoMapa(map, ol, janelaMapa) {
