@@ -6,133 +6,110 @@ console.log("ponte-export.js carregado");
 
 document.addEventListener("click", function(event) {
     const botao = event.target.closest("#btnExportarKMZ");
-
     if (!botao) return;
 
     event.preventDefault();
-
     console.log("Clique recebido no botão Exportar KMZ");
     exportarVisualizacaoKMZ();
 });
 
 function obterMapaQgis2web() {
     const iframe = document.getElementById("iframeMapa");
-
     if (!iframe) {
-        alert("Iframe do mapa não encontrado. Confira se ele tem id='iframeMapa'.");
+        alert("Iframe do mapa não encontrado.");
         return null;
     }
 
     const janelaMapa = iframe.contentWindow;
-
-    if (!janelaMapa) {
-        alert("Não consegui acessar a janela do mapa.");
-        return null;
-    }
-
     const map = janelaMapa.ponteMap || janelaMapa.map;
     const ol = janelaMapa.ponteOl || janelaMapa.ol;
 
-    if (!map) {
-        alert("Ainda não consegui acessar o objeto do mapa. Aguarde o mapa carregar totalmente e tente novamente.");
-        return null;
-    }
-
-    if (!ol) {
-        alert("A biblioteca OpenLayers não está acessível no mapa.");
+    if (!map || !ol) {
+        alert("Mapa ainda não carregou completamente.");
         return null;
     }
 
     return { map, ol, janelaMapa };
 }
 
+function normalizarTextoExport(valor) {
+    return String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+}
+
 function obterCamadasMarcadas(janelaMapa) {
     const doc = janelaMapa.document;
-    const nomesMarcados = [];
+    const nomes = [];
 
-    doc.querySelectorAll("input[type='checkbox']:checked").forEach(function(checkbox) {
-        let texto = "";
+    doc.querySelectorAll("input[type='checkbox']").forEach(function(checkbox) {
+        if (!checkbox.checked) return;
 
-        const label = checkbox.closest("label");
+        const item = checkbox.closest("li") || checkbox.parentElement;
+        const texto = item ? item.textContent : "";
 
-        if (label) {
-            texto = label.textContent.trim();
-        }
-
-        if (!texto && checkbox.parentElement) {
-            texto = checkbox.parentElement.textContent.trim();
-        }
-
-        if (!texto) {
-            const itemLista = checkbox.closest("li");
-
-            if (itemLista) {
-                texto = itemLista.textContent.trim();
-            }
-        }
-
-        if (texto) {
-            texto = texto
-                .replace(/\s+/g, " ")
-                .trim();
-
-            nomesMarcados.push(texto);
+        if (texto.trim()) {
+            nomes.push(texto.replace(/\s+/g, " ").trim());
         }
     });
 
-    console.log("Camadas marcadas na legenda:", nomesMarcados);
-
-    return nomesMarcados;
+    console.log("Camadas marcadas na legenda:", nomes);
+    return nomes;
 }
 
-function obterCamadasDoMapa(map, nomesMarcados, resultado = []) {
-    map.getLayers().forEach(function(layer) {
-        if (layer.getLayers) {
-            layer.getLayers().forEach(function(subLayer) {
-                const grupoFake = {
-                    getLayers: function() {
-                        return {
-                            forEach: function(callback) {
-                                callback(subLayer);
-                            }
-                        };
-                    }
-                };
+function percorrerCamadas(layer, callback) {
+    if (!layer) return;
 
-                obterCamadasDoMapa(grupoFake, nomesMarcados, resultado);
+    if (layer.getLayers) {
+        layer.getLayers().forEach(function(subLayer) {
+            percorrerCamadas(subLayer, callback);
+        });
+        return;
+    }
+
+    callback(layer);
+}
+
+function obterCamadasDoMapa(map, nomesMarcados) {
+    const resultado = [];
+    const nomesNormalizados = nomesMarcados.map(normalizarTextoExport);
+
+    map.getLayers().forEach(function(layer) {
+        percorrerCamadas(layer, function(subLayer) {
+            const source = subLayer.getSource ? subLayer.getSource() : null;
+            if (!source || !source.getFeatures) return;
+
+            const nomeCamada = String(
+                subLayer.get("title") ||
+                subLayer.get("name") ||
+                ""
+            ).trim();
+
+            const nomeCamadaNorm = normalizarTextoExport(nomeCamada);
+
+            const marcada = nomesNormalizados.some(function(nomeMarcado) {
+                return (
+                    nomeMarcado === nomeCamadaNorm ||
+                    nomeMarcado.includes(nomeCamadaNorm) ||
+                    nomeCamadaNorm.includes(nomeMarcado)
+                );
             });
 
-            return;
-        }
+            const visivel = subLayer.getVisible ? subLayer.getVisible() : true;
+            const temFeatures = source.getFeatures().length > 0;
 
-        const source = layer.getSource ? layer.getSource() : null;
-
-        if (!source || !source.getFeatures) return;
-
-        const nomeCamada = String(
-            layer.get("title") ||
-            layer.get("name") ||
-            ""
-        ).trim();
-
-        const marcadaNaLegenda = nomesMarcados.some(function(nomeMarcado) {
-            return (
-                nomeMarcado === nomeCamada ||
-                nomeMarcado.includes(nomeCamada) ||
-                nomeCamada.includes(nomeMarcado)
-            );
+            if (marcada || (nomesMarcados.length === 0 && visivel && temFeatures)) {
+                resultado.push(subLayer);
+            }
         });
-
-        const temFeatures = source.getFeatures().length > 0;
-        const estaVisivel = layer.getVisible ? layer.getVisible() : true;
-
-        if (marcadaNaLegenda || (nomesMarcados.length === 0 && estaVisivel && temFeatures)) {
-            resultado.push(layer);
-        }
     });
 
-    return resultado;
-}
+    console.log("Camadas consideradas para exportação:", resultado.map(layer =>
+        layer.get("title") || layer.get("name") || "sem nome"
+    ));
 
     return resultado;
 }
@@ -144,11 +121,10 @@ function obterFeaturesVisiveisNoMapa(map, ol, janelaMapa) {
     const nomesMarcados = obterCamadasMarcadas(janelaMapa);
     const camadas = obterCamadasDoMapa(map, nomesMarcados);
 
-    let resultado = [];
+    const resultado = [];
 
     camadas.forEach(function(layer) {
         const source = layer.getSource ? layer.getSource() : null;
-
         if (!source || !source.getFeatures) return;
 
         const nomeCamada =
@@ -162,7 +138,6 @@ function obterFeaturesVisiveisNoMapa(map, ol, janelaMapa) {
 
         source.getFeatures().forEach(function(feature) {
             const geometria = feature.getGeometry();
-
             if (!geometria) return;
             if (!ol.extent.intersects(extentAtual, geometria.getExtent())) return;
 
@@ -189,28 +164,17 @@ function obterNomeFeicao(feature, nomeCamada) {
     const props = feature.getProperties();
 
     const camposPreferidos = [
-        "NOME",
-        "Nome",
-        "nome",
+        "NOME", "Nome", "nome",
         "EEE",
-        "FRENTE",
-        "Frente",
-        "frente",
+        "FRENTE", "Frente", "frente",
         "Nome_Lanca",
-        "NUM_CONTRA",
-        "CONTRATO",
-        "Contrato",
-        "STATUS",
-        "STATUS_C",
-        "Status"
+        "Ficha",
+        "NUM_CONTRA", "CONTRATO", "Contrato",
+        "STATUS", "STATUS_C", "Status"
     ];
 
     for (const campo of camposPreferidos) {
-        if (
-            props[campo] !== undefined &&
-            props[campo] !== null &&
-            String(props[campo]).trim() !== ""
-        ) {
+        if (props[campo] !== undefined && props[campo] !== null && String(props[campo]).trim() !== "") {
             return nomeCamada + " - " + String(props[campo]).trim();
         }
     }
@@ -220,7 +184,6 @@ function obterNomeFeicao(feature, nomeCamada) {
 
 async function exportarVisualizacaoKMZ() {
     const contexto = obterMapaQgis2web();
-
     if (!contexto) return;
 
     const features = obterFeaturesVisiveisNoMapa(
@@ -237,7 +200,7 @@ async function exportarVisualizacaoKMZ() {
     }
 
     if (typeof JSZip === "undefined") {
-        alert("JSZip não foi carregado. Confira o script do JSZip no index.html principal.");
+        alert("JSZip não foi carregado.");
         return;
     }
 
