@@ -63,5 +63,137 @@
         <script src="./layers/layers.js" type="text/javascript"></script> 
         <script src="./resources/Autolinker.min.js"></script>
         <script src="./resources/qgis2web.js"></script>        
+
+        <!-- =========================================================
+     INICIO BLOCO PONTE - LIMPAR CAMADAS
+     Manter este bloco ao atualizar o mapa pelo qgis2web
+     ========================================================= -->
+
+<style>
+    #ponteBtnLimparCamadas {
+        position: absolute;
+        top: 12px;
+        right: 68px;
+        z-index: 99999;
+        background: #0b2f5b;
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        padding: 9px 12px;
+        font-weight: 700;
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    #ponteBtnLimparCamadas:hover {
+        background: #123f78;
+    }
+</style>
+
+<button id="ponteBtnLimparCamadas" type="button">
+    Limpar camadas
+</button>
+
+<script>
+(function() {
+    function ponteEhCamadaBase(layer) {
+        const titulo = String(
+            layer.get("title") ||
+            layer.get("name") ||
+            ""
+        ).toLowerCase();
+
+        return (
+            titulo.includes("google") ||
+            titulo.includes("satellite") ||
+            titulo.includes("hybrid") ||
+            titulo.includes("osm") ||
+            titulo.includes("openstreetmap") ||
+            titulo.includes("bing") ||
+            titulo.includes("base")
+        );
+    }
+
+    function pontePercorrerCamadas(layer, callback) {
+        if (!layer) return;
+
+        if (layer.getLayers) {
+            layer.getLayers().forEach(function(subLayer) {
+                pontePercorrerCamadas(subLayer, callback);
+            });
+            return;
+        }
+
+        callback(layer);
+    }
+
+    function ponteObterCamadas() {
+        const camadas = [];
+
+        if (typeof layersList !== "undefined" && Array.isArray(layersList)) {
+            layersList.forEach(function(layer) {
+                pontePercorrerCamadas(layer, function(subLayer) {
+                    camadas.push(subLayer);
+                });
+            });
+
+            return camadas;
+        }
+
+        if (typeof map !== "undefined" && map.getLayers) {
+            map.getLayers().forEach(function(layer) {
+                pontePercorrerCamadas(layer, function(subLayer) {
+                    camadas.push(subLayer);
+                });
+            });
+        }
+
+        return camadas;
+    }
+
+    function ponteAtualizarCheckboxes() {
+        document.querySelectorAll("input[type='checkbox']").forEach(function(checkbox) {
+            checkbox.checked = false;
+            checkbox.removeAttribute("checked");
+        });
+    }
+
+    function ponteLimparCamadas() {
+        const camadas = ponteObterCamadas();
+        let total = 0;
+
+        camadas.forEach(function(layer) {
+            if (ponteEhCamadaBase(layer)) return;
+
+            if (typeof layer.setVisible === "function") {
+                layer.setVisible(false);
+                total++;
+            }
+
+            if (typeof layer.changed === "function") {
+                layer.changed();
+            }
+        });
+
+        ponteAtualizarCheckboxes();
+
+        if (typeof map !== "undefined") {
+            if (typeof map.render === "function") map.render();
+            if (typeof map.renderSync === "function") map.renderSync();
+        }
+
+        console.log("PONTE - camadas desligadas:", total);
+    }
+
+    document.getElementById("ponteBtnLimparCamadas").addEventListener("click", ponteLimparCamadas);
+})();
+</script>
+
+<!-- =========================================================
+     FIM BLOCO PONTE - LIMPAR CAMADAS
+     ========================================================= -->
+    
     </body>
 </html>
