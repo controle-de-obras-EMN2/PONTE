@@ -79,14 +79,46 @@ function ativarBotaoExportarKMZ() {
     });
 }
 
-function obterCamadasVisiveis(layerGroup, resultado = []) {
+function obterNomesCamadasMarcadas(janelaMapa) {
+    const doc = janelaMapa.document;
+    const nomes = [];
+
+    doc.querySelectorAll("input[type='checkbox']:checked").forEach(function(checkbox) {
+        const label = checkbox.closest("label");
+        const texto = label ? label.textContent.trim() : "";
+
+        if (texto) {
+            nomes.push(texto);
+        }
+    });
+
+    console.log("Camadas marcadas na legenda:", nomes);
+
+    return nomes;
+}
+
+function obterCamadasVisiveis(layerGroup, resultado = [], nomesMarcados = []) {
     layerGroup.getLayers().forEach(function(layer) {
         if (layer.getLayers) {
-            obterCamadasVisiveis(layer, resultado);
+            obterCamadasVisiveis(layer, resultado, nomesMarcados);
             return;
         }
 
-        if (layer.getVisible && layer.getVisible()) {
+        const nomeCamada = String(
+            layer.get("title") ||
+            layer.get("name") ||
+            ""
+        ).trim();
+
+        const estaMarcada = nomesMarcados.some(function(nomeMarcado) {
+            return (
+                nomeMarcado === nomeCamada ||
+                nomeMarcado.includes(nomeCamada) ||
+                nomeCamada.includes(nomeMarcado)
+            );
+        });
+
+        if (estaMarcada) {
             resultado.push(layer);
         }
     });
@@ -97,7 +129,19 @@ function obterCamadasVisiveis(layerGroup, resultado = []) {
 function obterFeaturesVisiveisNoMapa(map, ol) {
     const extentAtual = map.getView().calculateExtent(map.getSize());
     const resolution = map.getView().getResolution();
-    const camadas = obterCamadasVisiveis(map);
+    const contexto = obterMapaQgis2web();
+const nomesMarcados = contexto
+    ? obterNomesCamadasMarcadas(contexto.janelaMapa)
+    : [];
+   const contexto = obterMapaQgis2web();
+
+   const nomesMarcados = contexto
+    ? obterNomesCamadasMarcadas(contexto.janelaMapa)
+    : [];
+
+const camadas = obterCamadasVisiveis(map, [], nomesMarcados);
+
+const camadas = obterCamadasVisiveis(map, [], nomesMarcados);
 
     let resultado = [];
 
