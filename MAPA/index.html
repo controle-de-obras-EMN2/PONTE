@@ -71,8 +71,8 @@
 <style>
     #ponteBtnLimparCamadas {
         position: absolute;
-        top: 12px;
-        right: 68px;
+        top: 8px;
+        right: 70px;
         z-index: 99999;
         background: #0b2f5b;
         color: #fff;
@@ -98,24 +98,9 @@
 <script>
 console.log("PONTE - bloco limpar camadas carregado");
 
-window.ponteLimparCamadas = function() {
-    console.log("PONTE - clique recebido no botão Limpar camadas");
-
-    if (typeof map === "undefined") {
-        alert("O objeto map não está disponível neste index.");
-        console.error("PONTE - map não encontrado");
-        return;
-    }
-
-    let total = 0;
-
+(function() {
     function ehBase(layer) {
-        const titulo = String(
-            layer.get("title") ||
-            layer.get("name") ||
-            ""
-        ).toLowerCase();
-
+        const titulo = String(layer.get("title") || layer.get("name") || "").toLowerCase();
         const source = layer.getSource ? layer.getSource() : null;
         const sourceNome = source && source.constructor
             ? String(source.constructor.name).toLowerCase()
@@ -148,46 +133,128 @@ window.ponteLimparCamadas = function() {
         callback(layer);
     }
 
-    map.getLayers().forEach(function(layer) {
-        percorrer(layer, function(subLayer) {
-            if (ehBase(subLayer)) return;
+    function obterCamadas() {
+        const camadas = [];
 
-            const source = subLayer.getSource ? subLayer.getSource() : null;
+        if (typeof map === "undefined") return camadas;
 
-            if (
-                source &&
-                typeof source.getFeatures === "function" &&
-                typeof source.clear === "function"
-            ) {
-                if (!subLayer.get("ponte_backup_features")) {
-                    subLayer.set("ponte_backup_features", source.getFeatures().slice());
+        map.getLayers().forEach(function(layer) {
+            percorrer(layer, function(subLayer) {
+                if (!ehBase(subLayer)) {
+                    camadas.push(subLayer);
                 }
+            });
+        });
 
+        return camadas;
+    }
+
+    function guardarBackup(layer) {
+        const source = layer.getSource ? layer.getSource() : null;
+
+        if (!source || typeof source.getFeatures !== "function") return;
+
+        if (!layer.get("ponte_backup_features")) {
+            layer.set("ponte_backup_features", source.getFeatures().slice());
+        }
+    }
+
+    function restaurarLayer(layer) {
+        const source = layer.getSource ? layer.getSource() : null;
+        const backup = layer.get("ponte_backup_features");
+
+        if (!source || !backup || !backup.length) return;
+
+        if (typeof source.getFeatures === "function" && source.getFeatures().length === 0) {
+            source.addFeatures(backup);
+        }
+
+        if (typeof layer.setVisible === "function") {
+            layer.setVisible(true);
+        }
+
+        if (typeof layer.changed === "function") {
+            layer.changed();
+        }
+
+        if (typeof map !== "undefined" && map.render) {
+            map.render();
+        }
+    }
+
+    function ativarRestauracao() {
+        obterCamadas().forEach(function(layer) {
+            if (layer.get("ponte_listener_ativo")) return;
+
+            layer.set("ponte_listener_ativo", true);
+
+            if (typeof layer.on === "function") {
+                layer.on("change:visible", function() {
+                    if (layer.getVisible && layer.getVisible()) {
+                        restaurarLayer(layer);
+                    }
+                });
+            }
+        });
+
+        document.addEventListener("change", function(event) {
+            if (!event.target || !event.target.matches("input[type='checkbox']")) return;
+
+            setTimeout(function() {
+                obterCamadas().forEach(function(layer) {
+                    if (layer.getVisible && layer.getVisible()) {
+                        restaurarLayer(layer);
+                    }
+                });
+            }, 200);
+        });
+    }
+
+    window.ponteLimparCamadas = function() {
+        console.log("PONTE - clique recebido no botão Limpar camadas");
+
+        if (typeof map === "undefined") {
+            alert("O objeto map não está disponível neste index.");
+            return;
+        }
+
+        let total = 0;
+
+        obterCamadas().forEach(function(layer) {
+            const source = layer.getSource ? layer.getSource() : null;
+
+            guardarBackup(layer);
+
+            if (source && typeof source.clear === "function") {
                 source.clear();
             }
 
-            if (typeof subLayer.setVisible === "function") {
-                subLayer.setVisible(false);
+            if (typeof layer.setVisible === "function") {
+                layer.setVisible(false);
             }
 
-            if (typeof subLayer.changed === "function") {
-                subLayer.changed();
+            if (typeof layer.changed === "function") {
+                layer.changed();
             }
 
             total++;
         });
-    });
 
-    document.querySelectorAll("input[type='checkbox']").forEach(function(checkbox) {
-        checkbox.checked = false;
-        checkbox.removeAttribute("checked");
-    });
+        document.querySelectorAll("input[type='checkbox']").forEach(function(checkbox) {
+            checkbox.checked = false;
+            checkbox.removeAttribute("checked");
+        });
 
-    if (typeof map.render === "function") map.render();
-    if (typeof map.renderSync === "function") map.renderSync();
+        ativarRestauracao();
 
-    console.log("PONTE - camadas limpas:", total);
-};
+        if (map.render) map.render();
+        if (map.renderSync) map.renderSync();
+
+        console.log("PONTE - camadas limpas:", total);
+    };
+
+    ativarRestauracao();
+})();
 </script>
 
 <!-- =========================================================
