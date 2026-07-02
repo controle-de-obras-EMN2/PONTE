@@ -12,7 +12,6 @@ console.log("ponte-export.js carregado");
 
 function iniciarFerramentasPonte() {
     ativarBotaoExportarKMZ();
-    ativarBotaoLimparCamadas();
 }
 
 if (document.readyState === "loading") {
