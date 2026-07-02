@@ -985,7 +985,7 @@ break;
 
 function decodificarTextoCSV(buffer) {
     const textoUTF8 = new TextDecoder("utf-8").decode(buffer);
-    const temErroDeAcento = textoUTF8.includes("�");
+    const temErroDeAcento = textoUTF8.includes(" ");
 
     if (temErroDeAcento) {
         return new TextDecoder("windows-1252").decode(buffer);
