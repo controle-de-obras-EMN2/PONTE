@@ -1365,3 +1365,23 @@ body.modal-open {
     font-weight: 700;
     cursor: pointer;
 }
+
+/* LINK VER NO MAPA NOS POP-UPS */
+
+.link-ver-mapa {
+    color: #0b2f5b;
+    font-weight: 800;
+    text-decoration: underline;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.link-ver-mapa:hover {
+    color: #1d4f91;
+}
+
+.link-ver-mapa-indisponivel {
+    color: #999;
+    font-size: 12px;
+    white-space: nowrap;
+}
