@@ -1,9 +1,15 @@
 /* =========================================================
    PONTE EXPORT / KMZ
-   Exporta somente camadas marcadas + feições dentro da tela
+   Exportação com seleção própria de camadas
    ========================================================= */
 
 console.log("ponte-export-v2.js carregado");
+
+let ponteCamadasParaExportar = [];
+
+/* =========================================================
+   CLIQUE NO BOTÃO EXPORTAR
+   ========================================================= */
 
 document.addEventListener("click", function(event) {
     const botao = event.target.closest("#btnExportarKMZ");
@@ -13,7 +19,7 @@ document.addEventListener("click", function(event) {
     event.preventDefault();
 
     console.log("Clique recebido no botão Exportar KMZ");
-    exportarVisualizacaoKMZ();
+    abrirJanelaExportacaoKMZ();
 });
 
 
@@ -56,21 +62,18 @@ function obterMapaQgis2web() {
    AUXILIARES
    ========================================================= */
 
-function normalizarExport(valor) {
-    return String(valor || "")
-        .replace(/<[^>]*>/g, " ")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .toUpperCase();
-}
-
 function textoLimpo(valor) {
     return String(valor || "")
         .replace(/<[^>]*>/g, " ")
         .replace(/\s+/g, " ")
         .trim();
+}
+
+function normalizarExport(valor) {
+    return textoLimpo(valor)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase();
 }
 
 function ehCamadaBase(layer) {
@@ -120,7 +123,17 @@ function obterCamadasVetoriais(map) {
 
             if (!source || typeof source.getFeatures !== "function") return;
 
-            camadas.push(subLayer);
+            const nome = textoLimpo(
+                subLayer.get("title") ||
+                subLayer.get("name") ||
+                "Camada sem nome"
+            );
+
+            camadas.push({
+                nome: nome,
+                layer: subLayer,
+                quantidade: source.getFeatures().length
+            });
         });
     });
 
@@ -129,72 +142,272 @@ function obterCamadasVetoriais(map) {
 
 
 /* =========================================================
-   CHECKBOXES DA LEGENDA
+   JANELA PRÓPRIA DE EXPORTAÇÃO
    ========================================================= */
 
-function obterCheckboxesPrincipaisDaLegenda(janelaMapa) {
-    const doc = janelaMapa.document;
+function criarModalExportacaoSeNaoExistir() {
+    if (document.getElementById("ponteModalExportKMZ")) return;
 
-    const checkboxes = Array.from(
-        doc.querySelectorAll("input[type='checkbox']")
-    );
+    const modal = document.createElement("div");
 
-    /*
-       O qgis2web usa checkbox para camadas principais.
-       Neste seu mapa são 9 checkboxes:
-       Frentes, Pontos, Sinistro, EEE, ETEs, Obras, Projeto, Virada e COMGÁS.
-    */
-    const itens = checkboxes.map(function(checkbox, index) {
-        return {
-            index: index,
-            checked: checkbox.checked,
-            checkbox: checkbox
-        };
-    });
+    modal.id = "ponteModalExportKMZ";
 
-    console.log("Checkboxes principais encontrados:", itens.map(item => ({
-        index: item.index,
-        checked: item.checked
-    })));
+    modal.innerHTML = `
+        <div class="ponte-export-overlay"></div>
 
-    return itens;
-}
+        <div class="ponte-export-box">
+            <div class="ponte-export-header">
+                <h2>Exportar KMZ</h2>
+                <button type="button" id="ponteFecharExportKMZ">×</button>
+            </div>
 
-function obterCamadasSelecionadasParaExportar(map, janelaMapa) {
-    const camadasVetoriais = obterCamadasVetoriais(map);
+            <p class="ponte-export-info">
+                Selecione as camadas que deseja exportar. O arquivo será gerado somente com as feições que aparecem na tela atual do mapa.
+            </p>
 
-    const selecionadas = camadasVetoriais.filter(function(layer) {
-        const source = layer.getSource ? layer.getSource() : null;
+            <div class="ponte-export-actions">
+                <button type="button" id="ponteSelecionarTodasCamadas">Selecionar todas</button>
+                <button type="button" id="ponteLimparSelecaoCamadas">Limpar seleção</button>
+            </div>
 
-        if (!source || typeof source.getFeatures !== "function") {
-            return false;
+            <div id="ponteListaCamadasExportKMZ" class="ponte-export-lista"></div>
+
+            <div class="ponte-export-footer">
+                <button type="button" id="ponteCancelarExportKMZ">Cancelar</button>
+                <button type="button" id="ponteConfirmarExportKMZ">Exportar KMZ</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const estilo = document.createElement("style");
+
+    estilo.innerHTML = `
+        #ponteModalExportKMZ {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999999;
+            font-family: Segoe UI, Arial, sans-serif;
         }
 
-        const visivel = layer.getVisible ? layer.getVisible() : true;
-        const opacidade = layer.getOpacity ? layer.getOpacity() : 1;
-        const quantidadeFeatures = source.getFeatures().length;
+        #ponteModalExportKMZ.ativo {
+            display: block;
+        }
 
-        return visivel && opacidade > 0 && quantidadeFeatures > 0;
+        .ponte-export-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+        }
+
+        .ponte-export-box {
+            position: relative;
+            background: #fff;
+            width: min(720px, calc(100vw - 32px));
+            max-height: 82vh;
+            overflow: auto;
+            margin: 70px auto;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.3);
+        }
+
+        .ponte-export-header {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .ponte-export-header h2 {
+            margin: 0;
+            color: #0b2f5b;
+            font-size: 22px;
+        }
+
+        #ponteFecharExportKMZ {
+            width: 34px;
+            height: 34px;
+            border: none;
+            border-radius: 50%;
+            background: #0b2f5b;
+            color: #fff;
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        .ponte-export-info {
+            margin: 18px 22px 10px;
+            color: #333;
+        }
+
+        .ponte-export-actions {
+            display: flex;
+            gap: 10px;
+            margin: 0 22px 14px;
+        }
+
+        .ponte-export-actions button,
+        .ponte-export-footer button {
+            border: none;
+            border-radius: 8px;
+            padding: 9px 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .ponte-export-actions button {
+            background: #eef2f7;
+            color: #0b2f5b;
+        }
+
+        .ponte-export-lista {
+            margin: 0 22px 18px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .ponte-export-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 13px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .ponte-export-item:last-child {
+            border-bottom: none;
+        }
+
+        .ponte-export-item:hover {
+            background: #f4f6f8;
+        }
+
+        .ponte-export-item input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .ponte-export-nome {
+            flex: 1;
+            color: #0b2f5b;
+            font-weight: 700;
+        }
+
+        .ponte-export-qtd {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .ponte-export-footer {
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 22px;
+            border-top: 1px solid #ddd;
+        }
+
+        #ponteCancelarExportKMZ {
+            background: #e5e7eb;
+            color: #111;
+        }
+
+        #ponteConfirmarExportKMZ {
+            background: #0b2f5b;
+            color: #fff;
+        }
+    `;
+
+    document.head.appendChild(estilo);
+
+    document.getElementById("ponteFecharExportKMZ").addEventListener("click", fecharJanelaExportacaoKMZ);
+    document.getElementById("ponteCancelarExportKMZ").addEventListener("click", fecharJanelaExportacaoKMZ);
+
+    document.querySelector("#ponteModalExportKMZ .ponte-export-overlay")
+        .addEventListener("click", fecharJanelaExportacaoKMZ);
+
+    document.getElementById("ponteSelecionarTodasCamadas").addEventListener("click", function() {
+        document.querySelectorAll(".ponte-export-check").forEach(check => {
+            check.checked = true;
+        });
     });
 
-    console.log("Camadas vetoriais do mapa:", camadasVetoriais.map(layer => ({
-        nome: textoLimpo(layer.get("title") || layer.get("name") || "sem nome"),
-        visivel: layer.getVisible ? layer.getVisible() : null,
-        opacidade: layer.getOpacity ? layer.getOpacity() : null,
-        features: layer.getSource && layer.getSource().getFeatures
-            ? layer.getSource().getFeatures().length
-            : null
-    })));
+    document.getElementById("ponteLimparSelecaoCamadas").addEventListener("click", function() {
+        document.querySelectorAll(".ponte-export-check").forEach(check => {
+            check.checked = false;
+        });
+    });
 
-    console.log("Camadas realmente visíveis para exportar:", selecionadas.map(layer =>
-        textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
-    ));
+    document.getElementById("ponteConfirmarExportKMZ").addEventListener("click", function() {
+        confirmarExportacaoKMZSelecionada();
+    });
+}
 
-    if (!selecionadas.length) {
-        alert("Nenhuma camada visível foi encontrada para exportar.");
+function abrirJanelaExportacaoKMZ() {
+    const contexto = obterMapaQgis2web();
+
+    if (!contexto) return;
+
+    criarModalExportacaoSeNaoExistir();
+
+    ponteCamadasParaExportar = obterCamadasVetoriais(contexto.map);
+
+    const lista = document.getElementById("ponteListaCamadasExportKMZ");
+
+    lista.innerHTML = "";
+
+    ponteCamadasParaExportar.forEach(function(item, index) {
+        const linha = document.createElement("label");
+
+        linha.className = "ponte-export-item";
+
+        linha.innerHTML = `
+            <input class="ponte-export-check" type="checkbox" value="${index}">
+            <span class="ponte-export-nome">${item.nome}</span>
+            <span class="ponte-export-qtd">${item.quantidade.toLocaleString("pt-BR")} feições</span>
+        `;
+
+        lista.appendChild(linha);
+    });
+
+    document.getElementById("ponteModalExportKMZ").classList.add("ativo");
+}
+
+function fecharJanelaExportacaoKMZ() {
+    const modal = document.getElementById("ponteModalExportKMZ");
+
+    if (modal) {
+        modal.classList.remove("ativo");
+    }
+}
+
+function confirmarExportacaoKMZSelecionada() {
+    const checks = Array.from(document.querySelectorAll(".ponte-export-check:checked"));
+
+    const camadasSelecionadas = checks
+        .map(check => ponteCamadasParaExportar[Number(check.value)])
+        .filter(Boolean)
+        .map(item => item.layer);
+
+    if (!camadasSelecionadas.length) {
+        alert("Selecione pelo menos uma camada para exportar.");
+        return;
     }
 
-    return selecionadas;
+    fecharJanelaExportacaoKMZ();
+
+    exportarVisualizacaoKMZ(camadasSelecionadas);
 }
 
 
@@ -202,15 +415,13 @@ function obterCamadasSelecionadasParaExportar(map, janelaMapa) {
    FEIÇÕES DENTRO DA TELA
    ========================================================= */
 
-function obterFeaturesVisiveisNoMapa(map, ol, janelaMapa) {
+function obterFeaturesVisiveisNoMapa(map, ol, camadasSelecionadas) {
     const extentAtual = map.getView().calculateExtent(map.getSize());
     const resolution = map.getView().getResolution();
 
-    const camadas = obterCamadasSelecionadasParaExportar(map, janelaMapa);
-
     const resultado = [];
 
-    camadas.forEach(function(layer) {
+    camadasSelecionadas.forEach(function(layer) {
         const source = layer.getSource ? layer.getSource() : null;
 
         if (!source || typeof source.getFeatures !== "function") return;
@@ -294,7 +505,7 @@ function obterNomeFeicao(feature, nomeCamada) {
    EXPORTAR KMZ
    ========================================================= */
 
-async function exportarVisualizacaoKMZ() {
+async function exportarVisualizacaoKMZ(camadasSelecionadas) {
     const contexto = obterMapaQgis2web();
 
     if (!contexto) return;
@@ -302,13 +513,17 @@ async function exportarVisualizacaoKMZ() {
     const features = obterFeaturesVisiveisNoMapa(
         contexto.map,
         contexto.ol,
-        contexto.janelaMapa
+        camadasSelecionadas
     );
+
+    console.log("Camadas escolhidas para exportar:", camadasSelecionadas.map(layer =>
+        textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
+    ));
 
     console.log("Feições encontradas para exportar:", features.length);
 
     if (!features.length) {
-        alert("Nenhuma feição visível das camadas marcadas para exportar.");
+        alert("Nenhuma feição visível das camadas escolhidas foi encontrada na tela atual.");
         return;
     }
 
