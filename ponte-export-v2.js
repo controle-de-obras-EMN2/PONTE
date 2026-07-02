@@ -161,9 +161,14 @@ function criarModalExportacaoSeNaoExistir() {
                 <button type="button" id="ponteFecharExportKMZ">×</button>
             </div>
 
-            <p class="ponte-export-info">
-                Selecione as camadas que deseja exportar. O arquivo será gerado somente com as feições que aparecem na tela atual do mapa.
-            </p>
+           <p class="ponte-export-info">
+    Selecione as camadas que deseja exportar.
+</p>
+
+<label class="ponte-export-opcao-tela">
+    <input type="checkbox" id="ponteExportarSomenteTela" checked>
+    Exportar somente as feições visíveis na tela atual
+</label>
 
             <div class="ponte-export-actions">
                 <button type="button" id="ponteSelecionarTodasCamadas">Selecionar todas</button>
@@ -327,6 +332,21 @@ function criarModalExportacaoSeNaoExistir() {
             background: #0b2f5b;
             color: #fff;
         }
+
+        .ponte-export-opcao-tela {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 22px 16px;
+    color: #0b2f5b;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ponte-export-opcao-tela input {
+    width: 18px;
+    height: 18px;
+}
     `;
 
     document.head.appendChild(estilo);
@@ -405,9 +425,11 @@ function confirmarExportacaoKMZSelecionada() {
         return;
     }
 
+    const somenteTela = document.getElementById("ponteExportarSomenteTela")?.checked ?? true;
+
     fecharJanelaExportacaoKMZ();
 
-    exportarVisualizacaoKMZ(camadasSelecionadas);
+    exportarVisualizacaoKMZ(camadasSelecionadas, somenteTela);
 }
 
 
@@ -415,7 +437,7 @@ function confirmarExportacaoKMZSelecionada() {
    FEIÇÕES DENTRO DA TELA
    ========================================================= */
 
-function obterFeaturesVisiveisNoMapa(map, ol, camadasSelecionadas) {
+function obterFeaturesVisiveisNoMapa(map, ol, camadasSelecionadas, somenteTela) {
     const extentAtual = map.getView().calculateExtent(map.getSize());
     const resolution = map.getView().getResolution();
 
@@ -440,7 +462,7 @@ function obterFeaturesVisiveisNoMapa(map, ol, camadasSelecionadas) {
 
             if (!geometria) return;
 
-            if (!ol.extent.intersects(extentAtual, geometria.getExtent())) {
+            if (somenteTela && !ol.extent.intersects(extentAtual, geometria.getExtent())) {
                 return;
             }
 
@@ -505,7 +527,7 @@ function obterNomeFeicao(feature, nomeCamada) {
    EXPORTAR KMZ
    ========================================================= */
 
-async function exportarVisualizacaoKMZ(camadasSelecionadas) {
+async function exportarVisualizacaoKMZ(camadasSelecionadas, somenteTela = true) {
     const contexto = obterMapaQgis2web();
 
     if (!contexto) return;
@@ -513,17 +535,19 @@ async function exportarVisualizacaoKMZ(camadasSelecionadas) {
     const features = obterFeaturesVisiveisNoMapa(
         contexto.map,
         contexto.ol,
-        camadasSelecionadas
+        camadasSelecionadas,
+        somenteTela
     );
 
     console.log("Camadas escolhidas para exportar:", camadasSelecionadas.map(layer =>
         textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
     ));
 
+    console.log("Exportar somente tela atual:", somenteTela);
     console.log("Feições encontradas para exportar:", features.length);
 
     if (!features.length) {
-        alert("Nenhuma feição visível das camadas escolhidas foi encontrada na tela atual.");
+        alert("Nenhuma feição das camadas escolhidas foi encontrada para exportar.");
         return;
     }
 
@@ -554,7 +578,9 @@ async function exportarVisualizacaoKMZ(camadasSelecionadas) {
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "visualizacao_ponte.kmz";
+    link.download = somenteTela
+        ? "visualizacao_ponte_tela_atual.kmz"
+        : "visualizacao_ponte_camadas_completas.kmz";
 
     document.body.appendChild(link);
     link.click();
