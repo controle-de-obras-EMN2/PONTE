@@ -51,10 +51,31 @@ function obterCamadasMarcadas(janelaMapa) {
     const nomesMarcados = [];
 
     doc.querySelectorAll("input[type='checkbox']:checked").forEach(function(checkbox) {
+        let texto = "";
+
         const label = checkbox.closest("label");
-        const texto = label ? label.textContent.trim() : "";
+
+        if (label) {
+            texto = label.textContent.trim();
+        }
+
+        if (!texto && checkbox.parentElement) {
+            texto = checkbox.parentElement.textContent.trim();
+        }
+
+        if (!texto) {
+            const itemLista = checkbox.closest("li");
+
+            if (itemLista) {
+                texto = itemLista.textContent.trim();
+            }
+        }
 
         if (texto) {
+            texto = texto
+                .replace(/\s+/g, " ")
+                .trim();
+
             nomesMarcados.push(texto);
         }
     });
@@ -68,10 +89,25 @@ function obterCamadasDoMapa(map, nomesMarcados, resultado = []) {
     map.getLayers().forEach(function(layer) {
         if (layer.getLayers) {
             layer.getLayers().forEach(function(subLayer) {
-                obterCamadasDoMapa({ getLayers: () => ({ forEach: cb => cb(subLayer) }) }, nomesMarcados, resultado);
+                const grupoFake = {
+                    getLayers: function() {
+                        return {
+                            forEach: function(callback) {
+                                callback(subLayer);
+                            }
+                        };
+                    }
+                };
+
+                obterCamadasDoMapa(grupoFake, nomesMarcados, resultado);
             });
+
             return;
         }
+
+        const source = layer.getSource ? layer.getSource() : null;
+
+        if (!source || !source.getFeatures) return;
 
         const nomeCamada = String(
             layer.get("title") ||
@@ -79,7 +115,7 @@ function obterCamadasDoMapa(map, nomesMarcados, resultado = []) {
             ""
         ).trim();
 
-        const marcada = nomesMarcados.some(function(nomeMarcado) {
+        const marcadaNaLegenda = nomesMarcados.some(function(nomeMarcado) {
             return (
                 nomeMarcado === nomeCamada ||
                 nomeMarcado.includes(nomeCamada) ||
@@ -87,10 +123,16 @@ function obterCamadasDoMapa(map, nomesMarcados, resultado = []) {
             );
         });
 
-        if (marcada) {
+        const temFeatures = source.getFeatures().length > 0;
+        const estaVisivel = layer.getVisible ? layer.getVisible() : true;
+
+        if (marcadaNaLegenda || (nomesMarcados.length === 0 && estaVisivel && temFeatures)) {
             resultado.push(layer);
         }
     });
+
+    return resultado;
+}
 
     return resultado;
 }
