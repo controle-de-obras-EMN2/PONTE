@@ -2,6 +2,8 @@
    DASHBOARD PONTE
    ========================================================= */
 
+console.log("dashboard.js PONTE carregado - versão CSV + Ver no mapa 2026-07-02");
+
 let contratoSelecionado = "TODOS";
 
 let graficoStatusObras = null;
@@ -693,7 +695,16 @@ window.fecharModal = function() {
     document.body.classList.remove("modal-open");
 };
 
-function gerarTabelaModal(features, campos) {
+function escaparHtml(valor) {
+    return String(valor ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function gerarTabelaModal(features, campos, opcoes = {}) {
     if (!features || features.length === 0) {
         return "<p>Nenhum registro encontrado para o filtro atual.</p>";
     }
@@ -701,8 +712,12 @@ function gerarTabelaModal(features, campos) {
     let html = "<table class='tabela-modal'><thead><tr>";
 
     campos.forEach(campo => {
-        html += "<th>" + campo.titulo + "</th>";
+        html += "<th>" + escaparHtml(campo.titulo) + "</th>";
     });
+
+    if (opcoes.verNoMapa) {
+        html += "<th>Mapa</th>";
+    }
 
     html += "</tr></thead><tbody>";
 
@@ -711,8 +726,28 @@ function gerarTabelaModal(features, campos) {
         html += "<tr>";
 
         campos.forEach(campo => {
-            html += "<td>" + (p[campo.campo] ?? "") + "</td>";
+            html += "<td>" + escaparHtml(p[campo.campo] ?? "") + "</td>";
         });
+
+        if (opcoes.verNoMapa) {
+            const valorBusca = p[opcoes.campoBusca] ?? "";
+
+            if (String(valorBusca).trim() !== "") {
+                html += `
+                    <td>
+                        <a
+                            class="link-ver-mapa"
+                            href="${criarUrlVerNoMapa(opcoes.layer, opcoes.campoBusca, valorBusca)}"
+                            target="_blank"
+                            rel="noopener noreferrer">
+                            Ver no mapa
+                        </a>
+                    </td>
+                `;
+            } else {
+                html += "<td><span class='link-ver-mapa-indisponivel'>Sem referência</span></td>";
+            }
+        }
 
         html += "</tr>";
     });
@@ -720,6 +755,16 @@ function gerarTabelaModal(features, campos) {
     html += "</tbody></table>";
 
     return html;
+}
+
+function criarUrlVerNoMapa(layer, campo, valor) {
+    const params = new URLSearchParams();
+
+    params.set("ponteLayer", String(layer || ""));
+    params.set("ponteCampo", String(campo || ""));
+    params.set("ponteValor", String(valor || ""));
+
+    return "MAPA/index.html?" + params.toString();
 }
 
 function filtrarContratoModal(features, camposContrato) {
@@ -796,7 +841,11 @@ window.abrirDetalhesObras = function() {
             { titulo: "Município", campo: "MUNICIPIO" },
             { titulo: "Bairro", campo: "BAIRRO" },
             { titulo: "Logradouro", campo: "LOGRADOURO" }
-        ])
+        ], {
+            verNoMapa: true,
+            layer: "OBRAS_EMN2",
+            campoBusca: "FRENTE"
+        })
     );
 };
 
@@ -824,7 +873,11 @@ window.abrirDetalhesFrentes = function() {
             { titulo: "Equipe", campo: "EQUIPE" },
             { titulo: "Data", campo: "DATA" },
             { titulo: "Endereço", campo: "ENDEREÇO" }
-        ])
+        ], {
+            verNoMapa: true,
+            layer: "EMN2Frentes_em_Andamento",
+            campoBusca: "FRENTE"
+        })
     );
 };
 
@@ -847,7 +900,11 @@ window.abrirDetalhesSinistros = function() {
             { titulo: "Frente", campo: "Frente" },
             { titulo: "Sinistro", campo: "Sinistro" },
             { titulo: "Critério", campo: "Critério" }
-        ])
+        ], {
+            verNoMapa: true,
+            layer: "Sinistro",
+            campoBusca: "Ficha"
+        })
     );
 };
 
@@ -876,7 +933,11 @@ window.abrirDetalhesEEE = function() {
             { titulo: "Município", campo: "MUNICIPIO" },
             { titulo: "Vazão Q", campo: "Q" },
             { titulo: "Operação", campo: "OPERAÇÃO" }
-        ])}
+        ], {
+            verNoMapa: true,
+            layer: "EEE",
+            campoBusca: "EEE"
+        })}
     `;
 
     abrirModal(
@@ -911,7 +972,11 @@ window.abrirDetalhesLancamentos = function() {
             { titulo: "Município", campo: "Municipio" },
             { titulo: "Bacia", campo: "Bacia" },
             { titulo: "Status", campo: "Status" }
-        ])
+        ], {
+            verNoMapa: true,
+            layer: "PONTOSDELANAMENTO",
+            campoBusca: "Nome_Lanca"
+        })
     );
 };
 
@@ -936,6 +1001,7 @@ function ativarCliquesDosCards() {
     });
 }
 
+
 /* =========================================================
    CSV ÚNICO DO DASHBOARD
    ========================================================= */
@@ -947,7 +1013,10 @@ async function carregarBaseDashboardCSV() {
         const caminhos = [
             "dados/base_dashboard_teste.csv",
             "./dados/base_dashboard_teste.csv",
-            "/PONTE/dados/base_dashboard_teste.csv"
+            "/PONTE/dados/base_dashboard_teste.csv",
+            "dados/base_dashboard.csv",
+            "./dados/base_dashboard.csv",
+            "/PONTE/dados/base_dashboard.csv"
         ];
 
         let textoCSV = null;
@@ -957,11 +1026,11 @@ async function carregarBaseDashboardCSV() {
                 const resposta = await fetch(caminho + "?v=" + Date.now());
 
                 if (resposta.ok) {
-                   const buffer = await resposta.arrayBuffer();
-textoCSV = decodificarTextoCSV(buffer);
+                    const buffer = await resposta.arrayBuffer();
+                    textoCSV = decodificarTextoCSV(buffer);
 
-console.log("Base CSV carregada em:", caminho);
-break;
+                    console.log("Base CSV carregada em:", caminho);
+                    break;
                 }
             } catch (erro) {
                 console.warn("Falha ao tentar carregar CSV em:", caminho);
@@ -985,7 +1054,7 @@ break;
 
 function decodificarTextoCSV(buffer) {
     const textoUTF8 = new TextDecoder("utf-8").decode(buffer);
-    const temErroDeAcento = textoUTF8.includes(" ");
+    const temErroDeAcento = textoUTF8.includes("�");
 
     if (temErroDeAcento) {
         return new TextDecoder("windows-1252").decode(buffer);
@@ -1243,6 +1312,7 @@ function gerarBarrasAvancoEEE(avancos) {
 
     return html;
 }
+
 
 /* =========================================================
    INICIALIZAÇÃO
