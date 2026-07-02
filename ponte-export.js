@@ -111,6 +111,7 @@ function obterCamadasDoMapa(map, nomesMarcados) {
         layer.get("title") || layer.get("name") || "sem nome"
     ));
 
+    return resultado;
 }
 
 function obterFeaturesVisiveisNoMapa(map, ol, janelaMapa) {
