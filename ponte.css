@@ -1365,20 +1365,3 @@ body.modal-open {
     font-weight: 700;
     cursor: pointer;
 }
-.botao-limpar-camadas {
-    position: fixed;
-    top: 110px;
-    right: 70px;
-    z-index: 10000;
-    background: #5f6b7a;
-    color: #fff;
-    border: 0;
-    border-radius: 6px;
-    padding: 9px 12px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.botao-limpar-camadas:hover {
-    background: #485465;
-}
