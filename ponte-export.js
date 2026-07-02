@@ -40,8 +40,8 @@ function obterMapaQgis2web() {
         return null;
     }
 
-    const map = janelaMapa.map || janelaMapa.ponteMap;
-    const ol = janelaMapa.ol || janelaMapa.ponteOl;
+    const map = janelaMapa.ponteMap || janelaMapa.map;
+const ol = janelaMapa.ponteOl || janelaMapa.ol;
 
     if (!map) {
         alert("Ainda não consegui acessar o objeto do mapa. Aguarde o mapa carregar totalmente e tente novamente.");
