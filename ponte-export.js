@@ -233,4 +233,4 @@ async function exportarVisualizacaoKMZ() {
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
-}
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
