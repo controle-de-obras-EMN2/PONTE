@@ -1,29 +1,19 @@
 /* =========================================================
    PONTE EXPORT / CONTROLE DO MAPA
-   Botões externos ao qgis2web
    ========================================================= */
 
 console.log("ponte-export.js carregado");
 
+document.addEventListener("click", function(event) {
+    const botao = event.target.closest("#btnExportarKMZ");
 
-/* =========================================================
-   INICIALIZAÇÃO DOS BOTÕES
-   ========================================================= */
+    if (!botao) return;
 
-function iniciarFerramentasPonte() {
-    ativarBotaoExportarKMZ();
-}
+    event.preventDefault();
 
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", iniciarFerramentasPonte);
-} else {
-    iniciarFerramentasPonte();
-}
-
-
-/* =========================================================
-   ACESSO AO MAPA DO QGIS2WEB
-   ========================================================= */
+    console.log("Clique recebido no botão Exportar KMZ");
+    exportarVisualizacaoKMZ();
+});
 
 function obterMapaQgis2web() {
     const iframe = document.getElementById("iframeMapa");
@@ -41,7 +31,7 @@ function obterMapaQgis2web() {
     }
 
     const map = janelaMapa.ponteMap || janelaMapa.map;
-const ol = janelaMapa.ponteOl || janelaMapa.ol;
+    const ol = janelaMapa.ponteOl || janelaMapa.ol;
 
     if (!map) {
         alert("Ainda não consegui acessar o objeto do mapa. Aguarde o mapa carregar totalmente e tente novamente.");
@@ -53,54 +43,33 @@ const ol = janelaMapa.ponteOl || janelaMapa.ol;
         return null;
     }
 
-    return {
-        map,
-        ol,
-        janelaMapa
-    };
+    return { map, ol, janelaMapa };
 }
 
-
-/* =========================================================
-   EXPORTAR KMZ
-   ========================================================= */
-
-function ativarBotaoExportarKMZ() {
-    const botao = document.getElementById("btnExportarKMZ");
-
-    if (!botao) {
-        console.warn("Botão btnExportarKMZ não encontrado.");
-        return;
-    }
-
-    botao.addEventListener("click", function() {
-        console.log("Clique recebido no botão Exportar KMZ");
-        exportarVisualizacaoKMZ();
-    });
-}
-
-function obterNomesCamadasMarcadas(janelaMapa) {
+function obterCamadasMarcadas(janelaMapa) {
     const doc = janelaMapa.document;
-    const nomes = [];
+    const nomesMarcados = [];
 
     doc.querySelectorAll("input[type='checkbox']:checked").forEach(function(checkbox) {
         const label = checkbox.closest("label");
         const texto = label ? label.textContent.trim() : "";
 
         if (texto) {
-            nomes.push(texto);
+            nomesMarcados.push(texto);
         }
     });
 
-    console.log("Camadas marcadas na legenda:", nomes);
+    console.log("Camadas marcadas na legenda:", nomesMarcados);
 
-    return nomes;
+    return nomesMarcados;
 }
 
-function obterCamadasVisiveis(layerGroup, resultado = [], nomesMarcados = []) {
-    layerGroup.getLayers().forEach(function(layer) {
+function obterCamadasDoMapa(map, nomesMarcados, resultado = []) {
+    map.getLayers().forEach(function(layer) {
         if (layer.getLayers) {
-            obterCamadasVisiveis(layer, resultado, nomesMarcados);
+            layer.getLayers().forEach(function(subLayer) {
+                obterCamadasDoMapa({ getLayers: () => ({ forEach: cb => cb(subLayer) }) }, nomesMarcados, resultado);
+            });
             return;
         }
 
@@ -110,7 +79,7 @@ function obterCamadasVisiveis(layerGroup, resultado = [], nomesMarcados = []) {
             ""
         ).trim();
 
-        const estaMarcada = nomesMarcados.some(function(nomeMarcado) {
+        const marcada = nomesMarcados.some(function(nomeMarcado) {
             return (
                 nomeMarcado === nomeCamada ||
                 nomeMarcado.includes(nomeCamada) ||
@@ -118,7 +87,7 @@ function obterCamadasVisiveis(layerGroup, resultado = [], nomesMarcados = []) {
             );
         });
 
-        if (estaMarcada) {
+        if (marcada) {
             resultado.push(layer);
         }
     });
@@ -126,22 +95,12 @@ function obterCamadasVisiveis(layerGroup, resultado = [], nomesMarcados = []) {
     return resultado;
 }
 
-function obterFeaturesVisiveisNoMapa(map, ol) {
+function obterFeaturesVisiveisNoMapa(map, ol, janelaMapa) {
     const extentAtual = map.getView().calculateExtent(map.getSize());
     const resolution = map.getView().getResolution();
-    const contexto = obterMapaQgis2web();
-const nomesMarcados = contexto
-    ? obterNomesCamadasMarcadas(contexto.janelaMapa)
-    : [];
-   const contexto = obterMapaQgis2web();
 
-   const nomesMarcados = contexto
-    ? obterNomesCamadasMarcadas(contexto.janelaMapa)
-    : [];
-
-const camadas = obterCamadasVisiveis(map, [], nomesMarcados);
-
-const camadas = obterCamadasVisiveis(map, [], nomesMarcados);
+    const nomesMarcados = obterCamadasMarcadas(janelaMapa);
+    const camadas = obterCamadasDoMapa(map, nomesMarcados);
 
     let resultado = [];
 
@@ -163,11 +122,9 @@ const camadas = obterCamadasVisiveis(map, [], nomesMarcados);
             const geometria = feature.getGeometry();
 
             if (!geometria) return;
-
             if (!ol.extent.intersects(extentAtual, geometria.getExtent())) return;
 
             const copia = feature.clone();
-
             const nomeFeicao = obterNomeFeicao(feature, nomeCamada);
 
             copia.set("name", nomeFeicao);
@@ -176,10 +133,7 @@ const camadas = obterCamadasVisiveis(map, [], nomesMarcados);
 
             if (styleFunction) {
                 const estilo = styleFunction(feature, resolution);
-
-                if (estilo) {
-                    copia.setStyle(estilo);
-                }
+                if (estilo) copia.setStyle(estilo);
             }
 
             resultado.push(copia);
@@ -227,15 +181,16 @@ async function exportarVisualizacaoKMZ() {
 
     if (!contexto) return;
 
-    const map = contexto.map;
-    const ol = contexto.ol;
-
-    const features = obterFeaturesVisiveisNoMapa(map, ol);
+    const features = obterFeaturesVisiveisNoMapa(
+        contexto.map,
+        contexto.ol,
+        contexto.janelaMapa
+    );
 
     console.log("Feições encontradas para exportar:", features.length);
 
     if (!features.length) {
-        alert("Nenhuma feição visível para exportar.");
+        alert("Nenhuma feição visível das camadas marcadas para exportar.");
         return;
     }
 
@@ -244,13 +199,13 @@ async function exportarVisualizacaoKMZ() {
         return;
     }
 
-    const formatoKML = new ol.format.KML({
+    const formatoKML = new contexto.ol.format.KML({
         extractStyles: false,
         writeStyles: true
     });
 
     const kml = formatoKML.writeFeatures(features, {
-        featureProjection: map.getView().getProjection(),
+        featureProjection: contexto.map.getView().getProjection(),
         dataProjection: "EPSG:4326"
     });
 
@@ -274,4 +229,3 @@ async function exportarVisualizacaoKMZ() {
 
     URL.revokeObjectURL(url);
 }
-
