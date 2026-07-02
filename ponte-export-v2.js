@@ -163,40 +163,35 @@ function obterCheckboxesPrincipaisDaLegenda(janelaMapa) {
 function obterCamadasSelecionadasParaExportar(map, janelaMapa) {
     const camadasVetoriais = obterCamadasVetoriais(map);
 
-    /*
-       No qgis2web, a legenda normalmente aparece de cima para baixo
-       na ordem inversa da pilha de camadas do mapa.
-    */
-    const camadasNaOrdemDaLegenda = camadasVetoriais.slice().reverse();
+    const selecionadas = camadasVetoriais.filter(function(layer) {
+        const source = layer.getSource ? layer.getSource() : null;
 
-    const checkboxes = obterCheckboxesPrincipaisDaLegenda(janelaMapa);
-
-    const selecionadas = [];
-
-    checkboxes.forEach(function(item) {
-        if (!item.checked) return;
-
-        const camada = camadasNaOrdemDaLegenda[item.index];
-
-        if (camada && !selecionadas.includes(camada)) {
-            selecionadas.push(camada);
+        if (!source || typeof source.getFeatures !== "function") {
+            return false;
         }
+
+        const visivel = layer.getVisible ? layer.getVisible() : true;
+        const opacidade = layer.getOpacity ? layer.getOpacity() : 1;
+        const quantidadeFeatures = source.getFeatures().length;
+
+        return visivel && opacidade > 0 && quantidadeFeatures > 0;
     });
 
-    console.log("Camadas vetoriais do mapa:", camadasVetoriais.map(layer =>
-        textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
-    ));
+    console.log("Camadas vetoriais do mapa:", camadasVetoriais.map(layer => ({
+        nome: textoLimpo(layer.get("title") || layer.get("name") || "sem nome"),
+        visivel: layer.getVisible ? layer.getVisible() : null,
+        opacidade: layer.getOpacity ? layer.getOpacity() : null,
+        features: layer.getSource && layer.getSource().getFeatures
+            ? layer.getSource().getFeatures().length
+            : null
+    })));
 
-    console.log("Camadas na ordem da legenda:", camadasNaOrdemDaLegenda.map(layer =>
-        textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
-    ));
-
-    console.log("Camadas selecionadas para exportar:", selecionadas.map(layer =>
+    console.log("Camadas realmente visíveis para exportar:", selecionadas.map(layer =>
         textoLimpo(layer.get("title") || layer.get("name") || "sem nome")
     ));
 
     if (!selecionadas.length) {
-        alert("Nenhuma camada está marcada na legenda para exportar.");
+        alert("Nenhuma camada visível foi encontrada para exportar.");
     }
 
     return selecionadas;
