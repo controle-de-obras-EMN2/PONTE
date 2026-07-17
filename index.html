@@ -3,71 +3,81 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>PONTE | EMN2</title>
 
     <link rel="icon" type="image/png" href="images/favicon.png">
-
-<link rel="stylesheet" href="ponte.css">
-
+    <link rel="stylesheet" href="ponte.css">
 </head>
 
 <body>
 
 <header id="header">
 
-    <img src="images/logo_ponte.png" id="logo">
+    <img src="images/logo_ponte.png" id="logo" alt="Logo PONTE">
 
     <div id="titulo">
-    Plataforma de Operação e Navegação Técnica de Engenharia
-</div>
+        Plataforma de Operação e Navegação Técnica de Engenharia
+    </div>
 
-<div id="menu">
-
-    <a href="index.html" class="menu-btn">
-        🗺️ Mapa
-    </a>
-
-    <a href="dashboard.html" class="menu-btn">
-        📊 Dashboard
-    </a>
-
-    <a href="fluxo.html" class="menu-btn">
-        🧭 Fluxo
-    </a>
-
-</div>
+    <div id="menu">
+        <a href="index.html" class="menu-btn">🗺️ Mapa</a>
+        <a href="dashboard.html" class="menu-btn">📊 Dashboard</a>
+        <a href="fluxo.html" class="menu-btn">🧭 Fluxo</a>
+    </div>
 
 </header>
 
-<div id="mapa-container">
+<div id="barra-filtros-mapa">
+    <div class="filtros-mapa-linha">
+        <select id="filtroMapaContrato" title="Filtrar por contrato">
+            <option value="">Todos os contratos</option>
+        </select>
 
+        <select id="filtroMapaFrente" title="Filtrar por frente">
+            <option value="">Todas as frentes</option>
+        </select>
+
+        <select id="filtroMapaMaterial" title="Filtrar por material">
+            <option value="">Todos os materiais</option>
+        </select>
+
+        <select id="filtroMapaDiametro" title="Filtrar por diâmetro">
+            <option value="">Todos os diâmetros</option>
+        </select>
+
+        <button id="btnAplicarFiltrosMapa" type="button">Filtrar</button>
+        <button id="btnLimparFiltrosMapa" type="button">Limpar filtros</button>
+        <span id="resumoFiltrosMapa"></span>
+    </div>
+</div>
+
+<div id="mapa-container">
     <iframe
         src="MAPA/index.html"
-        id="mapa-frame">
+        id="iframeMapa"
+        title="Mapa PONTE">
     </iframe>
-
 </div>
 
 <div id="logo-footer">
-
-    <img src="images/logo_empresa.png">
-
+    <img src="images/logo_empresa.png" alt="Logos">
 </div>
 
-<button id="btnExportarKMZ" class="botao-exportar-kmz">
-    Exportar KMZ
-</button>
-
-<button id="btnLimparCamadas" class="botao-limpar-camadas">
-    Limpar camadas
-</button>
-
-<iframe id="iframeMapa" src="MAPA/index.html"></iframe>
+<div id="ferramentas-mapa">
+    <button id="btnExportarKMZ" class="botao-mapa" type="button">Exportar KMZ</button>
+    <button id="btnExportarMapaPDF" class="botao-mapa" type="button">Exportar PDF</button>
+    <button id="btnStreetView" class="botao-mapa" type="button">🟠 Street View</button>
+    <button id="btnLimparCamadas" class="botao-mapa" type="button">Limpar camadas</button>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="ponte-export-v2.js"></script>
-    
+<script src="ponte-map-tools.js"></script>
+
 </body>
 
 </html>

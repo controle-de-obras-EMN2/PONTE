@@ -39,6 +39,11 @@
 
     <main id="dashboard">
 
+        <section class="dashboard-export-toolbar">
+            <button id="btnExportarDashboardPDF" type="button">Exportar dashboard PDF</button>
+            <button id="btnExportarResumoCSV" type="button">Exportar resumo CSV</button>
+        </section>
+
         <section class="filtros-dashboard">
             <button onclick="filtrarContrato('TODOS')">Todos</button>
             <button onclick="filtrarContrato('00268/24')">00268/24</button>
@@ -219,15 +224,22 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <script src="dados/metas.js"></script>
 
-    <script src="MAPA/layers/OBRAS_EMN2_4.js"></script>
-    <script src="MAPA/layers/VIRADADEMANCHA_2.js"></script>
-    <script src="MAPA/layers/EEE_6.js"></script>
-    <script src="MAPA/layers/SinistroEMN2_7.js"></script>
-    <script src="MAPA/layers/EMN2Frentes_em_Andamento_9.js"></script>
-    <script src="MAPA/layers/PONTOSDELANAMENTO_8.js"></script>
+    <script src="MAPA/layers/0079724_ME_DO_ALTO_BAQUIRIVUGUAU__PCT_20_1.js"></script>
+    <script src="MAPA/layers/0079724_ME_DO_ALTO_BAQUIRIVU_GUAUPCT_20_2.js"></script>
+    <script src="MAPA/layers/CABUU_1.js"></script>
+    <script src="MAPA/layers/JORDANSIA_2.js"></script>
+    <script src="MAPA/layers/PCT19_3.js"></script>
+    <script src="MAPA/layers/PCT10C_4.js"></script>
+    <script src="MAPA/layers/PCT10B_5.js"></script>
+    <script src="MAPA/layers/PCT10A_6.js"></script>
+    <script src="MAPA/layers/PCT15D_7.js"></script>
+    <script src="MAPA/layers/PCT20_8.js"></script>
+    <script src="MAPA/layers/FRENTEEMANDAMENTO_9.js"></script>
 
     <script src="dashboard.js"></script>
 

@@ -1385,3 +1385,218 @@ body.modal-open {
     font-size: 12px;
     white-space: nowrap;
 }
+
+/* =========================================================
+   MAPA - FILTROS E FERRAMENTAS PONTE
+   ========================================================= */
+
+#barra-filtros-mapa {
+    position: fixed;
+    top: 110px;
+    left: 0;
+    right: 0;
+    z-index: 100010;
+    background: rgba(244, 246, 248, 0.96);
+    border-bottom: 1px solid #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    padding: 10px 16px;
+    box-sizing: border-box;
+}
+
+.filtros-mapa-linha {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filtros-mapa-linha select {
+    height: 38px;
+    min-width: 165px;
+    max-width: 280px;
+    border: 1px solid #b8c2cc;
+    border-radius: 8px;
+    padding: 0 10px;
+    background: white;
+    color: #0b2f5b;
+    font-weight: 650;
+    box-sizing: border-box;
+}
+
+.filtros-mapa-linha button,
+.botao-mapa {
+    height: 38px;
+    border: none;
+    border-radius: 8px;
+    padding: 0 13px;
+    background: #0b2f5b;
+    color: white;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+
+.filtros-mapa-linha button:hover,
+.botao-mapa:hover,
+.botao-mapa.ativo {
+    background: #174a86;
+}
+
+#resumoFiltrosMapa {
+    color: #0b2f5b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body:has(#barra-filtros-mapa) #mapa-container {
+    top: 164px;
+    height: calc(100vh - 164px);
+}
+
+#ferramentas-mapa {
+    position: fixed;
+    top: 174px;
+    right: 48px;
+    z-index: 100020;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 520px;
+}
+
+#ferramentas-mapa .botao-mapa {
+    height: 36px;
+    font-size: 13px;
+}
+
+#iframeMapa.streetview-ativo {
+    cursor: crosshair;
+}
+
+.botao-exportar-kmz {
+    display: none !important;
+}
+
+.botao-limpar-camadas {
+    display: none !important;
+}
+
+@media (max-width: 900px) {
+    #barra-filtros-mapa {
+        position: relative;
+        top: auto;
+        margin-top: 0;
+        padding: 10px;
+    }
+
+    body:has(#barra-filtros-mapa) #mapa-container {
+        position: relative;
+        top: auto;
+        height: 70vh;
+        min-height: 520px;
+    }
+
+    .filtros-mapa-linha {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 6px;
+    }
+
+    .filtros-mapa-linha select {
+        min-width: 210px;
+        flex: 0 0 auto;
+    }
+
+    .filtros-mapa-linha button {
+        flex: 0 0 auto;
+    }
+
+    #ferramentas-mapa {
+        position: sticky;
+        top: 0;
+        right: auto;
+        z-index: 100030;
+        background: rgba(244, 246, 248, .96);
+        padding: 8px;
+        justify-content: flex-start;
+        max-width: none;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+
+    #ferramentas-mapa .botao-mapa {
+        flex: 0 0 auto;
+    }
+}
+
+/* =========================================================
+   DASHBOARD - EXPORTAÇÃO E FILTROS EM MODAIS
+   ========================================================= */
+
+.dashboard-export-toolbar {
+    margin: 0 0 18px 0;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.dashboard-export-toolbar button,
+.modal-export-toolbar button,
+.filtros-modal-obras button {
+    border: none;
+    border-radius: 8px;
+    padding: 9px 13px;
+    background: #0b2f5b;
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.dashboard-export-toolbar button:hover,
+.modal-export-toolbar button:hover,
+.filtros-modal-obras button:hover {
+    background: #174a86;
+}
+
+.modal-export-toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 0 16px 0;
+}
+
+.filtros-modal-obras {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr)) auto;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 18px;
+    padding: 14px;
+    background: #f8fafc;
+    border: 1px solid #dbe3ec;
+    border-radius: 12px;
+}
+
+.filtros-modal-obras label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: #0b2f5b;
+    font-weight: 800;
+    font-size: 12px;
+}
+
+.filtros-modal-obras select {
+    height: 38px;
+    border: 1px solid #b8c2cc;
+    border-radius: 8px;
+    padding: 0 9px;
+    background: #fff;
+}
+
+@media (max-width: 900px) {
+    .filtros-modal-obras {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1014,6 +1014,9 @@ async function carregarBaseDashboardCSV() {
             "dados/base_dashboard_teste.csv",
             "./dados/base_dashboard_teste.csv",
             "/PONTE/dados/base_dashboard_teste.csv",
+            "dados/base_dashboard_teste (1).csv",
+            "./dados/base_dashboard_teste (1).csv",
+            "/PONTE/dados/base_dashboard_teste (1).csv",
             "dados/base_dashboard.csv",
             "./dados/base_dashboard.csv",
             "/PONTE/dados/base_dashboard.csv"
@@ -1333,3 +1336,518 @@ document.addEventListener("keydown", function(event) {
         fecharModal();
     }
 });
+
+/* =========================================================
+   PONTE - MELHORIAS 2026-07-03
+   Dados do mapa atual, filtros no popup de obras e exportações
+   ========================================================= */
+
+console.log("dashboard.js PONTE - melhorias de filtros/exportações carregadas");
+
+let ponteModalRows = [];
+let ponteModalCols = [];
+let ponteObrasPopupCache = [];
+
+function ponteValorCampo(props, campos) {
+    for (const campo of campos) {
+        if (props[campo] !== undefined && props[campo] !== null && String(props[campo]).trim() !== "") {
+            return String(props[campo]).trim();
+        }
+    }
+    return "";
+}
+
+function ponteTodasAsFeaturesJson() {
+    const resultado = [];
+
+    Object.keys(window).forEach(chave => {
+        if (!chave.startsWith("json_")) return;
+        const camada = window[chave];
+        const features = camada && camada.features ? camada.features : [];
+
+        features.forEach(feature => {
+            if (!feature.properties) return;
+            resultado.push({
+                nomeVariavel: chave,
+                feature: feature
+            });
+        });
+    });
+
+    return resultado;
+}
+
+function obterObrasMapaAtual() {
+    return ponteTodasAsFeaturesJson()
+        .filter(item => {
+            const p = item.feature.properties || {};
+            return p.FRENTE !== undefined && (p.NUM_CONTRA !== undefined || p.Contrato_N !== undefined || p.CONTRATO !== undefined);
+        })
+        .map(item => item.feature);
+}
+
+function obterFrentesCampoMapaAtual() {
+    return ponteTodasAsFeaturesJson()
+        .filter(item => normalizarTexto(item.nomeVariavel).includes("FRENTEEMANDAMENTO"))
+        .map(item => item.feature);
+}
+
+function obterEEEMapaAtual() {
+    return obterObrasMapaAtual().filter(feature => {
+        const p = feature.properties || {};
+        return normalizarTexto(p.TIPO).includes("EEE") || normalizarTexto(p.FRENTE).includes("EEE");
+    });
+}
+
+function ponteContratoObra(p) {
+    return ponteValorCampo(p, ["NUM_CONTRA", "Contrato_N", "CONTRATO", "Contrato", "contrato"]);
+}
+
+function ponteFrenteObra(p) {
+    return ponteValorCampo(p, ["FRENTE", "Frente", "frente", "OBRA", "layer"]);
+}
+
+function ponteMaterialObra(p) {
+    return ponteValorCampo(p, ["MATERIAL", "Material", "material"]);
+}
+
+function ponteDiametroObra(p) {
+    return ponteValorCampo(p, ["DIAMETR_MM", "Diametro", "DIAMETRO", "diametro"]);
+}
+
+function filtrarContratoObrasAtuais(features) {
+    if (contratoSelecionado === "TODOS") return features;
+
+    return features.filter(feature => {
+        const p = feature.properties || {};
+        return ponteContratoObra(p) === contratoSelecionado;
+    });
+}
+
+function criarUrlVerNoMapaAtual(campo, valor) {
+    const params = new URLSearchParams();
+    params.set("ponteLayer", "TODAS");
+    params.set("ponteCampo", campo);
+    params.set("ponteValor", String(valor || ""));
+    return "MAPA/index.html?" + params.toString();
+}
+
+function ponteValoresUnicos(features, getter) {
+    return Array.from(new Set(
+        features
+            .map(feature => getter(feature.properties || {}))
+            .filter(valor => String(valor || "").trim() !== "")
+    )).sort((a, b) => String(a).localeCompare(String(b), "pt-BR", { numeric: true }));
+}
+
+function ponteOption(valorAtual, valor) {
+    const selected = String(valorAtual || "") === String(valor || "") ? "selected" : "";
+    return `<option value="${escaparHtml(valor)}" ${selected}>${escaparHtml(valor)}</option>`;
+}
+
+function montarFiltrosPopupObras(features) {
+    const contrato = document.getElementById("modalFiltroContrato")?.value || "";
+    const frente = document.getElementById("modalFiltroFrente")?.value || "";
+    const material = document.getElementById("modalFiltroMaterial")?.value || "";
+    const diametro = document.getElementById("modalFiltroDiametro")?.value || "";
+
+    const contratos = ponteValoresUnicos(features, ponteContratoObra);
+    const frentes = ponteValoresUnicos(features, ponteFrenteObra);
+    const materiais = ponteValoresUnicos(features, ponteMaterialObra);
+    const diametros = ponteValoresUnicos(features, ponteDiametroObra);
+
+    return `
+        <div class="filtros-modal-obras">
+            <label>Contrato
+                <select id="modalFiltroContrato" onchange="aplicarFiltrosModalObras()">
+                    <option value="">Todos</option>
+                    ${contratos.map(v => ponteOption(contrato, v)).join("")}
+                </select>
+            </label>
+            <label>Frente
+                <select id="modalFiltroFrente" onchange="aplicarFiltrosModalObras()">
+                    <option value="">Todas</option>
+                    ${frentes.map(v => ponteOption(frente, v)).join("")}
+                </select>
+            </label>
+            <label>Material
+                <select id="modalFiltroMaterial" onchange="aplicarFiltrosModalObras()">
+                    <option value="">Todos</option>
+                    ${materiais.map(v => ponteOption(material, v)).join("")}
+                </select>
+            </label>
+            <label>Diâmetro
+                <select id="modalFiltroDiametro" onchange="aplicarFiltrosModalObras()">
+                    <option value="">Todos</option>
+                    ${diametros.map(v => ponteOption(diametro, v)).join("")}
+                </select>
+            </label>
+            <button type="button" onclick="limparFiltrosModalObras()">Limpar</button>
+        </div>
+    `;
+}
+
+function aplicarFiltroFeaturesObras(features) {
+    const contrato = document.getElementById("modalFiltroContrato")?.value || "";
+    const frente = document.getElementById("modalFiltroFrente")?.value || "";
+    const material = document.getElementById("modalFiltroMaterial")?.value || "";
+    const diametro = document.getElementById("modalFiltroDiametro")?.value || "";
+
+    return features.filter(feature => {
+        const p = feature.properties || {};
+        return (!contrato || ponteContratoObra(p) === contrato) &&
+            (!frente || ponteFrenteObra(p) === frente) &&
+            (!material || ponteMaterialObra(p) === material) &&
+            (!diametro || ponteDiametroObra(p) === diametro);
+    });
+}
+
+function gerarTabelaModalExportavel(features, campos, opcoes = {}) {
+    ponteModalCols = campos.map(c => c.titulo).concat(opcoes.verNoMapa ? ["Mapa"] : []);
+    ponteModalRows = features.map(feature => {
+        const p = feature.properties || {};
+        const linha = campos.map(campo => p[campo.campo] ?? "");
+        if (opcoes.verNoMapa) linha.push("Ver no mapa");
+        return linha;
+    });
+
+    let html = `
+        <div class="modal-export-toolbar">
+            <button type="button" onclick="exportarModalCSV()">Exportar CSV</button>
+            <button type="button" onclick="exportarModalPDF()">Exportar PDF</button>
+        </div>
+    `;
+
+    if (!features || features.length === 0) {
+        html += "<p>Nenhum registro encontrado para o filtro atual.</p>";
+        return html;
+    }
+
+    html += "<table class='tabela-modal'><thead><tr>";
+    campos.forEach(campo => html += "<th>" + escaparHtml(campo.titulo) + "</th>");
+    if (opcoes.verNoMapa) html += "<th>Mapa</th>";
+    html += "</tr></thead><tbody>";
+
+    features.forEach(feature => {
+        const p = feature.properties || {};
+        html += "<tr>";
+
+        campos.forEach(campo => {
+            html += "<td>" + escaparHtml(p[campo.campo] ?? "") + "</td>";
+        });
+
+        if (opcoes.verNoMapa) {
+            const valorBusca = p[opcoes.campoBusca] ?? "";
+            if (String(valorBusca).trim()) {
+                html += `<td><a class="link-ver-mapa" href="${criarUrlVerNoMapaAtual(opcoes.campoBusca, valorBusca)}" target="_blank" rel="noopener noreferrer">Ver no mapa</a></td>`;
+            } else {
+                html += "<td><span class='link-ver-mapa-indisponivel'>Sem referência</span></td>";
+            }
+        }
+
+        html += "</tr>";
+    });
+
+    html += "</tbody></table>";
+    return html;
+}
+
+window.aplicarFiltrosModalObras = function() {
+    const filtradas = aplicarFiltroFeaturesObras(ponteObrasPopupCache);
+    const tabela = document.getElementById("tabelaObrasModalContainer");
+    if (!tabela) return;
+
+    tabela.innerHTML = gerarTabelaModalExportavel(filtradas, [
+        { titulo: "Contrato", campo: "NUM_CONTRA" },
+        { titulo: "Contrato alt.", campo: "Contrato_N" },
+        { titulo: "Frente", campo: "FRENTE" },
+        { titulo: "Status", campo: "STATUS_C" },
+        { titulo: "Método", campo: "METODO" },
+        { titulo: "Material", campo: "Material" },
+        { titulo: "Diâmetro", campo: "DIAMETR_MM" },
+        { titulo: "Diâmetro alt.", campo: "Diametro" },
+        { titulo: "Município", campo: "MUNICIPIO" },
+        { titulo: "Bairro", campo: "BAIRRO" },
+        { titulo: "Logradouro", campo: "LOGRADOURO" }
+    ], {
+        verNoMapa: true,
+        campoBusca: "FRENTE"
+    });
+};
+
+window.limparFiltrosModalObras = function() {
+    ["modalFiltroContrato", "modalFiltroFrente", "modalFiltroMaterial", "modalFiltroDiametro"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+    aplicarFiltrosModalObras();
+};
+
+window.abrirDetalhesObras = function() {
+    const obrasTodas = filtrarContratoObrasAtuais(obterObrasMapaAtual());
+    ponteObrasPopupCache = obrasTodas;
+
+    const html = `
+        ${montarFiltrosPopupObras(obrasTodas)}
+        <div id="tabelaObrasModalContainer"></div>
+    `;
+
+    abrirModal("Detalhes das Obras", html);
+    aplicarFiltrosModalObras();
+};
+
+window.abrirDetalhesFrentes = function() {
+    const frentes = filtrarPorContratoMultiplosCampos(obterFrentesCampoMapaAtual(), ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+
+    abrirModal(
+        "Frentes em Campo",
+        gerarTabelaModalExportavel(frentes, [
+            { titulo: "Contrato", campo: "NUM_CONTRA" },
+            { titulo: "Status", campo: "STATUS" },
+            { titulo: "Coordenada", campo: "COORD" }
+        ], {
+            verNoMapa: false
+        })
+    );
+};
+
+window.abrirDetalhesEEE = function() {
+    const eee = filtrarContratoObrasAtuais(obterEEEMapaAtual());
+    const avancosEEE = obterAvancosEEE();
+    const htmlAvanco = gerarBarrasAvancoEEE(avancosEEE);
+
+    const htmlTabela = `
+        <h3 style="color:#0b2f5b;margin-top:24px;">Dados das EEE no mapa</h3>
+        ${gerarTabelaModalExportavel(eee, [
+            { titulo: "Contrato", campo: "NUM_CONTRA" },
+            { titulo: "Frente", campo: "FRENTE" },
+            { titulo: "Tipo", campo: "TIPO" },
+            { titulo: "Status", campo: "STATUS_C" },
+            { titulo: "Método", campo: "METODO" },
+            { titulo: "Diâmetro", campo: "DIAMETR_MM" },
+            { titulo: "Município", campo: "MUNICIPIO" },
+            { titulo: "Bairro", campo: "BAIRRO" },
+            { titulo: "Logradouro", campo: "LOGRADOURO" }
+        ], {
+            verNoMapa: true,
+            campoBusca: "FRENTE"
+        })}
+    `;
+
+    abrirModal("Elevatórias - EEE", htmlAvanco + htmlTabela);
+};
+
+function agruparFrentesUnicasAtual(obras) {
+    const mapa = {};
+
+    obras.forEach(feature => {
+        const p = feature.properties || {};
+        const frente = ponteFrenteObra(p) || "Não informado";
+        const contrato = ponteContratoObra(p);
+        const chave = contrato + "|" + frente;
+
+        if (!mapa[chave]) {
+            mapa[chave] = {
+                frente: frente,
+                contrato: contrato,
+                status: p.STATUS_C || p.STATUS || "Não informado",
+                metodo: p.METODO || p.Metod_Cons || p["Método"] || "Não informado",
+                diametro: ponteDiametroObra(p) || "Não informado",
+                material: ponteMaterialObra(p) || "Não informado"
+            };
+        }
+    });
+
+    return Object.values(mapa);
+}
+
+function atualizarDashboard() {
+    const obrasTodas = obterObrasMapaAtual();
+    const obras = filtrarContratoObrasAtuais(obrasTodas);
+    const frentesCampo = filtrarPorContratoMultiplosCampos(obterFrentesCampoMapaAtual(), ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+    const eee = filtrarContratoObrasAtuais(obterEEEMapaAtual());
+
+    const frentesUnicas = agruparFrentesUnicasAtual(obras);
+
+    const statusProntos = [
+        "OBRA CONCLUIDA",
+        "PAVIMENTACAO PROVISORIA CONCLUIDA",
+        "PAVIMENTACAO DEFINITIVA CONCLUIDA",
+        "IMOBILIZADO"
+    ];
+
+    const prontas = frentesUnicas.filter(item => statusProntos.includes(normalizarTexto(item.status))).length;
+    const percentualProntas = frentesUnicas.length ? percentual(prontas, frentesUnicas.length) : 0;
+
+    const elObras = document.getElementById("totalObras");
+    if (elObras) elObras.innerText = frentesUnicas.length.toLocaleString("pt-BR");
+
+    const elPerc = document.getElementById("percentualObrasProntas");
+    if (elPerc) elPerc.innerText = percentualProntas.toFixed(1) + "% prontas";
+
+    const elFrentes = document.getElementById("totalFrentes");
+    if (elFrentes) elFrentes.innerText = frentesCampo.length.toLocaleString("pt-BR");
+
+    const elSinistros = document.getElementById("totalSinistros");
+    if (elSinistros) elSinistros.innerText = "0";
+
+    const elEEE = document.getElementById("totalEEE");
+    if (elEEE) elEEE.innerText = eee.length.toLocaleString("pt-BR");
+
+    const elLanc = document.getElementById("totalLancamentos");
+    if (elLanc) elLanc.innerText = "0";
+
+    const elLancStatus = document.getElementById("statusLancamentos");
+    if (elLancStatus) elLancStatus.innerText = "Ativos: 0 | Suprimidos: 0";
+
+    graficoStatusObras = criarGraficoBarra("graficoStatusObras", "Obras por Status", contarPorCampoArray(frentesUnicas, "status"), graficoStatusObras);
+    graficoMetodo = criarGraficoBarra("graficoMetodo", "Obras por Método", contarPorCampoArray(frentesUnicas, "metodo"), graficoMetodo);
+    graficoDiametro = criarGraficoBarra("graficoDiametro", "Obras por Diâmetro", contarPorCampoArray(frentesUnicas, "diametro"), graficoDiametro);
+    graficoMaterial = criarGraficoBarra("graficoMaterial", "Obras por Material", contarPorCampoArray(frentesUnicas, "material"), graficoMaterial);
+    graficoFrentesStatus = criarGraficoBarra("graficoFrentesStatus", "Frentes por Status", contarPorCampo(frentesCampo, "STATUS"), graficoFrentesStatus);
+    graficoEEEStatus = criarGraficoBarra("graficoEEEStatus", "EEE por Status", contarPorCampo(eee, "STATUS_C"), graficoEEEStatus);
+
+    const canvasManchas = document.getElementById("graficoManchas");
+    if (canvasManchas) {
+        graficoManchas = criarGraficoBarra("graficoManchas", "Tipos de obra", contarPorCampo(obras, "TIPO"), graficoManchas);
+    }
+}
+
+function baixarArquivoTexto(nome, conteudo, tipo = "text/plain;charset=utf-8") {
+    const blob = new Blob([conteudo], { type: tipo });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nome;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function matrizParaCSV(linhas) {
+    return linhas.map(linha => linha.map(valor => {
+        const texto = String(valor ?? "").replace(/"/g, '""');
+        return `"${texto}"`;
+    }).join(";")).join("\n");
+}
+
+window.exportarModalCSV = function() {
+    if (!ponteModalCols.length) {
+        alert("Nenhuma tabela disponível para exportar.");
+        return;
+    }
+
+    baixarArquivoTexto("ponte_modal.csv", matrizParaCSV([ponteModalCols, ...ponteModalRows]), "text/csv;charset=utf-8");
+};
+
+window.exportarModalPDF = async function() {
+    const conteudo = document.getElementById("modalCorpo");
+    if (!conteudo || !window.html2canvas || !window.jspdf) {
+        alert("Bibliotecas de exportação PDF não carregadas.");
+        return;
+    }
+
+    const canvas = await html2canvas(conteudo, { scale: 1.5, backgroundColor: "#ffffff" });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("landscape", "mm", "a4");
+    const pageW = 297;
+    const pageH = 210;
+    const margin = 8;
+    const imgW = pageW - margin * 2;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.text(document.getElementById("modalTitulo")?.innerText || "PONTE", margin, 7);
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin, 12, imgW, Math.min(imgH, pageH - 20));
+    pdf.save("ponte_modal.pdf");
+};
+
+window.exportarDashboardResumoCSV = function() {
+    const linhas = [
+        ["Indicador", "Valor", "Complemento"],
+        ["Economias Fator U", document.getElementById("ecoFatorUReal")?.innerText || "", document.getElementById("ecoFatorUMeta")?.innerText || ""],
+        ["Economias Contrato", document.getElementById("ecoContratoReal")?.innerText || "", document.getElementById("ecoContratoMeta")?.innerText || ""],
+        ["Imobilizado", document.getElementById("imobReal")?.innerText || "", document.getElementById("imobMeta")?.innerText || ""],
+        ["Produção Integra", document.getElementById("prodIntegraReal")?.innerText || "", document.getElementById("prodIntegraMeta")?.innerText || ""],
+        ["Produção Andamento", document.getElementById("prodAndamentoReal")?.innerText || "", document.getElementById("prodAndamentoMeta")?.innerText || ""],
+        ["Obras cadastradas", document.getElementById("totalObras")?.innerText || "", document.getElementById("percentualObrasProntas")?.innerText || ""],
+        ["Frentes em campo", document.getElementById("totalFrentes")?.innerText || "", ""],
+        ["Sinistros", document.getElementById("totalSinistros")?.innerText || "", ""],
+        ["EEE", document.getElementById("totalEEE")?.innerText || "", ""],
+        ["Pontos de lançamento", document.getElementById("totalLancamentos")?.innerText || "", document.getElementById("statusLancamentos")?.innerText || ""]
+    ];
+
+    baixarArquivoTexto("ponte_resumo_dashboard.csv", matrizParaCSV(linhas), "text/csv;charset=utf-8");
+};
+
+window.exportarDashboardPDF = async function() {
+    const area = document.getElementById("dashboard");
+    if (!area || !window.html2canvas || !window.jspdf) {
+        alert("Bibliotecas de exportação PDF não carregadas.");
+        return;
+    }
+
+    const canvas = await html2canvas(area, { scale: 1.35, backgroundColor: "#f4f6f8" });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("portrait", "mm", "a4");
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 8;
+    const imgW = pageW - margin * 2;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    let posY = 16;
+    let restante = imgH;
+    const imgData = canvas.toDataURL("image/png");
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.text("PONTE - Dashboard EMN2", margin, 10);
+
+    pdf.addImage(imgData, "PNG", margin, posY, imgW, imgH);
+    restante -= (pageH - posY - margin);
+
+    while (restante > 0) {
+        pdf.addPage();
+        posY = restante - imgH + margin;
+        pdf.addImage(imgData, "PNG", margin, posY, imgW, imgH);
+        restante -= (pageH - margin * 2);
+    }
+
+    pdf.save("ponte_dashboard.pdf");
+};
+
+(function ativarExportacoesDashboard() {
+    document.addEventListener("click", function(event) {
+        const id = event.target && event.target.id;
+        if (id === "btnExportarDashboardPDF") exportarDashboardPDF();
+        if (id === "btnExportarResumoCSV") exportarDashboardResumoCSV();
+    });
+})();
+
+window.abrirDetalhesSinistros = function() {
+    abrirModal(
+        "Sinistros",
+        gerarTabelaModalExportavel([], [
+            { titulo: "Contrato", campo: "Contrato" },
+            { titulo: "Ficha", campo: "Ficha" },
+            { titulo: "Frente", campo: "Frente" },
+            { titulo: "Sinistro", campo: "Sinistro" },
+            { titulo: "Critério", campo: "Critério" }
+        ]) + "<p>Camada de sinistros não encontrada no mapa atual.</p>"
+    );
+};
+
+window.abrirDetalhesLancamentos = function() {
+    abrirModal(
+        "Pontos de Lançamento",
+        gerarTabelaModalExportavel([], [
+            { titulo: "Contrato", campo: "Contrato" },
+            { titulo: "Nome", campo: "Nome_Lanca" },
+            { titulo: "Município", campo: "Municipio" },
+            { titulo: "Status", campo: "Status" }
+        ]) + "<p>Camada de pontos de lançamento não encontrada no mapa atual.</p>"
+    );
+};
