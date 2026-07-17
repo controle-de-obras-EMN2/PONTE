@@ -58,11 +58,31 @@
         <script src="./resources/ol-layerswitcher.js"></script>
         <script src="resources/photon-geocoder-autocomplete.min.js"></script>
         <script src="resources/olms.js"></script>
-        <script src="layers/COMGS_1.js"></script><script src="layers/VIRADADEMANCHA_2.js"></script><script src="layers/PROJETOBSICO_3.js"></script><script src="layers/OBRAS_EMN2_4.js"></script><script src="layers/ETES_5.js"></script><script src="layers/EEE_6.js"></script><script src="layers/SinistroEMN2_7.js"></script><script src="layers/PONTOSDELANAMENTO_8.js"></script><script src="layers/EMN2Frentes_em_Andamento_9.js"></script>
-        <script src="styles/COMGS_1_style.js"></script><script src="styles/VIRADADEMANCHA_2_style.js"></script><script src="styles/PROJETOBSICO_3_style.js"></script><script src="styles/OBRAS_EMN2_4_style.js"></script><script src="styles/ETES_5_style.js"></script><script src="styles/EEE_6_style.js"></script><script src="styles/SinistroEMN2_7_style.js"></script><script src="styles/PONTOSDELANAMENTO_8_style.js"></script><script src="styles/EMN2Frentes_em_Andamento_9_style.js"></script>
-        <script src="./layers/layers.js" type="text/javascript"></script> 
+        <script src="layers/0079724_ME_DO_ALTO_BAQUIRIVUGUAU__PCT_20_1.js"></script><script src="layers/0079724_ME_DO_ALTO_BAQUIRIVU_GUAUPCT_20_2.js"></script><script src="layers/CABUU_1.js"></script><script src="layers/FRENTEEMANDAMENTO_9.js"></script><script src="layers/JORDANSIA_2.js"></script><script src="layers/PCT10A_6.js"></script><script src="layers/PCT10B_5.js"></script><script src="layers/PCT10C_4.js"></script><script src="layers/PCT15D_7.js"></script><script src="layers/PCT19_3.js"></script><script src="layers/PCT20_8.js"></script>
+
+        <script src="styles/0079724_ME_DO_ALTO_BAQUIRIVUGUAU__PCT_20_1_style.js"></script><script src="styles/0079724_ME_DO_ALTO_BAQUIRIVU_GUAUPCT_20_2_style.js"></script><script src="styles/CABUU_1_style.js"></script><script src="styles/FRENTEEMANDAMENTO_9_style.js"></script><script src="styles/JORDANSIA_2_style.js"></script><script src="styles/PCT10A_6_style.js"></script><script src="styles/PCT10B_5_style.js"></script><script src="styles/PCT10C_4_style.js"></script><script src="styles/PCT15D_7_style.js"></script><script src="styles/PCT19_3_style.js"></script><script src="styles/PCT20_8_style.js"></script>
+
+        <script src="./layers/layers.js" type="text/javascript"></script>
+        <script>
+        var popupLayers = (typeof layersList !== "undefined")
+            ? layersList.filter(function(layer) { return layer && layer.get && layer.get("interactive"); })
+            : [];
+        </script> 
         <script src="./resources/Autolinker.min.js"></script>
-        <script src="./resources/qgis2web.js"></script>        
+        <script src="./resources/qgis2web.js"></script>
+        <script>
+        function ponteAtualizarTamanhoMapa() {
+            if (typeof map !== "undefined") {
+                window.ponteMap = map;
+                if (map.updateSize) map.updateSize();
+            }
+            if (typeof ol !== "undefined") window.ponteOl = ol;
+        }
+        setTimeout(ponteAtualizarTamanhoMapa, 300);
+        setTimeout(ponteAtualizarTamanhoMapa, 900);
+        setTimeout(ponteAtualizarTamanhoMapa, 1600);
+        window.addEventListener("resize", ponteAtualizarTamanhoMapa);
+        </script>        
 
     <!-- =========================================================
      INICIO BLOCO PONTE - LIMPAR CAMADAS
@@ -318,7 +338,7 @@ console.log("PONTE - bloco limpar camadas carregado");
                     ""
                 );
 
-                if (!titulo.includes(layerAlvoNorm)) return;
+                if (layerAlvoNorm !== "TODAS" && !titulo.includes(layerAlvoNorm)) return;
 
                 const source = subLayer.getSource ? subLayer.getSource() : null;
 
