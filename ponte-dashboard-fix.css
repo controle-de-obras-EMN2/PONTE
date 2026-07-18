@@ -1,0 +1,69 @@
+/* PONTE - Ajustes compactos do Dashboard */
+
+.tabela-modal.tabela-compacta,
+.tabela-modal.tabela-frentes-campo {
+    table-layout: auto;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.tabela-modal.tabela-compacta th,
+.tabela-modal.tabela-compacta td,
+.tabela-modal.tabela-frentes-campo th,
+.tabela-modal.tabela-frentes-campo td {
+    padding: 6px 8px;
+    vertical-align: middle;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.tabela-modal .col-endereco {
+    max-width: 260px;
+    min-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tabela-modal .col-curta {
+    max-width: 95px;
+    white-space: nowrap;
+}
+
+.tabela-modal .col-media {
+    max-width: 150px;
+    white-space: nowrap;
+}
+
+.modal-export-toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 0 0 14px 0;
+}
+
+.modal-export-toolbar button,
+.dashboard-export-toolbar button {
+    background: #0b2f5b;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.modal-export-toolbar button:hover,
+.dashboard-export-toolbar button:hover {
+    background: #123f76;
+}
+
+.filtros-dashboard button.ativo {
+    background: #0b2f5b;
+    color: white;
+}
+
+.grafico-card canvas {
+    min-height: 250px;
+}
