@@ -15,6 +15,11 @@ let graficoEEEStatus = null;
 let graficoManchas = null;
 let graficoValores = null;
 let graficoExtensao = null;
+let graficoMatrizRisco = null;
+let graficoMatrizStatus = null;
+let graficoMatrizInterferencias = null;
+let graficoMatrizMetodos = null;
+let matrizRiscoInicializada = false;
 
 let ponteModalCols = [];
 let ponteModalRows = [];
@@ -373,6 +378,8 @@ window.filtrarContrato = function(contrato) {
     contratoSelecionado = contrato || "TODOS";
     atualizarBotaoContratoAtivo();
     atualizarDashboard();
+    sincronizarFiltroMatrizContrato(contratoSelecionado);
+    atualizarMatrizRisco();
 };
 
 function atualizarBotaoContratoAtivo() {
@@ -658,10 +665,385 @@ async function exportarDashboardPDF() {
     pdf.save("ponte_dashboard.pdf");
 }
 
+
+/* =========================
+   MATRIZ DE RISCO
+========================= */
+
+function numeroSeguro(valor) {
+    if (valor === undefined || valor === null || valor === "") return 0;
+    let texto = String(valor).trim();
+    if (texto.includes(",") && texto.includes(".")) {
+        texto = texto.replace(/\./g, "").replace(",", ".");
+    } else {
+        texto = texto.replace(",", ".");
+    }
+    const n = Number(texto);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function valorSimNaoNormalizado(valor) {
+    return simNao(valor) === "Sim" ? "SIM" : "NAO";
+}
+
+function statusFrenteMatriz(p) {
+    return textoCampo(p, ["AJUSTE STA", "STATUS", "Status"]) || "Não informado";
+}
+
+function riscoFrenteMatriz(p) {
+    return textoCampo(p, ["RISCO", "Risco", "risco"]) || "Não informado";
+}
+
+function listaMetodosFrente(p) {
+    const metodos = [];
+    if (simNao(p.VCA) === "Sim") metodos.push("VCA");
+    if (simNao(p.HDD) === "Sim") metodos.push("HDD");
+    if (simNao(p.OUTROS_MND) === "Sim") metodos.push("Outros MND");
+    if (!metodos.length && p.METODO) metodos.push(String(p.METODO));
+    return metodos;
+}
+
+function obterValorFiltroMatriz(id) {
+    return document.getElementById(id)?.value || "TODOS";
+}
+
+function coordenadaFrente(feature) {
+    const p = feature.properties || {};
+    let lon = numeroSeguro(p.Longitude ?? p.LONGITUDE ?? p.lon ?? p.LON);
+    let lat = numeroSeguro(p.Latitude ?? p.LATITUDE ?? p.lat ?? p.LAT);
+
+    if ((!lon || !lat) && feature.geometry && Array.isArray(feature.geometry.coordinates)) {
+        const coords = feature.geometry.coordinates;
+        if (typeof coords[0] === "number" && typeof coords[1] === "number") {
+            lon = coords[0];
+            lat = coords[1];
+        } else if (Array.isArray(coords[0]) && typeof coords[0][0] === "number") {
+            lon = coords[0][0];
+            lat = coords[0][1];
+        }
+    }
+
+    if (!lon || !lat) return null;
+    return { lon, lat };
+}
+
+function corRiscoMatriz(risco) {
+    const r = normalizarTexto(risco);
+    if (r.includes("ALTO")) return "#d93618";
+    if (r.includes("MEDIO") || r.includes("MÉDIO")) return "#f2b705";
+    if (r.includes("BAIXO")) return "#2fa84f";
+    return "#0b6fb3";
+}
+
+function filtrarMatrizRiscoBase() {
+    const contrato = obterValorFiltroMatriz("matrizFiltroContrato");
+    const risco = obterValorFiltroMatriz("matrizFiltroRisco");
+    const status = obterValorFiltroMatriz("matrizFiltroStatus");
+    const metodo = obterValorFiltroMatriz("matrizFiltroMetodo");
+    const gas = obterValorFiltroMatriz("matrizFiltroGas");
+    const eletrica = obterValorFiltroMatriz("matrizFiltroEletrica");
+    const telecom = obterValorFiltroMatriz("matrizFiltroTelecom");
+    const drenagem = obterValorFiltroMatriz("matrizFiltroDrenagem");
+
+    return obterFrentesCampo().filter(feature => {
+        const p = feature.properties || {};
+        const contratoFeature = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+        if (contrato !== "TODOS" && contratoFeature !== contrato) return false;
+        if (risco !== "TODOS" && riscoFrenteMatriz(p) !== risco) return false;
+        if (status !== "TODOS" && statusFrenteMatriz(p) !== status) return false;
+        if (metodo !== "TODOS" && !listaMetodosFrente(p).includes(metodo)) return false;
+        if (gas !== "TODOS" && valorSimNaoNormalizado(p.GAS) !== gas) return false;
+        if (eletrica !== "TODOS" && valorSimNaoNormalizado(p.ELETRICIDA) !== eletrica) return false;
+        if (telecom !== "TODOS" && valorSimNaoNormalizado(p.TELECON) !== telecom) return false;
+        if (drenagem !== "TODOS" && valorSimNaoNormalizado(p.DRENAGEM) !== drenagem) return false;
+        return true;
+    });
+}
+
+function featuresParaOpcoesMatriz(filtrosIgnorados = []) {
+    const ignorar = new Set(filtrosIgnorados);
+    const contrato = obterValorFiltroMatriz("matrizFiltroContrato");
+    const risco = obterValorFiltroMatriz("matrizFiltroRisco");
+    const status = obterValorFiltroMatriz("matrizFiltroStatus");
+    const metodo = obterValorFiltroMatriz("matrizFiltroMetodo");
+    const gas = obterValorFiltroMatriz("matrizFiltroGas");
+    const eletrica = obterValorFiltroMatriz("matrizFiltroEletrica");
+    const telecom = obterValorFiltroMatriz("matrizFiltroTelecom");
+    const drenagem = obterValorFiltroMatriz("matrizFiltroDrenagem");
+
+    return obterFrentesCampo().filter(feature => {
+        const p = feature.properties || {};
+        const contratoFeature = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+        if (!ignorar.has("contrato") && contrato !== "TODOS" && contratoFeature !== contrato) return false;
+        if (!ignorar.has("risco") && risco !== "TODOS" && riscoFrenteMatriz(p) !== risco) return false;
+        if (!ignorar.has("status") && status !== "TODOS" && statusFrenteMatriz(p) !== status) return false;
+        if (!ignorar.has("metodo") && metodo !== "TODOS" && !listaMetodosFrente(p).includes(metodo)) return false;
+        if (!ignorar.has("gas") && gas !== "TODOS" && valorSimNaoNormalizado(p.GAS) !== gas) return false;
+        if (!ignorar.has("eletrica") && eletrica !== "TODOS" && valorSimNaoNormalizado(p.ELETRICIDA) !== eletrica) return false;
+        if (!ignorar.has("telecom") && telecom !== "TODOS" && valorSimNaoNormalizado(p.TELECON) !== telecom) return false;
+        if (!ignorar.has("drenagem") && drenagem !== "TODOS" && valorSimNaoNormalizado(p.DRENAGEM) !== drenagem) return false;
+        return true;
+    });
+}
+
+function preencherSelectMatriz(id, rotuloTodos, valores, valorAtual) {
+    const select = document.getElementById(id);
+    if (!select) return;
+    const unicos = Array.from(new Set((valores || []).filter(v => String(v || "").trim()))).sort((a, b) => String(a).localeCompare(String(b), "pt-BR"));
+    const atual = valorAtual || select.value || "TODOS";
+    select.innerHTML = `<option value="TODOS">${escaparHtml(rotuloTodos)}</option>` + unicos.map(v => `<option value="${escaparHtml(v)}">${escaparHtml(v)}</option>`).join("");
+    select.value = unicos.includes(atual) ? atual : "TODOS";
+}
+
+function atualizarOpcoesMatrizRisco() {
+    preencherSelectMatriz(
+        "matrizFiltroContrato",
+        "Todos os contratos",
+        obterFrentesCampo().map(f => textoCampo(f.properties || {}, ["NUM_CONTRA", "CONTRATO", "Contrato"])),
+        obterValorFiltroMatriz("matrizFiltroContrato")
+    );
+
+    preencherSelectMatriz(
+        "matrizFiltroRisco",
+        "Todos os riscos",
+        featuresParaOpcoesMatriz(["risco"]).map(f => riscoFrenteMatriz(f.properties || {})),
+        obterValorFiltroMatriz("matrizFiltroRisco")
+    );
+
+    preencherSelectMatriz(
+        "matrizFiltroStatus",
+        "Todos os status",
+        featuresParaOpcoesMatriz(["status"]).map(f => statusFrenteMatriz(f.properties || {})),
+        obterValorFiltroMatriz("matrizFiltroStatus")
+    );
+
+    preencherSelectMatriz(
+        "matrizFiltroMetodo",
+        "Todos os métodos",
+        featuresParaOpcoesMatriz(["metodo"]).flatMap(f => listaMetodosFrente(f.properties || {})),
+        obterValorFiltroMatriz("matrizFiltroMetodo")
+    );
+}
+
+function contarMatrizPor(features, fn) {
+    const r = {};
+    features.forEach(feature => {
+        const valor = fn(feature.properties || {}, feature) || "Não informado";
+        r[valor] = (r[valor] || 0) + 1;
+    });
+    return r;
+}
+
+function atualizarCardsMatrizRisco(features) {
+    const total = features.length;
+    const riscoAlto = features.filter(f => normalizarTexto(riscoFrenteMatriz(f.properties || {})).includes("ALTO")).length;
+    const comGas = features.filter(f => simNao((f.properties || {}).GAS) === "Sim").length;
+    const paralisadas = features.filter(f => {
+        const p = f.properties || {};
+        return normalizarTexto(statusFrenteMatriz(p)).includes("PARALIS") || normalizarTexto(p.PARALISADO).includes("SIM") || !!String(p.JUSTIFICATIVA || "").trim();
+    }).length;
+    const somaValores = features.map(f => numeroSeguro((f.properties || {}).SOMA)).filter(n => n > 0);
+    const somaMedia = somaValores.length ? somaValores.reduce((a, b) => a + b, 0) / somaValores.length : 0;
+
+    setTexto("matrizTotalFrentes", formatarNumero(total));
+    setTexto("matrizRiscoAlto", formatarNumero(riscoAlto));
+    setTexto("matrizRiscoAltoPerc", total ? percentual(riscoAlto, total).toFixed(1) + "%" : "0%");
+    setTexto("matrizComGas", formatarNumero(comGas));
+    setTexto("matrizComGasPerc", total ? percentual(comGas, total).toFixed(1) + "%" : "0%");
+    setTexto("matrizParalisadas", formatarNumero(paralisadas));
+    setTexto("matrizParalisadasPerc", total ? percentual(paralisadas, total).toFixed(1) + "%" : "0%");
+    setTexto("matrizSomaMedia", somaMedia.toLocaleString("pt-BR", { maximumFractionDigits: 1 }));
+}
+
+function atualizarGraficosMatrizRisco(features) {
+    graficoMatrizRisco = criarGraficoPizza("graficoMatrizRisco", "Risco", contarMatrizPor(features, p => riscoFrenteMatriz(p)), graficoMatrizRisco);
+    graficoMatrizStatus = criarGraficoPizza("graficoMatrizStatus", "Status", contarMatrizPor(features, p => statusFrenteMatriz(p)), graficoMatrizStatus);
+
+    const interferencias = {
+        "Gás": features.filter(f => simNao((f.properties || {}).GAS) === "Sim").length,
+        "Elétrica": features.filter(f => simNao((f.properties || {}).ELETRICIDA) === "Sim").length,
+        "Telecom": features.filter(f => simNao((f.properties || {}).TELECON) === "Sim").length,
+        "Drenagem": features.filter(f => simNao((f.properties || {}).DRENAGEM) === "Sim").length
+    };
+    graficoMatrizInterferencias = criarGraficoBarra("graficoMatrizInterferencias", "Interferências", interferencias, graficoMatrizInterferencias);
+    graficoMatrizMetodos = criarGraficoBarra("graficoMatrizMetodos", "Métodos", contarMatrizPor(features, p => metodosFrente(p) || "Não informado"), graficoMatrizMetodos);
+}
+
+function atualizarMiniMapaMatriz(features) {
+    const alvo = document.getElementById("matrizMiniMapa");
+    if (!alvo) return;
+
+    const pontos = features.map(f => ({ feature: f, coord: coordenadaFrente(f) })).filter(p => p.coord);
+    if (!pontos.length) {
+        alvo.innerHTML = `<div class="matriz-mini-vazio">Nenhuma frente com coordenada no filtro atual.</div>`;
+        return;
+    }
+
+    let minLon = Math.min(...pontos.map(p => p.coord.lon));
+    let maxLon = Math.max(...pontos.map(p => p.coord.lon));
+    let minLat = Math.min(...pontos.map(p => p.coord.lat));
+    let maxLat = Math.max(...pontos.map(p => p.coord.lat));
+    if (minLon === maxLon) { minLon -= 0.01; maxLon += 0.01; }
+    if (minLat === maxLat) { minLat -= 0.01; maxLat += 0.01; }
+
+    const w = 620;
+    const h = 330;
+    const pad = 24;
+    const x = lon => pad + ((lon - minLon) / (maxLon - minLon)) * (w - pad * 2);
+    const y = lat => h - pad - ((lat - minLat) / (maxLat - minLat)) * (h - pad * 2);
+
+    const circles = pontos.map(({ feature, coord }) => {
+        const p = feature.properties || {};
+        const id = textoCampo(p, ["ID", "FRENTE", "fid"]);
+        const contrato = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+        const risco = riscoFrenteMatriz(p);
+        const status = statusFrenteMatriz(p);
+        const url = criarUrlVerNoMapa("FRENTES", "ID", id);
+        return `<a href="${escaparHtml(url)}" target="_blank"><circle cx="${x(coord.lon).toFixed(1)}" cy="${y(coord.lat).toFixed(1)}" r="5.5" fill="${corRiscoMatriz(risco)}" stroke="#ffffff" stroke-width="1.4"><title>${escaparHtml(id)} | ${escaparHtml(contrato)} | ${escaparHtml(risco)} | ${escaparHtml(status)}</title></circle></a>`;
+    }).join("");
+
+    alvo.innerHTML = `
+        <svg class="matriz-mini-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="Mini mapa das frentes filtradas">
+            <rect x="0" y="0" width="${w}" height="${h}" rx="14" fill="#eef3f7"></rect>
+            <path d="M ${pad} ${h/2} C ${w*0.25} ${h*0.35}, ${w*0.48} ${h*0.68}, ${w-pad} ${h*0.45}" fill="none" stroke="#c7d3df" stroke-width="12" opacity="0.75"></path>
+            <g opacity="0.55">
+                <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}" stroke="#cbd5df"/>
+                <line x1="${w-pad}" y1="${pad}" x2="${w-pad}" y2="${h-pad}" stroke="#cbd5df"/>
+                <line x1="${pad}" y1="${pad}" x2="${w-pad}" y2="${pad}" stroke="#cbd5df"/>
+                <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="#cbd5df"/>
+            </g>
+            ${circles}
+        </svg>
+        <div class="matriz-mini-contagem">${formatarNumero(pontos.length)} frente(s) com coordenada</div>
+    `;
+}
+
+function atualizarTabelaMatriz(features) {
+    const body = document.getElementById("matrizTabelaBody");
+    if (!body) return;
+    setTexto("matrizTabelaResumo", formatarNumero(features.length) + " registros");
+
+    const limite = 250;
+    const linhas = features.slice(0, limite).map(feature => {
+        const p = feature.properties || {};
+        const id = textoCampo(p, ["ID", "FRENTE", "fid"]);
+        const contrato = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+        const endereco = p.ENDERECO_C || p.ENDEREÇO || "";
+        const url = criarUrlVerNoMapa("FRENTES", "ID", id);
+        return `<tr>
+            <td>${escaparHtml(id)}</td>
+            <td>${escaparHtml(contrato)}</td>
+            <td>${escaparHtml(statusFrenteMatriz(p))}</td>
+            <td>${escaparHtml(riscoFrenteMatriz(p))}</td>
+            <td>${escaparHtml(metodosFrente(p))}</td>
+            <td>${escaparHtml(profundidadeFrente(p))}</td>
+            <td>${escaparHtml(simNao(p.GAS))}</td>
+            <td>${escaparHtml(simNao(p.ELETRICIDA))}</td>
+            <td>${escaparHtml(simNao(p.TELECON))}</td>
+            <td>${escaparHtml(simNao(p.DRENAGEM))}</td>
+            <td>${escaparHtml(p.SOMA ?? "")}</td>
+            <td class="col-endereco" title="${escaparHtml(endereco)}">${escaparHtml(enderecoCurto(endereco))}</td>
+            <td>${escaparHtml(p.DT_INICIO || "")}</td>
+            <td>${escaparHtml(p["DT TERMINO"] || p.DT_TERMINO || "")}</td>
+            <td><a class="link-ver-mapa" href="${escaparHtml(url)}" target="_blank">Ver</a></td>
+        </tr>`;
+    }).join("");
+
+    body.innerHTML = linhas || `<tr><td colspan="15">Nenhum registro encontrado para o filtro atual.</td></tr>`;
+}
+
+function atualizarMatrizRisco() {
+    if (!document.getElementById("secaoMatrizRisco")) return;
+    atualizarOpcoesMatrizRisco();
+    const filtradas = filtrarMatrizRiscoBase();
+    atualizarCardsMatrizRisco(filtradas);
+    atualizarGraficosMatrizRisco(filtradas);
+    atualizarMiniMapaMatriz(filtradas);
+    atualizarTabelaMatriz(filtradas);
+}
+
+function limparFiltrosMatrizRisco() {
+    [
+        "matrizFiltroContrato",
+        "matrizFiltroRisco",
+        "matrizFiltroStatus",
+        "matrizFiltroMetodo",
+        "matrizFiltroGas",
+        "matrizFiltroEletrica",
+        "matrizFiltroTelecom",
+        "matrizFiltroDrenagem"
+    ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "TODOS";
+    });
+    atualizarMatrizRisco();
+}
+
+function exportarMatrizCSV() {
+    const features = filtrarMatrizRiscoBase();
+    const linhas = [["ID", "Contrato", "Status", "Risco", "Métodos", "Profundidade", "Gás", "Elétrica", "Telecom", "Drenagem", "Soma", "Endereço", "Data início", "Data término"]];
+    features.forEach(feature => {
+        const p = feature.properties || {};
+        linhas.push([
+            textoCampo(p, ["ID", "FRENTE", "fid"]),
+            textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]),
+            statusFrenteMatriz(p),
+            riscoFrenteMatriz(p),
+            metodosFrente(p),
+            profundidadeFrente(p),
+            simNao(p.GAS),
+            simNao(p.ELETRICIDA),
+            simNao(p.TELECON),
+            simNao(p.DRENAGEM),
+            p.SOMA ?? "",
+            p.ENDERECO_C || p.ENDEREÇO || "",
+            p.DT_INICIO || "",
+            p["DT TERMINO"] || p.DT_TERMINO || ""
+        ]);
+    });
+    const csv = linhas.map(linha => linha.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
+    baixarArquivo("ponte_matriz_risco.csv", "text/csv;charset=utf-8", "\ufeff" + csv);
+}
+
+function inicializarMatrizRisco() {
+    if (matrizRiscoInicializada || !document.getElementById("secaoMatrizRisco")) return;
+    matrizRiscoInicializada = true;
+
+    [
+        "matrizFiltroContrato",
+        "matrizFiltroRisco",
+        "matrizFiltroStatus",
+        "matrizFiltroMetodo",
+        "matrizFiltroGas",
+        "matrizFiltroEletrica",
+        "matrizFiltroTelecom",
+        "matrizFiltroDrenagem"
+    ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("change", atualizarMatrizRisco);
+    });
+
+    const btnLimpar = document.getElementById("btnMatrizLimpar");
+    if (btnLimpar) btnLimpar.addEventListener("click", limparFiltrosMatrizRisco);
+
+    const btnCSV = document.getElementById("btnMatrizCSV");
+    if (btnCSV) btnCSV.addEventListener("click", exportarMatrizCSV);
+
+    atualizarMatrizRisco();
+}
+
+function sincronizarFiltroMatrizContrato(contrato) {
+    const select = document.getElementById("matrizFiltroContrato");
+    if (!select) return;
+    select.value = contrato || "TODOS";
+    if (select.value !== (contrato || "TODOS")) select.value = "TODOS";
+}
+
 function inicializarDashboard() {
     atualizarMetas();
     atualizarBotaoContratoAtivo();
     atualizarDashboard();
+    inicializarMatrizRisco();
     ativarCliquesDosCards();
 
     const btnPdf = document.getElementById("btnExportarDashboardPDF");

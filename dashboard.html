@@ -57,6 +57,146 @@
             <button onclick="filtrarContrato('03179/23')">03179/23</button>
         </section>
 
+
+        <section class="secao-dashboard matriz-risco-secao" id="secaoMatrizRisco">
+
+            <div class="matriz-risco-header">
+                <div>
+                    <h2>Matriz de Risco</h2>
+                    <p>Painel das frentes da matriz com filtros, indicadores, gráficos e mini mapa.</p>
+                </div>
+                <div class="matriz-risco-acoes">
+                    <button id="btnMatrizLimpar" type="button">Limpar filtros</button>
+                    <button id="btnMatrizCSV" type="button">Exportar matriz CSV</button>
+                </div>
+            </div>
+
+            <div class="matriz-filtros">
+                <select id="matrizFiltroContrato" aria-label="Filtrar contrato">
+                    <option value="TODOS">Todos os contratos</option>
+                </select>
+                <select id="matrizFiltroRisco" aria-label="Filtrar risco">
+                    <option value="TODOS">Todos os riscos</option>
+                </select>
+                <select id="matrizFiltroStatus" aria-label="Filtrar status">
+                    <option value="TODOS">Todos os status</option>
+                </select>
+                <select id="matrizFiltroMetodo" aria-label="Filtrar método">
+                    <option value="TODOS">Todos os métodos</option>
+                </select>
+                <select id="matrizFiltroGas" aria-label="Filtrar gás">
+                    <option value="TODOS">Gás: todos</option>
+                    <option value="SIM">Gás: sim</option>
+                    <option value="NAO">Gás: não</option>
+                </select>
+                <select id="matrizFiltroEletrica" aria-label="Filtrar elétrica">
+                    <option value="TODOS">Elétrica: todos</option>
+                    <option value="SIM">Elétrica: sim</option>
+                    <option value="NAO">Elétrica: não</option>
+                </select>
+                <select id="matrizFiltroTelecom" aria-label="Filtrar telecom">
+                    <option value="TODOS">Telecom: todos</option>
+                    <option value="SIM">Telecom: sim</option>
+                    <option value="NAO">Telecom: não</option>
+                </select>
+                <select id="matrizFiltroDrenagem" aria-label="Filtrar drenagem">
+                    <option value="TODOS">Drenagem: todos</option>
+                    <option value="SIM">Drenagem: sim</option>
+                    <option value="NAO">Drenagem: não</option>
+                </select>
+            </div>
+
+            <div class="cards cards-5 matriz-cards">
+                <div class="card">
+                    <h3>Frentes filtradas</h3>
+                    <strong id="matrizTotalFrentes">0</strong>
+                    <p>Total no recorte atual</p>
+                </div>
+                <div class="card">
+                    <h3>Risco alto</h3>
+                    <strong id="matrizRiscoAlto">0</strong>
+                    <span id="matrizRiscoAltoPerc">0%</span>
+                    <p>Prioridade crítica</p>
+                </div>
+                <div class="card">
+                    <h3>Com gás</h3>
+                    <strong id="matrizComGas">0</strong>
+                    <span id="matrizComGasPerc">0%</span>
+                    <p>Interferência registrada</p>
+                </div>
+                <div class="card">
+                    <h3>Paralisadas</h3>
+                    <strong id="matrizParalisadas">0</strong>
+                    <span id="matrizParalisadasPerc">0%</span>
+                    <p>Status/justificativa de parada</p>
+                </div>
+                <div class="card">
+                    <h3>Soma média</h3>
+                    <strong id="matrizSomaMedia">0</strong>
+                    <p>Média do campo SOMA</p>
+                </div>
+            </div>
+
+            <div class="matriz-layout">
+                <div class="grafico-card matriz-mapa-card">
+                    <h3>Mini mapa das frentes filtradas</h3>
+                    <div id="matrizMiniMapa" class="matriz-mini-mapa"></div>
+                    <p class="matriz-legenda-mini">Cores por risco: vermelho = alto, amarelo = médio, verde = baixo, azul = demais.</p>
+                </div>
+
+                <div class="matriz-graficos">
+                    <div class="grafico-card">
+                        <h3>Risco</h3>
+                        <canvas id="graficoMatrizRisco"></canvas>
+                    </div>
+                    <div class="grafico-card">
+                        <h3>Status</h3>
+                        <canvas id="graficoMatrizStatus"></canvas>
+                    </div>
+                    <div class="grafico-card">
+                        <h3>Interferências</h3>
+                        <canvas id="graficoMatrizInterferencias"></canvas>
+                    </div>
+                    <div class="grafico-card">
+                        <h3>Métodos</h3>
+                        <canvas id="graficoMatrizMetodos"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grafico-card matriz-tabela-card">
+                <div class="matriz-tabela-header">
+                    <h3>Frentes da matriz</h3>
+                    <span id="matrizTabelaResumo">0 registros</span>
+                </div>
+                <div class="matriz-tabela-wrap">
+                    <table class="tabela-modal tabela-compacta matriz-tabela" id="matrizTabela">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Contrato</th>
+                                <th>Status</th>
+                                <th>Risco</th>
+                                <th>Métodos</th>
+                                <th>Profundidade</th>
+                                <th>Gás</th>
+                                <th>Elétrica</th>
+                                <th>Telecom</th>
+                                <th>Drenagem</th>
+                                <th>Soma</th>
+                                <th>Endereço</th>
+                                <th>Início</th>
+                                <th>Término</th>
+                                <th>Mapa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matrizTabelaBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
         <section class="secao-dashboard">
 
             <h2 id="tituloMetasGerais" class="titulo-click">Metas Gerais</h2>

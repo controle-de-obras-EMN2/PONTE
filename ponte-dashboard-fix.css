@@ -67,3 +67,205 @@
 .grafico-card canvas {
     min-height: 250px;
 }
+
+/* =========================
+   Matriz de Risco
+========================= */
+
+.matriz-risco-secao {
+    margin-top: 18px;
+}
+
+.matriz-risco-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.matriz-risco-header h2 {
+    margin-bottom: 4px;
+}
+
+.matriz-risco-header p {
+    margin: 0;
+    color: #5d6b7a;
+    font-size: 14px;
+}
+
+.matriz-risco-acoes,
+.matriz-filtros {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.matriz-risco-acoes button,
+.matriz-filtros button,
+.matriz-risco-acoes .btn {
+    background: #0b2f5b;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.matriz-filtros {
+    background: #ffffff;
+    padding: 14px;
+    border-radius: 14px;
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+    margin-bottom: 14px;
+}
+
+.matriz-filtros select {
+    min-width: 170px;
+    max-width: 260px;
+    height: 40px;
+    border: 1px solid #c9d4df;
+    border-radius: 8px;
+    padding: 0 10px;
+    font-weight: 700;
+    color: #0b2f5b;
+    background: #fff;
+}
+
+.matriz-cards {
+    margin-bottom: 16px;
+}
+
+.matriz-layout {
+    display: grid;
+    grid-template-columns: minmax(360px, 1.15fr) minmax(420px, 1.85fr);
+    gap: 16px;
+    align-items: stretch;
+}
+
+.matriz-mapa-card {
+    min-height: 420px;
+}
+
+.matriz-mini-mapa {
+    width: 100%;
+    height: 330px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #eef3f7;
+    border: 1px solid #d5dde5;
+    position: relative;
+}
+
+.matriz-mini-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.matriz-mini-contagem {
+    position: absolute;
+    left: 12px;
+    bottom: 10px;
+    background: rgba(255,255,255,.92);
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #0b2f5b;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+
+.matriz-mini-vazio {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #5d6b7a;
+    font-weight: 700;
+    text-align: center;
+    padding: 20px;
+}
+
+.matriz-legenda-mini {
+    font-size: 12px;
+    color: #5d6b7a;
+    margin-top: 8px;
+}
+
+.matriz-graficos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.matriz-graficos .grafico-card canvas {
+    min-height: 210px;
+    max-height: 240px;
+}
+
+.matriz-tabela-card {
+    margin-top: 16px;
+}
+
+.matriz-tabela-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.matriz-tabela-header h3 {
+    margin: 0;
+}
+
+#matrizTabelaResumo {
+    color: #5d6b7a;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.matriz-tabela-wrap {
+    max-height: 360px;
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid #d9e0e7;
+}
+
+.matriz-tabela {
+    font-size: 11.5px;
+}
+
+.matriz-tabela thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+@media (max-width: 1100px) {
+    .matriz-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .matriz-graficos {
+        grid-template-columns: 1fr;
+    }
+
+    .matriz-risco-header {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 700px) {
+    .matriz-filtros select,
+    .matriz-risco-acoes button {
+        width: 100%;
+    }
+
+    .matriz-mini-mapa {
+        height: 260px;
+    }
+}
