@@ -1851,3 +1851,279 @@ window.abrirDetalhesLancamentos = function() {
         ]) + "<p>Camada de pontos de lançamento não encontrada no mapa atual.</p>"
     );
 };
+
+/* =========================================================
+   CORREÇÕES PONTE 2026-07-17
+   Frentes compactas + camadas atuais do qgis2web
+   ========================================================= */
+
+function obterFrentesCampoMapaAtualCorrigido() {
+    return ponteTodasAsFeaturesJson()
+        .filter(item => {
+            const nome = normalizarTexto(item.nomeVariavel || "");
+            const p = item.feature.properties || {};
+            return nome.includes("FRENTES") ||
+                p["AJUSTE STA"] !== undefined ||
+                p.RISCO !== undefined ||
+                p.GAS !== undefined ||
+                p.ENDERECO_C !== undefined;
+        })
+        .map(item => item.feature);
+}
+
+function obterSinistrosMapaAtualCorrigido() {
+    return ponteTodasAsFeaturesJson()
+        .filter(item => {
+            const nome = normalizarTexto(item.nomeVariavel || "");
+            const p = item.feature.properties || {};
+            return nome.includes("SINISTRO") || p.Ficha !== undefined || p.Sinistro !== undefined || p["Critério"] !== undefined;
+        })
+        .map(item => item.feature);
+}
+
+function obterLancamentosMapaAtualCorrigido() {
+    return ponteTodasAsFeaturesJson()
+        .filter(item => {
+            const nome = normalizarTexto(item.nomeVariavel || "");
+            const p = item.feature.properties || {};
+            return nome.includes("PONTOSDELANAMENTO") || nome.includes("PONTOS") || p.Nome_Lanca !== undefined;
+        })
+        .map(item => item.feature);
+}
+
+function obterEEEMapaAtualCorrigido() {
+    return ponteTodasAsFeaturesJson()
+        .filter(item => {
+            const nome = normalizarTexto(item.nomeVariavel || "");
+            const p = item.feature.properties || {};
+            return nome === "JSON_EEE_6" || nome.includes("EEE") || p.EEE !== undefined;
+        })
+        .map(item => item.feature);
+}
+
+obterFrentesCampoMapaAtual = obterFrentesCampoMapaAtualCorrigido;
+obterEEEMapaAtual = obterEEEMapaAtualCorrigido;
+ponteMaterialObra = function(p) {
+    return ponteValorCampo(p, ["MATERIAL", "Material", "material", "TIPO", "Tipo", "tipo"]);
+};
+
+function valorSimNaoPonte(valor) {
+    if (valor === undefined || valor === null || String(valor).trim() === "") return "";
+    const numero = Number(String(valor).replace(",", "."));
+    if (numero === 3) return "Sim";
+    if (numero > 0) return "Sim";
+    return "";
+}
+
+function listaCamposMarcadosPonte(p, campos) {
+    const itens = [];
+    campos.forEach(item => {
+        const valor = p[item.campo];
+        if (valor !== undefined && valor !== null && String(valor).trim() !== "") {
+            const numero = Number(String(valor).replace(",", "."));
+            if (!Number.isNaN(numero) && numero <= 0) return;
+            itens.push(item.nome);
+        }
+    });
+    return itens.join(", ");
+}
+
+function encurtarEnderecoPonte(endereco) {
+    const texto = String(endereco || "").replace(/\s+/g, " ").trim();
+    if (!texto) return "";
+    const partes = texto.split(",").map(p => p.trim()).filter(Boolean);
+    if (partes.length >= 3) return partes.slice(0, 3).join(", ");
+    return texto.length > 75 ? texto.slice(0, 72) + "..." : texto;
+}
+
+function montarLinhaFrentePonte(feature) {
+    const p = feature.properties || {};
+    return {
+        contrato: p.NUM_CONTRA || p.CONTRATO || p.Contrato || "",
+        status: p["AJUSTE STA"] || p.STATUS || p.Status || "",
+        etapa: p.ETAPA || "",
+        risco: p.RISCO || "",
+        metodos: listaCamposMarcadosPonte(p, [
+            { campo: "VCA", nome: "VCA" },
+            { campo: "HDD", nome: "HDD" },
+            { campo: "OUTROS_MND", nome: "Outros MND" }
+        ]),
+        profundidade: listaCamposMarcadosPonte(p, [
+            { campo: "<1,25M", nome: "< 1,25 m" },
+            { campo: "ATÉ 4,00", nome: "Até 4,00 m" },
+            { campo: "> 4,00 M", nome: "> 4,00 m" }
+        ]),
+        gas: valorSimNaoPonte(p.GAS),
+        eletrica: valorSimNaoPonte(p.ELETRICIDA),
+        telecom: valorSimNaoPonte(p.TELECON),
+        drenagem: valorSimNaoPonte(p.DRENAGEM),
+        soma: p.SOMA || "",
+        endereco: encurtarEnderecoPonte(p.ENDERECO_C),
+        enderecoCompleto: p.ENDERECO_C || "",
+        inicio: p.DT_INICIO || "",
+        termino: p["DT TERMINO"] || "",
+        paralisado: p.PARALISADO || "",
+        id: p.ID || p.fid || ""
+    };
+}
+
+function gerarTabelaFrentesCampoPonte(features) {
+    const linhas = (features || []).map(montarLinhaFrentePonte);
+
+    ponteModalCols = [
+        "Contrato", "Ajuste/Status", "Etapa", "Risco", "Métodos", "Profundidade",
+        "Gás", "Elétrica", "Telecom", "Drenagem", "Soma", "Endereço",
+        "Data início", "Data término", "Paralisado", "Mapa"
+    ];
+
+    ponteModalRows = linhas.map(l => [
+        l.contrato, l.status, l.etapa, l.risco, l.metodos, l.profundidade,
+        l.gas, l.eletrica, l.telecom, l.drenagem, l.soma, l.endereco,
+        l.inicio, l.termino, l.paralisado, l.id ? "Ver no mapa" : ""
+    ]);
+
+    let html = `
+        <div class="modal-export-toolbar">
+            <button type="button" onclick="exportarModalCSV()">Exportar CSV</button>
+            <button type="button" onclick="exportarModalPDF()">Exportar PDF</button>
+        </div>
+    `;
+
+    if (!linhas.length) {
+        html += "<p>Nenhum registro encontrado para o filtro atual.</p>";
+        return html;
+    }
+
+    html += `<table class="tabela-modal tabela-modal-compacta"><thead><tr>`;
+    ponteModalCols.forEach(col => html += `<th>${escaparHtml(col)}</th>`);
+    html += `</tr></thead><tbody>`;
+
+    linhas.forEach(l => {
+        const linkMapa = l.id
+            ? `<a class="link-ver-mapa" href="${criarUrlVerNoMapaAtual("ID", l.id)}" target="_blank" rel="noopener noreferrer">Ver no mapa</a>`
+            : `<span class="link-ver-mapa-indisponivel">Sem ID</span>`;
+
+        html += `<tr>
+            <td>${escaparHtml(l.contrato)}</td>
+            <td>${escaparHtml(l.status)}</td>
+            <td>${escaparHtml(l.etapa)}</td>
+            <td>${escaparHtml(l.risco)}</td>
+            <td>${escaparHtml(l.metodos)}</td>
+            <td>${escaparHtml(l.profundidade)}</td>
+            <td>${escaparHtml(l.gas)}</td>
+            <td>${escaparHtml(l.eletrica)}</td>
+            <td>${escaparHtml(l.telecom)}</td>
+            <td>${escaparHtml(l.drenagem)}</td>
+            <td>${escaparHtml(l.soma)}</td>
+            <td class="td-endereco" title="${escaparHtml(l.enderecoCompleto)}">${escaparHtml(l.endereco)}</td>
+            <td>${escaparHtml(l.inicio)}</td>
+            <td>${escaparHtml(l.termino)}</td>
+            <td>${escaparHtml(l.paralisado)}</td>
+            <td>${linkMapa}</td>
+        </tr>`;
+    });
+
+    html += `</tbody></table>`;
+    return html;
+}
+
+window.abrirDetalhesFrentes = function() {
+    const frentes = filtrarPorContratoMultiplosCampos(obterFrentesCampoMapaAtualCorrigido(), ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+    abrirModal("Frentes em Campo", gerarTabelaFrentesCampoPonte(frentes));
+};
+
+window.abrirDetalhesSinistros = function() {
+    const sinistros = filtrarPorContratoMultiplosCampos(obterSinistrosMapaAtualCorrigido(), ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+    abrirModal(
+        "Sinistros",
+        gerarTabelaModalExportavel(sinistros, [
+            { titulo: "Contrato", campo: "Contrato" },
+            { titulo: "Ficha", campo: "Ficha" },
+            { titulo: "Nome", campo: "Nome" },
+            { titulo: "Endereço", campo: "Endereço" },
+            { titulo: "Frente", campo: "Frente" },
+            { titulo: "Sinistro", campo: "Sinistro" },
+            { titulo: "Critério", campo: "Critério" }
+        ], {
+            verNoMapa: true,
+            campoBusca: "Ficha"
+        })
+    );
+};
+
+window.abrirDetalhesLancamentos = function() {
+    const lancamentos = filtrarPorContratoMultiplosCampos(obterLancamentosMapaAtualCorrigido(), ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+    abrirModal(
+        "Pontos de Lançamento",
+        gerarTabelaModalExportavel(lancamentos, [
+            { titulo: "Contrato", campo: "Contrato" },
+            { titulo: "Nome", campo: "Nome_Lanca" },
+            { titulo: "Município", campo: "Municipio" },
+            { titulo: "Bacia", campo: "Bacia" },
+            { titulo: "Pacote", campo: "Pacote" },
+            { titulo: "Status", campo: "Status" }
+        ], {
+            verNoMapa: true,
+            campoBusca: "Nome_Lanca"
+        })
+    );
+};
+
+atualizarDashboard = function() {
+    const obrasTodas = obterObrasMapaAtual();
+    const obras = filtrarContratoObrasAtuais(obrasTodas);
+    const frentesCampo = filtrarPorContratoMultiplosCampos(obterFrentesCampoMapaAtualCorrigido(), ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+    const eee = filtrarPorContratoMultiplosCampos(obterEEEMapaAtualCorrigido(), ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+    const sinistros = filtrarPorContratoMultiplosCampos(obterSinistrosMapaAtualCorrigido(), ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+    const lancamentos = filtrarPorContratoMultiplosCampos(obterLancamentosMapaAtualCorrigido(), ["NUM_CONTRA", "CONTRATO", "Contrato"]);
+
+    const frentesUnicas = agruparFrentesUnicasAtual(obras);
+
+    const statusProntos = [
+        "OBRA CONCLUIDA",
+        "PAVIMENTACAO PROVISORIA CONCLUIDA",
+        "PAVIMENTACAO DEFINITIVA CONCLUIDA",
+        "IMOBILIZADO"
+    ];
+
+    const prontas = frentesUnicas.filter(item => statusProntos.includes(normalizarTexto(item.status))).length;
+    const percentualProntas = frentesUnicas.length ? percentual(prontas, frentesUnicas.length) : 0;
+
+    const elObras = document.getElementById("totalObras");
+    if (elObras) elObras.innerText = frentesUnicas.length.toLocaleString("pt-BR");
+
+    const elPerc = document.getElementById("percentualObrasProntas");
+    if (elPerc) elPerc.innerText = percentualProntas.toFixed(1) + "% prontas";
+
+    const elFrentes = document.getElementById("totalFrentes");
+    if (elFrentes) elFrentes.innerText = frentesCampo.length.toLocaleString("pt-BR");
+
+    const elSinistros = document.getElementById("totalSinistros");
+    if (elSinistros) elSinistros.innerText = sinistros.length.toLocaleString("pt-BR");
+
+    const elEEE = document.getElementById("totalEEE");
+    if (elEEE) elEEE.innerText = eee.length.toLocaleString("pt-BR");
+
+    const resumoLancamentos = contarStatusLancamentos(lancamentos);
+    const elLanc = document.getElementById("totalLancamentos");
+    if (elLanc) elLanc.innerText = resumoLancamentos.total.toLocaleString("pt-BR");
+
+    const elLancStatus = document.getElementById("statusLancamentos");
+    if (elLancStatus) {
+        elLancStatus.innerText = "Ativos: " + resumoLancamentos.ativos.toLocaleString("pt-BR") +
+            " | Suprimidos: " + resumoLancamentos.suprimidos.toLocaleString("pt-BR");
+    }
+
+    graficoStatusObras = criarGraficoBarra("graficoStatusObras", "Obras por Status", contarPorCampoArray(frentesUnicas, "status"), graficoStatusObras);
+    graficoMetodo = criarGraficoBarra("graficoMetodo", "Obras por Método", contarPorCampoArray(frentesUnicas, "metodo"), graficoMetodo);
+    graficoDiametro = criarGraficoBarra("graficoDiametro", "Obras por Diâmetro", contarPorCampoArray(frentesUnicas, "diametro"), graficoDiametro);
+    graficoMaterial = criarGraficoBarra("graficoMaterial", "Obras por Material", contarPorCampoArray(frentesUnicas, "material"), graficoMaterial);
+    graficoFrentesStatus = criarGraficoBarra("graficoFrentesStatus", "Frentes por Status", contarPorCampo(frentesCampo, "AJUSTE STA"), graficoFrentesStatus);
+    graficoEEEStatus = criarGraficoBarra("graficoEEEStatus", "EEE por Status", contarPorCampo(eee, "STATUS"), graficoEEEStatus);
+
+    const canvasManchas = document.getElementById("graficoManchas");
+    if (canvasManchas) {
+        graficoManchas = criarGraficoBarra("graficoManchas", "Tipos de obra", contarPorCampo(obras, "TIPO"), graficoManchas);
+    }
+};
+window.atualizarDashboard = atualizarDashboard;

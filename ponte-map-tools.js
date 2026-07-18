@@ -1,23 +1,46 @@
 /* =========================================================
    PONTE MAP TOOLS
-   Filtros do mapa, Street View e exportação PDF do mapa
+   Filtros em funil, Street View, exportação PDF e limpar camadas
    Arquivo externo ao qgis2web para preservar melhorias do PONTE
    ========================================================= */
 
-console.log("ponte-map-tools.js carregado");
+console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
 
 (function () {
     const CAMPOS = {
         contrato: ["NUM_CONTRA", "Contrato_N", "CONTRATO", "Contrato", "contrato"],
-        frente: ["FRENTE", "Frente", "frente", "OBRA", "layer"],
-        material: ["MATERIAL", "Material", "material"],
+        frente: ["FRENTE", "Frente", "frente", "OBRA", "Nome_Lanca", "EEE"],
+        material: ["MATERIAL", "Material", "material", "TIPO", "Tipo", "tipo"],
         diametro: ["DIAMETR_MM", "Diametro", "DIAMETRO", "diametro"]
+    };
+
+    const SELECTS = {
+        contrato: "filtroMapaContrato",
+        frente: "filtroMapaFrente",
+        material: "filtroMapaMaterial",
+        diametro: "filtroMapaDiametro"
+    };
+
+    const LABELS = {
+        contrato: "Todos os contratos",
+        frente: "Todas as frentes",
+        material: "Todos os materiais",
+        diametro: "Todos os diâmetros"
     };
 
     let mapReadyTentativas = 0;
     let streetViewAtivo = false;
+    let atualizandoSelects = false;
 
     document.addEventListener("DOMContentLoaded", function () {
+        const iframe = obterIframeMapa();
+        if (iframe) {
+            iframe.addEventListener("load", function () {
+                mapReadyTentativas = 0;
+                setTimeout(aguardarMapaPonte, 350);
+            });
+        }
+
         aguardarMapaPonte();
         ativarBotoesDoMapa();
     });
@@ -43,28 +66,50 @@ console.log("ponte-map-tools.js carregado");
         const contexto = obterContextoMapa();
 
         if (!contexto) {
-            mapReadyTentativas++;
-            if (mapReadyTentativas < 80) {
-                setTimeout(aguardarMapaPonte, 250);
-            } else {
-                console.warn("PONTE: mapa não ficou disponível para os filtros.");
-            }
+            repetirAguardando("PONTE: aguardando mapa para filtros.");
             return;
         }
 
         prepararBackupsDeFeicoes(contexto.map);
-        preencherFiltrosDoMapa(contexto.map);
+
+        const totalFeatures = obterRegistrosFiltravel(contexto.map).length;
+        if (!totalFeatures) {
+            repetirAguardando("PONTE: aguardando feições do mapa para montar filtros.");
+            return;
+        }
+
+        atualizarOpcoesFunil(contexto.map);
         instalarCliqueStreetView(contexto);
-        console.log("PONTE: filtros do mapa prontos.");
+        console.log("PONTE: filtros do mapa prontos.", totalFeatures, "feições lidas.");
+    }
+
+    function repetirAguardando(mensagem) {
+        mapReadyTentativas++;
+        if (mapReadyTentativas < 100) {
+            setTimeout(aguardarMapaPonte, 250);
+        } else {
+            console.warn(mensagem);
+        }
+    }
+
+    function normalizar(valor) {
+        return String(valor ?? "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toUpperCase();
+    }
+
+    function textoLimpo(valor) {
+        return String(valor ?? "")
+            .replace(/<[^>]*>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
     }
 
     function ehCamadaBase(layer) {
-        const titulo = normalizar(
-            layer.get("title") ||
-            layer.get("name") ||
-            ""
-        );
-
+        const titulo = normalizar(layer.get("title") || layer.get("name") || "");
         const source = layer.getSource ? layer.getSource() : null;
         const sourceNome = source && source.constructor ? normalizar(source.constructor.name) : "";
 
@@ -84,27 +129,24 @@ console.log("ponte-map-tools.js carregado");
 
     function percorrerCamadas(layer, callback) {
         if (!layer) return;
-
         if (layer.getLayers) {
             layer.getLayers().forEach(function (subLayer) {
                 percorrerCamadas(subLayer, callback);
             });
             return;
         }
-
         callback(layer);
     }
 
     function obterCamadasVetoriais(map) {
         const camadas = [];
+        if (!map || !map.getLayers) return camadas;
 
         map.getLayers().forEach(function (layer) {
             percorrerCamadas(layer, function (subLayer) {
                 if (ehCamadaBase(subLayer)) return;
-
                 const source = subLayer.getSource ? subLayer.getSource() : null;
                 if (!source || typeof source.getFeatures !== "function") return;
-
                 camadas.push(subLayer);
             });
         });
@@ -115,49 +157,90 @@ console.log("ponte-map-tools.js carregado");
     function prepararBackupsDeFeicoes(map) {
         obterCamadasVetoriais(map).forEach(function (layer) {
             const source = layer.getSource();
-            if (!layer.get("ponte_features_original")) {
-                layer.set("ponte_features_original", source.getFeatures().slice());
+            const featuresAtuais = source.getFeatures ? source.getFeatures().slice() : [];
+
+            if (!layer.get("ponte_features_original") && featuresAtuais.length) {
+                layer.set("ponte_features_original", featuresAtuais);
             }
         });
     }
 
-    function normalizar(valor) {
-        return String(valor || "")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/\s+/g, " ")
-            .trim()
-            .toUpperCase();
-    }
+    function obterValorCampo(properties, campos) {
+        if (!properties) return "";
 
-    function textoLimpo(valor) {
-        return String(valor || "")
-            .replace(/<[^>]*>/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
-    }
-
-    function valorCampo(properties, campos) {
         for (const campo of campos) {
-            if (properties[campo] !== undefined && properties[campo] !== null && String(properties[campo]).trim() !== "") {
-                return String(properties[campo]).trim();
+            const valor = properties[campo];
+            if (valor !== undefined && valor !== null && String(valor).trim() !== "") {
+                return String(valor).trim();
             }
         }
+
+        const mapaChaves = {};
+        Object.keys(properties).forEach(function (chave) {
+            mapaChaves[normalizar(chave)] = chave;
+        });
+
+        for (const campo of campos) {
+            const chaveReal = mapaChaves[normalizar(campo)];
+            if (!chaveReal) continue;
+            const valor = properties[chaveReal];
+            if (valor !== undefined && valor !== null && String(valor).trim() !== "") {
+                return String(valor).trim();
+            }
+        }
+
         return "";
     }
 
-    function coletarValores(map, tipo) {
-        const valores = new Set();
-        const campos = CAMPOS[tipo];
+    function valorTipo(properties, tipo) {
+        return obterValorCampo(properties, CAMPOS[tipo] || []);
+    }
+
+    function obterRegistrosFiltravel(map) {
+        const registros = [];
 
         obterCamadasVetoriais(map).forEach(function (layer) {
-            const features = layer.get("ponte_features_original") || layer.getSource().getFeatures();
+            const source = layer.getSource();
+            const features = layer.get("ponte_features_original") || source.getFeatures() || [];
+            const titulo = textoLimpo(layer.get("popuplayertitle") || layer.get("title") || layer.get("name") || "");
 
             features.forEach(function (feature) {
                 const props = feature.getProperties ? feature.getProperties() : {};
-                const valor = valorCampo(props, campos);
-                if (valor) valores.add(valor);
+                registros.push({ layer, feature, props, titulo });
             });
+        });
+
+        return registros;
+    }
+
+    function obterFiltrosAtuais() {
+        return {
+            contrato: document.getElementById(SELECTS.contrato)?.value || "",
+            frente: document.getElementById(SELECTS.frente)?.value || "",
+            material: document.getElementById(SELECTS.material)?.value || "",
+            diametro: document.getElementById(SELECTS.diametro)?.value || ""
+        };
+    }
+
+    function registroAtendeFiltros(registro, filtros, ignorarTipo) {
+        return ["contrato", "frente", "material", "diametro"].every(function (tipo) {
+            if (tipo === ignorarTipo) return true;
+
+            const valorFiltro = filtros[tipo];
+            if (!valorFiltro) return true;
+
+            const valorRegistro = valorTipo(registro.props, tipo);
+            return normalizar(valorRegistro) === normalizar(valorFiltro);
+        });
+    }
+
+    function coletarValoresFiltrados(map, tipo, filtros) {
+        const valores = new Set();
+
+        obterRegistrosFiltravel(map).forEach(function (registro) {
+            if (!registroAtendeFiltros(registro, filtros, tipo)) return;
+            const valor = valorTipo(registro.props, tipo);
+            if (valor) valores.add(valor);
         });
 
         return Array.from(valores).sort(function (a, b) {
@@ -165,11 +248,10 @@ console.log("ponte-map-tools.js carregado");
         });
     }
 
-    function preencherSelect(id, valores, labelTodos) {
+    function preencherSelect(id, valores, labelTodos, valorAtual) {
         const select = document.getElementById(id);
-        if (!select) return;
+        if (!select) return "";
 
-        const valorAtual = select.value;
         select.innerHTML = `<option value="">${labelTodos}</option>`;
 
         valores.forEach(function (valor) {
@@ -179,41 +261,43 @@ console.log("ponte-map-tools.js carregado");
             select.appendChild(option);
         });
 
-        if (valorAtual && valores.includes(valorAtual)) {
-            select.value = valorAtual;
+        if (valorAtual && valores.some(v => normalizar(v) === normalizar(valorAtual))) {
+            const equivalente = valores.find(v => normalizar(v) === normalizar(valorAtual));
+            select.value = equivalente;
+            return equivalente;
         }
+
+        return "";
     }
 
-    function preencherFiltrosDoMapa(map) {
-        preencherSelect("filtroMapaContrato", coletarValores(map, "contrato"), "Todos os contratos");
-        preencherSelect("filtroMapaFrente", coletarValores(map, "frente"), "Todas as frentes");
-        preencherSelect("filtroMapaMaterial", coletarValores(map, "material"), "Todos os materiais");
-        preencherSelect("filtroMapaDiametro", coletarValores(map, "diametro"), "Todos os diâmetros");
-    }
+    function atualizarOpcoesFunil(map) {
+        if (!map) {
+            const contexto = obterContextoMapa();
+            if (!contexto) return;
+            map = contexto.map;
+        }
 
-    function obterFiltrosAtuais() {
-        return {
-            contrato: document.getElementById("filtroMapaContrato")?.value || "",
-            frente: document.getElementById("filtroMapaFrente")?.value || "",
-            material: document.getElementById("filtroMapaMaterial")?.value || "",
-            diametro: document.getElementById("filtroMapaDiametro")?.value || ""
-        };
+        prepararBackupsDeFeicoes(map);
+
+        atualizandoSelects = true;
+        const filtros = obterFiltrosAtuais();
+
+        ["contrato", "frente", "material", "diametro"].forEach(function (tipo) {
+            const valores = coletarValoresFiltrados(map, tipo, filtros);
+            filtros[tipo] = preencherSelect(SELECTS[tipo], valores, LABELS[tipo], filtros[tipo]);
+        });
+
+        atualizandoSelects = false;
     }
 
     function featureAtendeFiltros(feature, filtros) {
         const props = feature.getProperties ? feature.getProperties() : {};
 
-        const testes = [
-            [filtros.contrato, CAMPOS.contrato],
-            [filtros.frente, CAMPOS.frente],
-            [filtros.material, CAMPOS.material],
-            [filtros.diametro, CAMPOS.diametro]
-        ];
-
-        return testes.every(function ([valorFiltro, campos]) {
+        return ["contrato", "frente", "material", "diametro"].every(function (tipo) {
+            const valorFiltro = filtros[tipo];
             if (!valorFiltro) return true;
 
-            const valorFeature = valorCampo(props, campos);
+            const valorFeature = valorTipo(props, tipo);
             return normalizar(valorFeature) === normalizar(valorFiltro);
         });
     }
@@ -226,6 +310,7 @@ console.log("ponte-map-tools.js carregado");
         }
 
         prepararBackupsDeFeicoes(contexto.map);
+        if (!atualizandoSelects) atualizarOpcoesFunil(contexto.map);
 
         const filtros = obterFiltrosAtuais();
         let total = 0;
@@ -241,7 +326,11 @@ console.log("ponte-map-tools.js carregado");
             source.clear(true);
             if (filtradas.length) {
                 source.addFeatures(filtradas);
-                layer.setVisible(true);
+                if (typeof layer.setVisible === "function") layer.setVisible(true);
+            } else {
+                if (Object.values(filtros).some(Boolean) && typeof layer.setVisible === "function") {
+                    layer.setVisible(false);
+                }
             }
 
             filtradas.forEach(function (feature) {
@@ -273,8 +362,8 @@ console.log("ponte-map-tools.js carregado");
         const contexto = obterContextoMapa();
         if (!contexto) return;
 
-        ["filtroMapaContrato", "filtroMapaFrente", "filtroMapaMaterial", "filtroMapaDiametro"].forEach(function (id) {
-            const el = document.getElementById(id);
+        ["contrato", "frente", "material", "diametro"].forEach(function (tipo) {
+            const el = document.getElementById(SELECTS[tipo]);
             if (el) el.value = "";
         });
 
@@ -287,9 +376,11 @@ console.log("ponte-map-tools.js carregado");
                 source.addFeatures(todas);
             }
 
-            layer.setVisible(true);
+            if (typeof layer.setVisible === "function") layer.setVisible(true);
             if (layer.changed) layer.changed();
         });
+
+        atualizarOpcoesFunil(contexto.map);
 
         const resumo = document.getElementById("resumoFiltrosMapa");
         if (resumo) resumo.textContent = "Filtros limpos";
@@ -299,27 +390,30 @@ console.log("ponte-map-tools.js carregado");
 
     function limparCamadasMapa() {
         const contexto = obterContextoMapa();
-        if (!contexto) return;
-
-        if (contexto.janelaMapa.PONTE_MAP_BRIDGE && contexto.janelaMapa.PONTE_MAP_BRIDGE.limparCamadas) {
-            contexto.janelaMapa.PONTE_MAP_BRIDGE.limparCamadas();
+        if (!contexto) {
+            alert("O mapa ainda não carregou.");
             return;
         }
 
-        obterCamadasVetoriais(contexto.map).forEach(function (layer) {
-            const source = layer.getSource();
-            if (!layer.get("ponte_features_original")) {
-                layer.set("ponte_features_original", source.getFeatures().slice());
-            }
-            source.clear(true);
-            layer.setVisible(false);
-        });
+        if (contexto.janelaMapa.PONTE_MAP_BRIDGE && contexto.janelaMapa.PONTE_MAP_BRIDGE.limparCamadas) {
+            contexto.janelaMapa.PONTE_MAP_BRIDGE.limparCamadas();
+        } else {
+            obterCamadasVetoriais(contexto.map).forEach(function (layer) {
+                prepararBackupsDeFeicoes(contexto.map);
+                if (typeof layer.setVisible === "function") layer.setVisible(false);
+                if (layer.changed) layer.changed();
+            });
+        }
+
+        const resumo = document.getElementById("resumoFiltrosMapa");
+        if (resumo) resumo.textContent = "Camadas ocultadas";
+
+        if (contexto.map.render) contexto.map.render();
     }
 
     function ativarBotoesDoMapa() {
         document.addEventListener("click", function (event) {
             const id = event.target && event.target.id;
-
             if (id === "btnAplicarFiltrosMapa") aplicarFiltrosMapa();
             if (id === "btnLimparFiltrosMapa") limparFiltrosMapa();
             if (id === "btnLimparCamadas") limparCamadasMapa();
@@ -327,9 +421,11 @@ console.log("ponte-map-tools.js carregado");
             if (id === "btnExportarMapaPDF") exportarMapaPDF();
         });
 
-        ["filtroMapaContrato", "filtroMapaFrente", "filtroMapaMaterial", "filtroMapaDiametro"].forEach(function (id) {
+        Object.values(SELECTS).forEach(function (id) {
             document.addEventListener("change", function (event) {
-                if (event.target && event.target.id === id) aplicarFiltrosMapa();
+                if (!event.target || event.target.id !== id) return;
+                if (atualizandoSelects) return;
+                aplicarFiltrosMapa();
             });
         });
     }
@@ -345,10 +441,9 @@ console.log("ponte-map-tools.js carregado");
             const coord4326 = contexto.ol.proj.toLonLat(evt.coordinate);
             const lon = coord4326[0];
             const lat = coord4326[1];
-
             const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
-            window.open(url, "_blank", "noopener,noreferrer");
 
+            window.open(url, "_blank", "noopener,noreferrer");
             alternarStreetView(false);
         });
     }
@@ -371,130 +466,15 @@ console.log("ponte-map-tools.js carregado");
         instalarCliqueStreetView(contexto);
     }
 
-    function obterLegendasVisiveis() {
-        const contexto = obterContextoMapa();
-        if (!contexto) return [];
-
-        return obterCamadasVetoriais(contexto.map)
-            .filter(function (layer) {
-                const source = layer.getSource && layer.getSource();
-                return source && source.getFeatures && source.getFeatures().length > 0;
-            })
-            .map(function (layer) {
-                return textoLimpo(layer.get("title") || layer.get("name") || "Camada sem nome");
-            })
-            .filter(Boolean)
-            .slice(0, 14);
-    }
-
-    async function exportarMapaPDF() {
+    function exportarMapaPDF() {
         const contexto = obterContextoMapa();
         if (!contexto) {
             alert("Mapa ainda não carregou.");
             return;
         }
 
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-            alert("A biblioteca jsPDF não foi carregada.");
-            return;
-        }
-
-        const canvasMapa = capturarCanvasOpenLayers(contexto.janelaMapa.document);
-
-        if (!canvasMapa) {
-            alert("Não consegui capturar o canvas do mapa.");
-            return;
-        }
-
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF("landscape", "mm", "a4");
-
-        const larguraPagina = 297;
-        const alturaPagina = 210;
-        const margem = 10;
-        const tituloAltura = 14;
-        const legendaLargura = 62;
-        const mapaLargura = larguraPagina - (margem * 2) - legendaLargura - 6;
-        const mapaAltura = alturaPagina - (margem * 2) - tituloAltura;
-
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(15);
-        pdf.text("PONTE - Mapa Operacional EMN2", margem, 13);
-
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(8);
-        pdf.text(`Exportado em ${new Date().toLocaleString("pt-BR")}`, margem, 18);
-
-        const imagem = canvasMapa.toDataURL("image/png");
-        pdf.addImage(imagem, "PNG", margem, margem + tituloAltura, mapaLargura, mapaAltura);
-
-        const xLeg = margem + mapaLargura + 6;
-        let y = margem + tituloAltura;
-
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(11);
-        pdf.text("Legenda", xLeg, y);
-        y += 7;
-
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(7);
-
-        const legendas = obterLegendasVisiveis();
-        if (!legendas.length) {
-            pdf.text("Nenhuma camada vetorial visível.", xLeg, y);
-        } else {
-            legendas.forEach(function (texto) {
-                const linhas = pdf.splitTextToSize(texto, legendaLargura - 3);
-                if (y + linhas.length * 4 > alturaPagina - margem) return;
-                pdf.text(linhas, xLeg, y);
-                y += linhas.length * 4 + 2;
-            });
-        }
-
-        pdf.save("ponte_mapa.pdf");
-    }
-
-    function capturarCanvasOpenLayers(docMapa) {
-        const canvases = Array.from(docMapa.querySelectorAll(".ol-layer canvas, canvas.ol-unselectable, canvas"))
-            .filter(function (canvas) {
-                return canvas.width > 0 && canvas.height > 0 && canvas.offsetParent !== null;
-            });
-
-        if (!canvases.length) return null;
-
-        const primeiro = canvases[0];
-        const saida = document.createElement("canvas");
-        saida.width = primeiro.width;
-        saida.height = primeiro.height;
-        const ctx = saida.getContext("2d");
-
-        canvases.forEach(function (canvas) {
-            let opacity = 1;
-            const parent = canvas.parentElement;
-            if (parent && parent.style.opacity) opacity = Number(parent.style.opacity) || 1;
-
-            ctx.globalAlpha = opacity;
-
-            try {
-                const transform = canvas.style.transform;
-                if (transform && transform.startsWith("matrix")) {
-                    const matrix = transform.match(/^matrix\(([^\)]*)\)$/);
-                    if (matrix) {
-                        const values = matrix[1].split(",").map(Number);
-                        ctx.setTransform(values[0], values[1], values[2], values[3], values[4], values[5]);
-                    }
-                } else {
-                    ctx.setTransform(1, 0, 0, 1, 0, 0);
-                }
-                ctx.drawImage(canvas, 0, 0);
-            } catch (erro) {
-                console.warn("Falha ao capturar camada do mapa no PDF:", erro);
-            }
-        });
-
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.globalAlpha = 1;
-        return saida;
+        contexto.iframe.contentWindow.focus();
+        window.print();
     }
 
     window.PONTE_MAP_TOOLS = {
@@ -505,7 +485,7 @@ console.log("ponte-map-tools.js carregado");
         exportarMapaPDF,
         preencherFiltros: function () {
             const contexto = obterContextoMapa();
-            if (contexto) preencherFiltrosDoMapa(contexto.map);
+            if (contexto) atualizarOpcoesFunil(contexto.map);
         }
     };
 })();

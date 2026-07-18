@@ -1454,20 +1454,17 @@ body:has(#barra-filtros-mapa) #mapa-container {
     height: calc(100vh - 164px);
 }
 
-#ferramentas-mapa {
-    position: fixed;
-    top: 174px;
-    right: 48px;
-    z-index: 100020;
+#ferramentas-mapa,
+.grupo-ferramentas-mapa {
     display: flex;
+    align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    justify-content: flex-end;
-    max-width: 520px;
+    margin-left: auto;
 }
 
 #ferramentas-mapa .botao-mapa {
-    height: 36px;
+    height: 38px;
     font-size: 13px;
 }
 
@@ -1513,17 +1510,14 @@ body:has(#barra-filtros-mapa) #mapa-container {
         flex: 0 0 auto;
     }
 
-    #ferramentas-mapa {
-        position: sticky;
-        top: 0;
-        right: auto;
-        z-index: 100030;
-        background: rgba(244, 246, 248, .96);
-        padding: 8px;
+    #ferramentas-mapa,
+    .grupo-ferramentas-mapa {
+        margin-left: 0;
         justify-content: flex-start;
         max-width: none;
-        overflow-x: auto;
+        overflow-x: visible;
         flex-wrap: nowrap;
+        flex: 0 0 auto;
     }
 
     #ferramentas-mapa .botao-mapa {
@@ -1599,5 +1593,48 @@ body:has(#barra-filtros-mapa) #mapa-container {
 @media (max-width: 900px) {
     .filtros-modal-obras {
         grid-template-columns: 1fr;
+    }
+}
+
+
+/* =========================================================
+   AJUSTES PONTE - MODAL DE FRENTES E LAYER SWITCHER
+   ========================================================= */
+
+.tabela-modal td.td-endereco,
+.tabela-modal .td-endereco {
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tabela-modal td {
+    vertical-align: middle;
+}
+
+.tabela-modal-compacta {
+    table-layout: auto;
+}
+
+.tabela-modal-compacta th,
+.tabela-modal-compacta td {
+    padding: 6px 8px;
+    line-height: 1.25;
+}
+
+@media print {
+    #header,
+    #barra-filtros-mapa,
+    #logo-footer {
+        display: none !important;
+    }
+
+    #mapa-container {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        top: 0 !important;
     }
 }
