@@ -59,6 +59,57 @@ function percentual(realizado, previsto) {
     return p ? (r / p) * 100 : 0;
 }
 
+function numeroDashboard(valor) {
+    if (valor === undefined || valor === null || valor === "") return 0;
+    if (typeof valor === "number") return Number.isFinite(valor) ? valor : 0;
+    let texto = String(valor).trim();
+    if (!texto || normalizarTexto(texto) === "NULL") return 0;
+    texto = texto.replace(/\s/g, "");
+    const temVirgula = texto.includes(",");
+    const temPonto = texto.includes(".");
+    if (temVirgula && temPonto) {
+        texto = texto.replace(/\./g, "").replace(",", ".");
+    } else if (temVirgula) {
+        texto = texto.replace(",", ".");
+    }
+    const n = Number(texto);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function opcoesGraficoBarraBase() {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+            mode: "index",
+            intersect: false,
+            axis: "x"
+        },
+        hover: {
+            mode: "index",
+            intersect: false
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                enabled: true,
+                mode: "index",
+                intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        const label = context.dataset?.label ? context.dataset.label + ": " : "";
+                        return label + formatarNumero(context.parsed?.y ?? context.raw ?? 0);
+                    }
+                }
+            }
+        },
+        scales: {
+            x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 20 } },
+            y: { beginAtZero: true }
+        }
+    };
+}
+
 function valorCampo(props, campos) {
     for (const campo of campos) {
         if (props && props[campo] !== undefined && props[campo] !== null && String(props[campo]).trim() !== "") {
@@ -234,15 +285,86 @@ function criarGraficoBarra(idCanvas, titulo, dados, graficoAnterior) {
             labels,
             datasets: [{ label: titulo, data: valores }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 20 } },
-                y: { beginAtZero: true }
-            }
-        }
+        options: opcoesGraficoBarraBase()
+    });
+}
+
+function chaveCorMancha(valor) {
+    const texto = normalizarTexto(valor);
+    if (texto.includes("VERDE")) return "VERDE";
+    if (texto.includes("AZUL")) return "AZUL";
+    if (texto.includes("VERMELH")) return "VERMELHA";
+    return texto || "NAO INFORMADO";
+}
+
+function somarEconomiasPorMancha(features) {
+    const ordem = ["VERDE", "AZUL", "VERMELHA"];
+    const resumo = {
+        VERDE: { fatorU: 0, contrato: 0 },
+        AZUL: { fatorU: 0, contrato: 0 },
+        VERMELHA: { fatorU: 0, contrato: 0 }
+    };
+
+    (features || []).forEach(feature => {
+        const p = feature.properties || {};
+        const cor = chaveCorMancha(p.COR_MANCHA || p.COR || p.MANCHA || p.cor_mancha);
+        if (!resumo[cor]) resumo[cor] = { fatorU: 0, contrato: 0 };
+        resumo[cor].fatorU += numeroDashboard(valorCampo(p, ["ECON_FTU", "ECON_FATOR_U", "FATOR_U", "ECONOMIAS_FTU"]));
+        resumo[cor].contrato += numeroDashboard(valorCampo(p, ["ECON_CONT", "ECON_CONTRATO", "CONTRATO_ECON", "ECONOMIAS_CONTRATO"]));
+    });
+
+    Object.keys(resumo).forEach(cor => {
+        if (!ordem.includes(cor)) ordem.push(cor);
+    });
+
+    return { ordem, resumo };
+}
+
+function criarGraficoManchasEconomias(features, graficoAnterior) {
+    const canvas = document.getElementById("graficoManchas");
+    if (!canvas || typeof Chart === "undefined") return graficoAnterior;
+
+    destruirGrafico(graficoAnterior);
+
+    const { ordem, resumo } = somarEconomiasPorMancha(features || []);
+    const cores = {
+        VERDE: "#2ecc71",
+        AZUL: "#3498db",
+        VERMELHA: "#e74c3c",
+        "NAO INFORMADO": "#9aa4b2"
+    };
+    const rotulos = {
+        VERDE: "Mancha verde",
+        AZUL: "Mancha azul",
+        VERMELHA: "Mancha vermelha",
+        "NAO INFORMADO": "Não informado"
+    };
+
+    const datasets = ordem.map(cor => ({
+        label: rotulos[cor] || cor,
+        data: [resumo[cor]?.fatorU || 0, resumo[cor]?.contrato || 0],
+        backgroundColor: cores[cor] || "#9aa4b2",
+        borderColor: cores[cor] || "#9aa4b2",
+        borderWidth: 1
+    }));
+
+    const opcoes = opcoesGraficoBarraBase();
+    opcoes.plugins.legend = { display: true, position: "top" };
+    opcoes.plugins.tooltip.callbacks.label = function(context) {
+        const valor = context.parsed?.y ?? context.raw ?? 0;
+        return `${context.dataset.label}: ${formatarNumero(valor)} economia(s)`;
+    };
+    opcoes.scales.y.ticks = {
+        callback: function(value) { return formatarNumero(value); }
+    };
+
+    return new Chart(canvas, {
+        type: "bar",
+        data: {
+            labels: ["Fator U", "Fator Contrato"],
+            datasets
+        },
+        options: opcoes
     });
 }
 
@@ -326,7 +448,7 @@ function atualizarDashboard() {
     graficoMaterial = criarGraficoBarra("graficoMaterial", "Obras por Material", contarPorArray(obrasUnicas, "material"), graficoMaterial);
     graficoFrentesStatus = criarGraficoBarra("graficoFrentesStatus", "Frentes por Status", contarPorCampo(frentesCampo, "AJUSTE STA"), graficoFrentesStatus);
     graficoEEEStatus = criarGraficoBarra("graficoEEEStatus", "EEE por Status", contarPorCampo(eee, "STATUS"), graficoEEEStatus);
-    graficoManchas = criarGraficoBarra("graficoManchas", "Manchas por Cor", contarPorCampo(manchas, "COR_MANCHA"), graficoManchas);
+    graficoManchas = criarGraficoManchasEconomias(manchas, graficoManchas);
 
     atualizarGraficosContratos();
 }
@@ -351,7 +473,7 @@ function atualizarGraficosContratos() {
                     { label: "Total unitizado", data: valores.map(v => v.totalUnitizado || 0) }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            options: { ...opcoesGraficoBarraBase(), plugins: { ...opcoesGraficoBarraBase().plugins, legend: { display: true, position: "top" } } }
         });
     }
 
@@ -371,7 +493,7 @@ function atualizarGraficosContratos() {
                     { label: "Unitizada", data: exts.map(v => v.unitizada || 0) }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            options: { ...opcoesGraficoBarraBase(), plugins: { ...opcoesGraficoBarraBase().plugins, legend: { display: true, position: "top" } } }
         });
     }
 }
