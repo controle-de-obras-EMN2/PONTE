@@ -20,9 +20,8 @@ let graficoMatrizStatus = null;
 let graficoMatrizInterferencias = null;
 let graficoMatrizMetodos = null;
 let matrizRiscoInicializada = false;
-let matrizMapaOL = null;
-let matrizFonteOL = null;
-let matrizLayerPontosOL = null;
+let matrizMapaLeaflet = null;
+let matrizLayerPontosLeaflet = null;
 
 let ponteModalCols = [];
 let ponteModalRows = [];
@@ -898,56 +897,16 @@ function normalizarCoordBrasil(coord) {
 
 
 function redimensionarMapaMatrizForcado() {
-    const alvo = document.getElementById("matrizMapaSatelite");
-    if (!alvo || !matrizMapaOL) return;
-
-    const rect = alvo.getBoundingClientRect();
-    const largura = Math.max(300, Math.round(rect.width || alvo.clientWidth || 0));
-    const altura = Math.max(240, Math.round(rect.height || alvo.clientHeight || 0));
-
-    // O OpenLayers pode guardar o tamanho em pixels calculado no primeiro render.
-    // Aqui forçamos o tamanho real do box e também atualizamos o tamanho interno do mapa.
-    alvo.style.width = "100%";
-    alvo.style.height = altura + "px";
-
-    const viewport = alvo.querySelector(".ol-viewport");
-    if (viewport) {
-        viewport.style.position = "absolute";
-        viewport.style.inset = "0";
-        viewport.style.width = largura + "px";
-        viewport.style.height = altura + "px";
-        viewport.style.maxWidth = "none";
-        viewport.style.maxHeight = "none";
-    }
-
-    const internos = alvo.querySelectorAll(".ol-unselectable, .ol-layers, .ol-layer");
-    internos.forEach(el => {
-        el.style.width = largura + "px";
-        el.style.height = altura + "px";
-        el.style.maxWidth = "none";
-        el.style.maxHeight = "none";
-    });
-
-    alvo.querySelectorAll("canvas").forEach(canvas => {
-        canvas.style.width = largura + "px";
-        canvas.style.height = altura + "px";
-        canvas.style.maxWidth = "none";
-        canvas.style.maxHeight = "none";
-    });
-
+    if (!matrizMapaLeaflet) return;
     try {
-        if (typeof matrizMapaOL.setSize === "function") {
-            matrizMapaOL.setSize([largura, altura]);
-        }
-        matrizMapaOL.updateSize();
-        if (typeof matrizMapaOL.renderSync === "function") matrizMapaOL.renderSync();
+        matrizMapaLeaflet.invalidateSize(true);
     } catch (e) {
         console.warn("PONTE - não foi possível redimensionar o mapa da matriz", e);
     }
 }
 
 function agendarRedimensionamentoMapaMatriz() {
-    [50, 150, 350, 700, 1200, 2000, 3500].forEach(ms => {
+    [50, 150, 300, 600, 1000, 1800].forEach(ms => {
         setTimeout(redimensionarMapaMatrizForcado, ms);
     });
     if (window.requestAnimationFrame) {
@@ -959,78 +918,46 @@ function garantirMapaSateliteMatriz() {
     const alvo = document.getElementById("matrizMapaSatelite");
     if (!alvo) return null;
 
-    if (typeof ol === "undefined") {
-        alvo.innerHTML = `<div class="matriz-mini-vazio">OpenLayers não carregou. Verifique se MAPA/resources/ol.js existe.</div>`;
+    if (typeof L === "undefined") {
+        alvo.innerHTML = `<div class="matriz-mini-vazio">Leaflet não carregou. Verifique a conexão com a internet para carregar o mapa da matriz.</div>`;
         return null;
     }
 
-    if (matrizMapaOL) {
+    if (matrizMapaLeaflet) {
         agendarRedimensionamentoMapaMatriz();
-        return matrizMapaOL;
+        return matrizMapaLeaflet;
     }
 
-    matrizFonteOL = new ol.source.Vector();
+    // Limpa qualquer sobra de renderização antiga do OpenLayers.
+    alvo.innerHTML = "";
 
-    matrizLayerPontosOL = new ol.layer.Vector({
-        source: matrizFonteOL,
-        style: function(feature) {
-            const risco = feature.get("risco") || "";
-            return new ol.style.Style({
-                image: new ol.style.Circle({
-                    radius: 7,
-                    fill: new ol.style.Fill({ color: corRiscoMatriz(risco) }),
-                    stroke: new ol.style.Stroke({ color: "#ffffff", width: 2 })
-                })
-            });
-        }
-    });
+    matrizMapaLeaflet = L.map(alvo, {
+        zoomControl: true,
+        attributionControl: false,
+        preferCanvas: true,
+        scrollWheelZoom: true
+    }).setView([-23.45, -46.55], 11);
 
-    matrizMapaOL = new ol.Map({
-        target: alvo,
-        layers: [
-            new ol.layer.Tile({
-                title: "Google Satellite Hybrid",
-                opacity: 0.85,
-                source: new ol.source.XYZ({
-                    attributions: "Google Satellite",
-                    url: "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
-                })
-            }),
-            matrizLayerPontosOL
-        ],
-        view: new ol.View({
-            center: ol.proj.fromLonLat([-46.55, -23.45]),
-            zoom: 11
-        }),
-        controls: ol.control.defaults.defaults({
-            attribution: false,
-            rotate: false
-        })
-    });
+    L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+        maxZoom: 21,
+        subdomains: ["mt0", "mt1", "mt2", "mt3"]
+    }).addTo(matrizMapaLeaflet);
+
+    matrizLayerPontosLeaflet = L.layerGroup().addTo(matrizMapaLeaflet);
+
+    setTimeout(() => {
+        redimensionarMapaMatrizForcado();
+    }, 100);
 
     if (window.ResizeObserver) {
         const ro = new ResizeObserver(function() {
-            if (matrizMapaOL) {
-                setTimeout(redimensionarMapaMatrizForcado, 40);
-            }
+            setTimeout(redimensionarMapaMatrizForcado, 60);
         });
         ro.observe(alvo);
     }
 
-    matrizMapaOL.on("singleclick", function(evt) {
-        const feature = matrizMapaOL.forEachFeatureAtPixel(evt.pixel, f => f);
-        if (!feature) return;
-        const url = feature.get("urlMapa");
-        if (url) window.open(url, "_blank");
-    });
-
-    matrizMapaOL.on("pointermove", function(evt) {
-        const hit = matrizMapaOL.hasFeatureAtPixel(evt.pixel);
-        matrizMapaOL.getTargetElement().style.cursor = hit ? "pointer" : "";
-    });
-
     agendarRedimensionamentoMapaMatriz();
-    return matrizMapaOL;
+    return matrizMapaLeaflet;
 }
 
 function atualizarMiniMapaMatriz(features) {
@@ -1044,16 +971,17 @@ function atualizarMiniMapaMatriz(features) {
     setTexto("matrizMapaResumo", `${formatarNumero(pontos.length)} com coordenada`);
 
     const mapa = garantirMapaSateliteMatriz();
-    if (!mapa || !matrizFonteOL) return;
+    if (!mapa || !matrizLayerPontosLeaflet) return;
 
-    matrizFonteOL.clear();
+    matrizLayerPontosLeaflet.clearLayers();
 
     if (!pontos.length) {
-        const view = mapa.getView();
-        view.setCenter(ol.proj.fromLonLat([-46.55, -23.45]));
-        view.setZoom(11);
+        mapa.setView([-23.45, -46.55], 11);
+        agendarRedimensionamentoMapaMatriz();
         return;
     }
+
+    const bounds = [];
 
     pontos.forEach(({ feature, coord }) => {
         const p = feature.properties || {};
@@ -1061,30 +989,51 @@ function atualizarMiniMapaMatriz(features) {
         const contrato = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
         const risco = riscoFrenteMatriz(p);
         const status = statusFrenteMatriz(p);
+        const endereco = textoCampo(p, ["ENDERECO_C", "ENDEREÇO", "ENDERECO", "ENDEREÇO_C"]);
         const url = criarUrlVerNoMapa("FRENTES", "ID", id);
+        const cor = corRiscoMatriz(risco);
+        const latLng = [coord.lat, coord.lon];
 
-        const olFeature = new ol.Feature({
-            geometry: new ol.geom.Point(ol.proj.fromLonLat([coord.lon, coord.lat])),
-            id,
-            contrato,
-            risco,
-            status,
-            urlMapa: url
+        const marker = L.circleMarker(latLng, {
+            radius: 7,
+            color: "#ffffff",
+            weight: 2,
+            fillColor: cor,
+            fillOpacity: 0.95
         });
-        matrizFonteOL.addFeature(olFeature);
+
+        marker.bindTooltip(`${id || "Frente"} - ${risco || "Sem risco"}`, {
+            direction: "top",
+            opacity: 0.9
+        });
+
+        marker.bindPopup(`
+            <div class="matriz-popup-mapa">
+                <strong>${escaparHtml(id || "Frente")}</strong><br>
+                Contrato: ${escaparHtml(contrato || "-")}<br>
+                Risco: ${escaparHtml(risco || "-")}<br>
+                Status: ${escaparHtml(status || "-")}<br>
+                ${endereco ? `Endereço: ${escaparHtml(endereco).slice(0, 120)}<br>` : ""}
+                <a href="${url}" target="_blank">Ver no mapa principal</a>
+            </div>
+        `);
+
+        marker.on("click", function() {
+            // Mantém o popup aberto. O link dentro dele abre o mapa principal com zoom.
+        });
+
+        marker.addTo(matrizLayerPontosLeaflet);
+        bounds.push(latLng);
     });
 
     redimensionarMapaMatrizForcado();
 
-    const extent = matrizFonteOL.getExtent();
-    if (pontos.length === 1) {
-        mapa.getView().setCenter(ol.proj.fromLonLat([pontos[0].coord.lon, pontos[0].coord.lat]));
-        mapa.getView().setZoom(16);
-    } else if (extent && extent.every(Number.isFinite)) {
-        mapa.getView().fit(extent, {
-            padding: [34, 34, 34, 34],
-            maxZoom: 16,
-            duration: 250
+    if (bounds.length === 1) {
+        mapa.setView(bounds[0], 16);
+    } else {
+        mapa.fitBounds(bounds, {
+            padding: [28, 28],
+            maxZoom: 16
         });
     }
 

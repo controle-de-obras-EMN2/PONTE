@@ -513,52 +513,122 @@
 }
 
 
-/* Patch definitivo: força o OpenLayers da matriz a ocupar todo o box */
-.matriz-layout-principal .matriz-mapa-card {
-    height: 395px !important;
-    min-height: 395px !important;
-    max-height: 395px !important;
+
+
+/* Patch estável: mapa da matriz com Leaflet, sem película e preenchendo o box */
+.matriz-layout-principal {
+    display: grid !important;
+    grid-template-columns: 1.25fr 1fr 1fr !important;
+    gap: 16px !important;
+    align-items: stretch !important;
+}
+
+.matriz-layout-principal .matriz-mapa-card,
+.matriz-layout-principal .matriz-pizza-card {
+    height: 390px !important;
+    min-height: 390px !important;
+    max-height: 390px !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
 }
 
-.matriz-layout-principal .matriz-mapa-card .matriz-mapa-header {
+.matriz-mapa-header {
     flex: 0 0 auto !important;
-}
-
-.matriz-layout-principal .matriz-mapa-card .matriz-legenda-mini {
-    flex: 0 0 auto !important;
-    margin: 8px 0 0 0 !important;
-    line-height: 1.25 !important;
 }
 
 #matrizMapaSatelite.matriz-mapa-satelite {
     flex: 1 1 auto !important;
     width: 100% !important;
     height: 100% !important;
-    min-height: 0 !important;
+    min-height: 285px !important;
     display: block !important;
     position: relative !important;
     overflow: hidden !important;
-    box-sizing: border-box !important;
+    border-radius: 14px !important;
+    background: #dfe7ee !important;
+    z-index: 1 !important;
+    pointer-events: auto !important;
 }
 
-#matrizMapaSatelite .ol-viewport,
-#matrizMapaSatelite .ol-unselectable,
-#matrizMapaSatelite .ol-layers,
-#matrizMapaSatelite .ol-layer {
-    position: absolute !important;
-    inset: 0 !important;
+#matrizMapaSatelite .leaflet-pane,
+#matrizMapaSatelite .leaflet-map-pane,
+#matrizMapaSatelite .leaflet-tile-pane,
+#matrizMapaSatelite .leaflet-overlay-pane,
+#matrizMapaSatelite .leaflet-marker-pane,
+#matrizMapaSatelite .leaflet-tile-container,
+#matrizMapaSatelite .leaflet-layer {
+    pointer-events: auto !important;
+}
+
+#matrizMapaSatelite .leaflet-container,
+#matrizMapaSatelite.leaflet-container {
     width: 100% !important;
     height: 100% !important;
-    min-width: 100% !important;
-    min-height: 100% !important;
-    max-width: none !important;
+    cursor: grab;
+}
+
+#matrizMapaSatelite.leaflet-dragging {
+    cursor: grabbing;
+}
+
+.matriz-legenda-mini {
+    flex: 0 0 auto !important;
+    margin: 8px 0 0 0 !important;
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+}
+
+.matriz-pizza-card canvas {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: 310px !important;
+}
+
+.matriz-popup-mapa {
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.matriz-popup-mapa a {
+    color: #0b2f5b;
+    font-weight: 800;
+    text-decoration: underline;
+}
+
+/* Corrige herança indevida de altura nas células da matriz */
+.matriz-tabela th,
+.matriz-tabela td {
+    height: auto !important;
+    min-height: 0 !important;
     max-height: none !important;
 }
 
-#matrizMapaSatelite canvas {
-    max-width: none !important;
-    max-height: none !important;
+@media (max-width: 1250px) {
+    .matriz-layout-principal {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    .matriz-layout-principal .matriz-mapa-card {
+        grid-column: 1 / -1 !important;
+    }
+}
+
+@media (max-width: 760px) {
+    .matriz-layout-principal {
+        grid-template-columns: 1fr !important;
+    }
+
+    .matriz-layout-principal .matriz-mapa-card,
+    .matriz-layout-principal .matriz-pizza-card {
+        height: auto !important;
+        min-height: 340px !important;
+        max-height: none !important;
+    }
+
+    #matrizMapaSatelite.matriz-mapa-satelite {
+        height: 300px !important;
+        min-height: 300px !important;
+        flex: 0 0 300px !important;
+    }
 }
