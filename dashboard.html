@@ -64,7 +64,7 @@
             <div class="matriz-risco-header">
                 <div>
                     <h2>Matriz de Risco</h2>
-                    <p>Painel das frentes da matriz com filtros, indicadores, gráficos e mini mapa.</p>
+                    <p>Painel das frentes da matriz com filtros, indicadores e mapa por satélite.</p>
                 </div>
                 <div class="matriz-risco-acoes">
                     <button id="btnMatrizLimpar" type="button">Limpar filtros</button>
@@ -138,7 +138,7 @@
                 </div>
             </div>
 
-            <div class="matriz-layout">
+            <div class="matriz-layout matriz-layout-principal">
                 <div class="grafico-card matriz-mapa-card">
                     <div class="matriz-mapa-header">
                         <h3>Localização das frentes filtradas</h3>
@@ -148,23 +148,14 @@
                     <p class="matriz-legenda-mini">Cores por risco: vermelho = alto, amarelo = médio, verde = baixo, azul = demais. Clique no pin para abrir no mapa principal.</p>
                 </div>
 
-                <div class="matriz-graficos">
-                    <div class="grafico-card">
-                        <h3>Risco</h3>
-                        <canvas id="graficoMatrizRisco"></canvas>
-                    </div>
-                    <div class="grafico-card">
-                        <h3>Status</h3>
-                        <canvas id="graficoMatrizStatus"></canvas>
-                    </div>
-                    <div class="grafico-card">
-                        <h3>Interferências</h3>
-                        <canvas id="graficoMatrizInterferencias"></canvas>
-                    </div>
-                    <div class="grafico-card">
-                        <h3>Métodos</h3>
-                        <canvas id="graficoMatrizMetodos"></canvas>
-                    </div>
+                <div class="grafico-card matriz-pizza-card">
+                    <h3>Risco</h3>
+                    <canvas id="graficoMatrizRisco"></canvas>
+                </div>
+
+                <div class="grafico-card matriz-pizza-card">
+                    <h3>Status</h3>
+                    <canvas id="graficoMatrizStatus"></canvas>
                 </div>
             </div>
 

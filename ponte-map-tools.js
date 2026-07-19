@@ -71,6 +71,7 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
         }
 
         prepararBackupsDeFeicoes(contexto.map);
+        removerFrentesConcluidasDoMapa(contexto.map);
 
         const totalFeatures = obterRegistrosFiltravel(contexto.map).length;
         if (!totalFeatures) {
@@ -106,6 +107,41 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
             .replace(/<[^>]*>/g, " ")
             .replace(/\s+/g, " ")
             .trim();
+    }
+
+    function valorStatusFrente(props) {
+        if (!props) return "";
+        return props["AJUSTE STA"] ?? props.STATUS ?? props.Status ?? props.status ?? "";
+    }
+
+    function ehFrenteMatriz(props) {
+        if (!props) return false;
+        return (
+            props["AJUSTE STA"] !== undefined ||
+            props.RISCO !== undefined ||
+            props.Risco !== undefined ||
+            props.GAS !== undefined ||
+            props.SOMA !== undefined
+        );
+    }
+
+    function ehFrenteConcluida(featureOuProps) {
+        const props = featureOuProps && featureOuProps.getProperties ? featureOuProps.getProperties() : featureOuProps;
+        if (!ehFrenteMatriz(props)) return false;
+        return normalizar(valorStatusFrente(props)).includes("CONCLUID");
+    }
+
+    function removerFrentesConcluidasDoMapa(map) {
+        obterCamadasVetoriais(map).forEach(function(layer) {
+            const source = layer.getSource();
+            const todas = layer.get("ponte_features_original") || source.getFeatures() || [];
+            const visiveis = todas.filter(feature => !ehFrenteConcluida(feature));
+            if (visiveis.length !== todas.length) {
+                source.clear(true);
+                if (visiveis.length) source.addFeatures(visiveis);
+                if (layer.changed) layer.changed();
+            }
+        });
     }
 
     function ehCamadaBase(layer) {
@@ -206,6 +242,7 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
 
             features.forEach(function (feature) {
                 const props = feature.getProperties ? feature.getProperties() : {};
+                if (ehFrenteConcluida(props)) return;
                 registros.push({ layer, feature, props, titulo });
             });
         });
@@ -320,7 +357,7 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
             const source = layer.getSource();
             const todas = layer.get("ponte_features_original") || source.getFeatures().slice();
             const filtradas = todas.filter(function (feature) {
-                return featureAtendeFiltros(feature, filtros);
+                return !ehFrenteConcluida(feature) && featureAtendeFiltros(feature, filtros);
             });
 
             source.clear(true);
@@ -372,8 +409,9 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
             const todas = layer.get("ponte_features_original");
 
             if (todas) {
+                const visiveis = todas.filter(feature => !ehFrenteConcluida(feature));
                 source.clear(true);
-                source.addFeatures(todas);
+                source.addFeatures(visiveis);
             }
 
             if (typeof layer.setVisible === "function") layer.setVisible(true);

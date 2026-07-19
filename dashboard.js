@@ -295,7 +295,7 @@ function setTexto(id, texto) {
 
 function atualizarDashboard() {
     const obras = filtrarPorContrato(obterObras());
-    const frentesCampo = filtrarPorContrato(obterFrentesCampo());
+    const frentesCampo = filtrarPorContrato(obterFrentesCampo().filter(f => !ehStatusConcluidoMatriz(f.properties || {})));
     const sinistros = filtrarPorContrato(obterSinistros());
     const eee = filtrarPorContrato(obterEEE());
     const lancamentos = filtrarPorContrato(obterLancamentos());
@@ -693,6 +693,18 @@ function statusFrenteMatriz(p) {
     return textoCampo(p, ["AJUSTE STA", "STATUS", "Status"]) || "Não informado";
 }
 
+function ehStatusConcluidoMatriz(statusOuProps) {
+    const status = typeof statusOuProps === "object" && statusOuProps !== null
+        ? statusFrenteMatriz(statusOuProps)
+        : statusOuProps;
+    const n = normalizarTexto(status);
+    return n.includes("CONCLUID");
+}
+
+function frentesMatrizVisiveisBase() {
+    return obterFrentesCampo().filter(f => !ehStatusConcluidoMatriz(f.properties || {}));
+}
+
 function riscoFrenteMatriz(p) {
     return textoCampo(p, ["RISCO", "Risco", "risco"]) || "Não informado";
 }
@@ -738,7 +750,7 @@ function corRiscoMatriz(risco) {
     return "#0b6fb3";
 }
 
-function filtrarMatrizRiscoBase() {
+function filtrarMatrizRiscoBase(incluirConcluidas = false) {
     const contrato = obterValorFiltroMatriz("matrizFiltroContrato");
     const risco = obterValorFiltroMatriz("matrizFiltroRisco");
     const status = obterValorFiltroMatriz("matrizFiltroStatus");
@@ -750,6 +762,7 @@ function filtrarMatrizRiscoBase() {
 
     return obterFrentesCampo().filter(feature => {
         const p = feature.properties || {};
+        if (!incluirConcluidas && ehStatusConcluidoMatriz(p)) return false;
         const contratoFeature = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
         if (contrato !== "TODOS" && contratoFeature !== contrato) return false;
         if (risco !== "TODOS" && riscoFrenteMatriz(p) !== risco) return false;
@@ -776,6 +789,7 @@ function featuresParaOpcoesMatriz(filtrosIgnorados = []) {
 
     return obterFrentesCampo().filter(feature => {
         const p = feature.properties || {};
+        if (ehStatusConcluidoMatriz(p)) return false;
         const contratoFeature = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
         if (!ignorar.has("contrato") && contrato !== "TODOS" && contratoFeature !== contrato) return false;
         if (!ignorar.has("risco") && risco !== "TODOS" && riscoFrenteMatriz(p) !== risco) return false;
@@ -802,7 +816,7 @@ function atualizarOpcoesMatrizRisco() {
     preencherSelectMatriz(
         "matrizFiltroContrato",
         "Todos os contratos",
-        obterFrentesCampo().map(f => textoCampo(f.properties || {}, ["NUM_CONTRA", "CONTRATO", "Contrato"])),
+        frentesMatrizVisiveisBase().map(f => textoCampo(f.properties || {}, ["NUM_CONTRA", "CONTRATO", "Contrato"])),
         obterValorFiltroMatriz("matrizFiltroContrato")
     );
 
@@ -862,14 +876,10 @@ function atualizarGraficosMatrizRisco(features) {
     graficoMatrizRisco = criarGraficoPizza("graficoMatrizRisco", "Risco", contarMatrizPor(features, p => riscoFrenteMatriz(p)), graficoMatrizRisco);
     graficoMatrizStatus = criarGraficoPizza("graficoMatrizStatus", "Status", contarMatrizPor(features, p => statusFrenteMatriz(p)), graficoMatrizStatus);
 
-    const interferencias = {
-        "Gás": features.filter(f => simNao((f.properties || {}).GAS) === "Sim").length,
-        "Elétrica": features.filter(f => simNao((f.properties || {}).ELETRICIDA) === "Sim").length,
-        "Telecom": features.filter(f => simNao((f.properties || {}).TELECON) === "Sim").length,
-        "Drenagem": features.filter(f => simNao((f.properties || {}).DRENAGEM) === "Sim").length
-    };
-    graficoMatrizInterferencias = criarGraficoBarra("graficoMatrizInterferencias", "Interferências", interferencias, graficoMatrizInterferencias);
-    graficoMatrizMetodos = criarGraficoBarra("graficoMatrizMetodos", "Métodos", contarMatrizPor(features, p => metodosFrente(p) || "Não informado"), graficoMatrizMetodos);
+    // Os gráficos de barras da matriz foram removidos do layout.
+    // Se existirem de versão anterior em cache, destruímos para evitar processamento desnecessário.
+    graficoMatrizInterferencias = destruirGrafico(graficoMatrizInterferencias);
+    graficoMatrizMetodos = destruirGrafico(graficoMatrizMetodos);
 }
 
 function normalizarCoordBrasil(coord) {
@@ -939,6 +949,15 @@ function garantirMapaSateliteMatriz() {
         })
     });
 
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver(function() {
+            if (matrizMapaOL) {
+                setTimeout(() => matrizMapaOL.updateSize(), 40);
+            }
+        });
+        ro.observe(alvo);
+    }
+
     matrizMapaOL.on("singleclick", function(evt) {
         const feature = matrizMapaOL.forEachFeatureAtPixel(evt.pixel, f => f);
         if (!feature) return;
@@ -996,6 +1015,8 @@ function atualizarMiniMapaMatriz(features) {
         matrizFonteOL.addFeature(olFeature);
     });
 
+    if (typeof mapa.updateSize === "function") mapa.updateSize();
+
     const extent = matrizFonteOL.getExtent();
     if (pontos.length === 1) {
         mapa.getView().setCenter(ol.proj.fromLonLat([pontos[0].coord.lon, pontos[0].coord.lat]));
@@ -1009,6 +1030,8 @@ function atualizarMiniMapaMatriz(features) {
     }
 
     setTimeout(() => mapa.updateSize(), 80);
+    setTimeout(() => mapa.updateSize(), 350);
+    setTimeout(() => mapa.updateSize(), 900);
 }
 
 function atualizarTabelaMatriz(features) {
@@ -1073,7 +1096,7 @@ function limparFiltrosMatrizRisco() {
 }
 
 function exportarMatrizCSV() {
-    const features = filtrarMatrizRiscoBase();
+    const features = filtrarMatrizRiscoBase(true);
     const linhas = [["ID", "Contrato", "Status", "Risco", "Métodos", "Profundidade", "Gás", "Elétrica", "Telecom", "Drenagem", "Soma", "Endereço", "Data início", "Data término"]];
     features.forEach(feature => {
         const p = feature.properties || {};

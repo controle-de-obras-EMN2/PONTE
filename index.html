@@ -69,6 +69,16 @@
     </iframe>
 </div>
 
+<script>
+(function () {
+    const iframe = document.getElementById("iframeMapa");
+    const busca = window.location.search || "";
+    if (iframe && busca && busca.includes("ponteCampo=")) {
+        iframe.src = "MAPA/index.html" + busca;
+    }
+})();
+</script>
+
 <div id="logo-footer">
     <img src="images/logo_empresa.png" alt="Logos">
 </div>

@@ -263,11 +263,20 @@
 
         const geom = encontrado.getGeometry && encontrado.getGeometry();
         if (geom) {
-            mapa.getView().fit(geom.getExtent(), {
-                padding: [90, 90, 90, 90],
-                maxZoom: 20,
-                duration: 900
-            });
+            const tipoGeom = geom.getType ? geom.getType() : "";
+            if (tipoGeom === "Point") {
+                mapa.getView().animate({
+                    center: geom.getCoordinates(),
+                    zoom: 18,
+                    duration: 900
+                });
+            } else {
+                mapa.getView().fit(geom.getExtent(), {
+                    padding: [90, 90, 90, 90],
+                    maxZoom: 18,
+                    duration: 900
+                });
+            }
         }
 
         if (typeof mapa.render === "function") mapa.render();
