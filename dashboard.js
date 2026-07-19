@@ -856,10 +856,13 @@ function atualizarCardsMatrizRisco(features) {
     const comGas = features.filter(f => simNao((f.properties || {}).GAS) === "Sim").length;
     const paralisadas = features.filter(f => {
         const p = f.properties || {};
-        return normalizarTexto(statusFrenteMatriz(p)).includes("PARALIS") || normalizarTexto(p.PARALISADO).includes("SIM") || !!String(p.JUSTIFICATIVA || "").trim();
+        const statusNorm = normalizarTexto(statusFrenteMatriz(p));
+        return statusNorm.includes("PARALIS")
+            || statusNorm.includes("ADEQUACAO ARSESP")
+            || normalizarTexto(p.PARALISADO).includes("SIM")
+            || !!String(p.JUSTIFICATIVA || "").trim();
     }).length;
-    const somaValores = features.map(f => numeroSeguro((f.properties || {}).SOMA)).filter(n => n > 0);
-    const somaMedia = somaValores.length ? somaValores.reduce((a, b) => a + b, 0) / somaValores.length : 0;
+    const emAndamento = features.filter(f => normalizarTexto(statusFrenteMatriz(f.properties || {})).includes("ANDAMENTO")).length;
 
     setTexto("matrizTotalFrentes", formatarNumero(total));
     setTexto("matrizRiscoAlto", formatarNumero(riscoAlto));
@@ -868,7 +871,8 @@ function atualizarCardsMatrizRisco(features) {
     setTexto("matrizComGasPerc", total ? percentual(comGas, total).toFixed(1) + "%" : "0%");
     setTexto("matrizParalisadas", formatarNumero(paralisadas));
     setTexto("matrizParalisadasPerc", total ? percentual(paralisadas, total).toFixed(1) + "%" : "0%");
-    setTexto("matrizSomaMedia", somaMedia.toLocaleString("pt-BR", { maximumFractionDigits: 1 }));
+    setTexto("matrizEmAndamento", formatarNumero(emAndamento));
+    setTexto("matrizEmAndamentoPerc", total ? percentual(emAndamento, total).toFixed(1) + "%" : "0%");
 }
 
 function atualizarGraficosMatrizRisco(features) {
@@ -994,12 +998,15 @@ function atualizarMiniMapaMatriz(features) {
         const cor = corRiscoMatriz(risco);
         const latLng = [coord.lat, coord.lon];
 
-        const marker = L.circleMarker(latLng, {
-            radius: 7,
-            color: "#ffffff",
-            weight: 2,
-            fillColor: cor,
-            fillOpacity: 0.95
+        const marker = L.marker(latLng, {
+            icon: L.divIcon({
+                className: "matriz-leaflet-pin-wrapper",
+                html: `<span class="matriz-leaflet-pin" style="background:${cor}"></span>`,
+                iconSize: [18, 18],
+                iconAnchor: [9, 9],
+                popupAnchor: [0, -10]
+            }),
+            keyboard: false
         });
 
         marker.bindTooltip(`${id || "Frente"} - ${risco || "Sem risco"}`, {
@@ -1023,6 +1030,7 @@ function atualizarMiniMapaMatriz(features) {
         });
 
         marker.addTo(matrizLayerPontosLeaflet);
+        if (typeof marker.setZIndexOffset === "function") marker.setZIndexOffset(1000);
         bounds.push(latLng);
     });
 

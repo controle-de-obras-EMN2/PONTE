@@ -632,3 +632,28 @@
         flex: 0 0 300px !important;
     }
 }
+
+
+/* Patch: pins da matriz com marcador HTML no Leaflet */
+#matrizMapaSatelite .leaflet-marker-pane {
+    z-index: 650 !important;
+}
+
+.matriz-leaflet-pin-wrapper {
+    background: transparent !important;
+    border: none !important;
+}
+
+.matriz-leaflet-pin {
+    width: 14px;
+    height: 14px;
+    display: block;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 5px rgba(0,0,0,.55);
+    box-sizing: border-box;
+}
+
+.matriz-leaflet-pin-wrapper:hover .matriz-leaflet-pin {
+    transform: scale(1.25);
+}
