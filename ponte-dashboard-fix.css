@@ -269,3 +269,120 @@
         height: 260px;
     }
 }
+
+/* Ajustes da Matriz de Risco - mapa real e tabela contida */
+.matriz-mapa-card {
+    height: auto !important;
+    min-height: 430px;
+    overflow: hidden;
+}
+
+.matriz-mapa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.matriz-mapa-header h3 {
+    margin: 0;
+}
+
+#matrizMapaResumo {
+    color: #5d6b7a;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.matriz-mapa-satelite {
+    width: 100%;
+    height: 345px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #dfe7ee;
+    border: 1px solid #d5dde5;
+    position: relative;
+}
+
+.matriz-mapa-satelite .ol-zoom {
+    top: 8px;
+    left: 8px;
+}
+
+.matriz-tabela-card {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.matriz-tabela-wrap {
+    max-height: 285px !important;
+    overflow: auto !important;
+    border-radius: 12px;
+    border: 1px solid #d9e0e7;
+}
+
+.matriz-tabela {
+    table-layout: fixed !important;
+    width: 100%;
+    font-size: 11px !important;
+}
+
+.matriz-tabela th,
+.matriz-tabela td {
+    padding: 5px 7px !important;
+    line-height: 1.15 !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+}
+
+.matriz-tabela th:nth-child(1),
+.matriz-tabela td:nth-child(1) { width: 70px; }
+.matriz-tabela th:nth-child(2),
+.matriz-tabela td:nth-child(2) { width: 78px; }
+.matriz-tabela th:nth-child(3),
+.matriz-tabela td:nth-child(3) { width: 130px; }
+.matriz-tabela th:nth-child(4),
+.matriz-tabela td:nth-child(4) { width: 85px; }
+.matriz-tabela th:nth-child(5),
+.matriz-tabela td:nth-child(5) { width: 95px; }
+.matriz-tabela th:nth-child(6),
+.matriz-tabela td:nth-child(6) { width: 90px; }
+.matriz-tabela th:nth-child(7),
+.matriz-tabela td:nth-child(7),
+.matriz-tabela th:nth-child(8),
+.matriz-tabela td:nth-child(8),
+.matriz-tabela th:nth-child(9),
+.matriz-tabela td:nth-child(9),
+.matriz-tabela th:nth-child(10),
+.matriz-tabela td:nth-child(10) { width: 68px; text-align: center; }
+.matriz-tabela th:nth-child(11),
+.matriz-tabela td:nth-child(11) { width: 60px; text-align: center; }
+.matriz-tabela th:nth-child(12),
+.matriz-tabela td:nth-child(12) { width: 260px; }
+.matriz-tabela th:nth-child(13),
+.matriz-tabela td:nth-child(13),
+.matriz-tabela th:nth-child(14),
+.matriz-tabela td:nth-child(14) { width: 86px; }
+.matriz-tabela th:nth-child(15),
+.matriz-tabela td:nth-child(15) { width: 60px; text-align: center; }
+
+.matriz-tabela .col-endereco {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+    .matriz-mapa-satelite {
+        height: 280px;
+    }
+
+    .matriz-tabela-wrap {
+        max-height: 260px !important;
+    }
+}

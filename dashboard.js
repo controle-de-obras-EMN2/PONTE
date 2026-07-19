@@ -20,6 +20,9 @@ let graficoMatrizStatus = null;
 let graficoMatrizInterferencias = null;
 let graficoMatrizMetodos = null;
 let matrizRiscoInicializada = false;
+let matrizMapaOL = null;
+let matrizFonteOL = null;
+let matrizLayerPontosOL = null;
 
 let ponteModalCols = [];
 let ponteModalRows = [];
@@ -869,53 +872,143 @@ function atualizarGraficosMatrizRisco(features) {
     graficoMatrizMetodos = criarGraficoBarra("graficoMatrizMetodos", "Métodos", contarMatrizPor(features, p => metodosFrente(p) || "Não informado"), graficoMatrizMetodos);
 }
 
+function normalizarCoordBrasil(coord) {
+    if (!coord) return null;
+    let lon = Number(coord.lon);
+    let lat = Number(coord.lat);
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+
+    // As frentes da matriz ficam na região de SP. Se algum arquivo vier com sinal positivo,
+    // converte para hemisfério sul/oeste sem mexer em coordenadas já negativas.
+    if (lat > 0 && lat < 35) lat = -lat;
+    if (lon > 0 && lon < 90) lon = -lon;
+
+    return { lon, lat };
+}
+
+function garantirMapaSateliteMatriz() {
+    const alvo = document.getElementById("matrizMapaSatelite");
+    if (!alvo) return null;
+
+    if (typeof ol === "undefined") {
+        alvo.innerHTML = `<div class="matriz-mini-vazio">OpenLayers não carregou. Verifique se MAPA/resources/ol.js existe.</div>`;
+        return null;
+    }
+
+    if (matrizMapaOL) {
+        setTimeout(() => matrizMapaOL.updateSize(), 80);
+        return matrizMapaOL;
+    }
+
+    matrizFonteOL = new ol.source.Vector();
+
+    matrizLayerPontosOL = new ol.layer.Vector({
+        source: matrizFonteOL,
+        style: function(feature) {
+            const risco = feature.get("risco") || "";
+            return new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 7,
+                    fill: new ol.style.Fill({ color: corRiscoMatriz(risco) }),
+                    stroke: new ol.style.Stroke({ color: "#ffffff", width: 2 })
+                })
+            });
+        }
+    });
+
+    matrizMapaOL = new ol.Map({
+        target: alvo,
+        layers: [
+            new ol.layer.Tile({
+                title: "Google Satellite Hybrid",
+                opacity: 0.85,
+                source: new ol.source.XYZ({
+                    attributions: "Google Satellite",
+                    url: "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                })
+            }),
+            matrizLayerPontosOL
+        ],
+        view: new ol.View({
+            center: ol.proj.fromLonLat([-46.55, -23.45]),
+            zoom: 11
+        }),
+        controls: ol.control.defaults.defaults({
+            attribution: false,
+            rotate: false
+        })
+    });
+
+    matrizMapaOL.on("singleclick", function(evt) {
+        const feature = matrizMapaOL.forEachFeatureAtPixel(evt.pixel, f => f);
+        if (!feature) return;
+        const url = feature.get("urlMapa");
+        if (url) window.open(url, "_blank");
+    });
+
+    matrizMapaOL.on("pointermove", function(evt) {
+        const hit = matrizMapaOL.hasFeatureAtPixel(evt.pixel);
+        matrizMapaOL.getTargetElement().style.cursor = hit ? "pointer" : "";
+    });
+
+    setTimeout(() => matrizMapaOL.updateSize(), 120);
+    return matrizMapaOL;
+}
+
 function atualizarMiniMapaMatriz(features) {
-    const alvo = document.getElementById("matrizMiniMapa");
+    const alvo = document.getElementById("matrizMapaSatelite");
     if (!alvo) return;
 
-    const pontos = features.map(f => ({ feature: f, coord: coordenadaFrente(f) })).filter(p => p.coord);
+    const pontos = features
+        .map(f => ({ feature: f, coord: normalizarCoordBrasil(coordenadaFrente(f)) }))
+        .filter(p => p.coord);
+
+    setTexto("matrizMapaResumo", `${formatarNumero(pontos.length)} com coordenada`);
+
+    const mapa = garantirMapaSateliteMatriz();
+    if (!mapa || !matrizFonteOL) return;
+
+    matrizFonteOL.clear();
+
     if (!pontos.length) {
-        alvo.innerHTML = `<div class="matriz-mini-vazio">Nenhuma frente com coordenada no filtro atual.</div>`;
+        const view = mapa.getView();
+        view.setCenter(ol.proj.fromLonLat([-46.55, -23.45]));
+        view.setZoom(11);
         return;
     }
 
-    let minLon = Math.min(...pontos.map(p => p.coord.lon));
-    let maxLon = Math.max(...pontos.map(p => p.coord.lon));
-    let minLat = Math.min(...pontos.map(p => p.coord.lat));
-    let maxLat = Math.max(...pontos.map(p => p.coord.lat));
-    if (minLon === maxLon) { minLon -= 0.01; maxLon += 0.01; }
-    if (minLat === maxLat) { minLat -= 0.01; maxLat += 0.01; }
-
-    const w = 620;
-    const h = 330;
-    const pad = 24;
-    const x = lon => pad + ((lon - minLon) / (maxLon - minLon)) * (w - pad * 2);
-    const y = lat => h - pad - ((lat - minLat) / (maxLat - minLat)) * (h - pad * 2);
-
-    const circles = pontos.map(({ feature, coord }) => {
+    pontos.forEach(({ feature, coord }) => {
         const p = feature.properties || {};
         const id = textoCampo(p, ["ID", "FRENTE", "fid"]);
         const contrato = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
         const risco = riscoFrenteMatriz(p);
         const status = statusFrenteMatriz(p);
         const url = criarUrlVerNoMapa("FRENTES", "ID", id);
-        return `<a href="${escaparHtml(url)}" target="_blank"><circle cx="${x(coord.lon).toFixed(1)}" cy="${y(coord.lat).toFixed(1)}" r="5.5" fill="${corRiscoMatriz(risco)}" stroke="#ffffff" stroke-width="1.4"><title>${escaparHtml(id)} | ${escaparHtml(contrato)} | ${escaparHtml(risco)} | ${escaparHtml(status)}</title></circle></a>`;
-    }).join("");
 
-    alvo.innerHTML = `
-        <svg class="matriz-mini-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="Mini mapa das frentes filtradas">
-            <rect x="0" y="0" width="${w}" height="${h}" rx="14" fill="#eef3f7"></rect>
-            <path d="M ${pad} ${h/2} C ${w*0.25} ${h*0.35}, ${w*0.48} ${h*0.68}, ${w-pad} ${h*0.45}" fill="none" stroke="#c7d3df" stroke-width="12" opacity="0.75"></path>
-            <g opacity="0.55">
-                <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}" stroke="#cbd5df"/>
-                <line x1="${w-pad}" y1="${pad}" x2="${w-pad}" y2="${h-pad}" stroke="#cbd5df"/>
-                <line x1="${pad}" y1="${pad}" x2="${w-pad}" y2="${pad}" stroke="#cbd5df"/>
-                <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="#cbd5df"/>
-            </g>
-            ${circles}
-        </svg>
-        <div class="matriz-mini-contagem">${formatarNumero(pontos.length)} frente(s) com coordenada</div>
-    `;
+        const olFeature = new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat([coord.lon, coord.lat])),
+            id,
+            contrato,
+            risco,
+            status,
+            urlMapa: url
+        });
+        matrizFonteOL.addFeature(olFeature);
+    });
+
+    const extent = matrizFonteOL.getExtent();
+    if (pontos.length === 1) {
+        mapa.getView().setCenter(ol.proj.fromLonLat([pontos[0].coord.lon, pontos[0].coord.lat]));
+        mapa.getView().setZoom(16);
+    } else if (extent && extent.every(Number.isFinite)) {
+        mapa.getView().fit(extent, {
+            padding: [34, 34, 34, 34],
+            maxZoom: 16,
+            duration: 250
+        });
+    }
+
+    setTimeout(() => mapa.updateSize(), 80);
 }
 
 function atualizarTabelaMatriz(features) {

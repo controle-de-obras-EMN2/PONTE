@@ -7,6 +7,7 @@
     <title>PONTE | Dashboard</title>
 
     <link rel="stylesheet" href="ponte.css">
+    <link rel="stylesheet" href="MAPA/resources/ol.css">
     <link rel="stylesheet" href="ponte-dashboard-fix.css">
 </head>
 
@@ -139,9 +140,12 @@
 
             <div class="matriz-layout">
                 <div class="grafico-card matriz-mapa-card">
-                    <h3>Mini mapa das frentes filtradas</h3>
-                    <div id="matrizMiniMapa" class="matriz-mini-mapa"></div>
-                    <p class="matriz-legenda-mini">Cores por risco: vermelho = alto, amarelo = médio, verde = baixo, azul = demais.</p>
+                    <div class="matriz-mapa-header">
+                        <h3>Localização das frentes filtradas</h3>
+                        <span id="matrizMapaResumo">0 com coordenada</span>
+                    </div>
+                    <div id="matrizMapaSatelite" class="matriz-mapa-satelite"></div>
+                    <p class="matriz-legenda-mini">Cores por risco: vermelho = alto, amarelo = médio, verde = baixo, azul = demais. Clique no pin para abrir no mapa principal.</p>
                 </div>
 
                 <div class="matriz-graficos">
@@ -379,6 +383,7 @@
     <script src="MAPA/layers/SinistroEMN2_7.js"></script>
     <script src="MAPA/layers/PONTOSDELANAMENTO_8.js"></script>
     <script src="MAPA/layers/FRENTES_9.js"></script>
+    <script src="MAPA/resources/ol.js"></script>
 
     <script src="dashboard.js"></script>
 
