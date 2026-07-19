@@ -64,7 +64,7 @@
     color: white;
 }
 
-.grafico-card canvas {
+.grafico-card:not(.matriz-mapa-card) canvas {
     min-height: 250px;
 }
 
@@ -459,5 +459,55 @@
     }
     .matriz-mapa-satelite {
         min-height: 300px !important;
+    }
+}
+
+
+/* Patch: força o mapa real da matriz a preencher todo o card */
+.matriz-mapa-card {
+    min-height: 395px !important;
+    height: 395px !important;
+}
+
+.matriz-mapa-satelite {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    flex: 1 1 auto !important;
+    min-height: 315px !important;
+    height: 315px !important;
+    overflow: hidden !important;
+}
+
+.matriz-mapa-satelite .ol-viewport,
+.matriz-mapa-satelite .ol-unselectable,
+.matriz-mapa-satelite .ol-layers,
+.matriz-mapa-satelite .ol-layer {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+}
+
+.matriz-mapa-satelite .ol-viewport {
+    position: absolute !important;
+    inset: 0 !important;
+}
+
+.matriz-mapa-satelite canvas {
+    min-height: 0 !important;
+    max-height: none !important;
+}
+
+@media (max-width: 760px) {
+    .matriz-mapa-card {
+        height: 360px !important;
+        min-height: 360px !important;
+    }
+    .matriz-mapa-satelite {
+        height: 280px !important;
+        min-height: 280px !important;
     }
 }

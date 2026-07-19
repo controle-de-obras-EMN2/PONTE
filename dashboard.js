@@ -896,6 +896,38 @@ function normalizarCoordBrasil(coord) {
     return { lon, lat };
 }
 
+
+function redimensionarMapaMatrizForcado() {
+    const alvo = document.getElementById("matrizMapaSatelite");
+    if (!alvo || !matrizMapaOL) return;
+
+    // O OpenLayers às vezes calcula o tamanho antes do layout final do dashboard.
+    // Aqui forçamos o viewport interno a ocupar 100% do box e pedimos novo render.
+    const internos = alvo.querySelectorAll(".ol-viewport, .ol-unselectable, .ol-layers, .ol-layer");
+    internos.forEach(el => {
+        el.style.width = "100%";
+        el.style.height = "100%";
+        el.style.maxWidth = "none";
+        el.style.maxHeight = "none";
+    });
+
+    try {
+        matrizMapaOL.updateSize();
+        if (typeof matrizMapaOL.renderSync === "function") matrizMapaOL.renderSync();
+    } catch (e) {
+        console.warn("PONTE - não foi possível redimensionar o mapa da matriz", e);
+    }
+}
+
+function agendarRedimensionamentoMapaMatriz() {
+    [50, 150, 350, 700, 1200, 2000].forEach(ms => {
+        setTimeout(redimensionarMapaMatrizForcado, ms);
+    });
+    if (window.requestAnimationFrame) {
+        requestAnimationFrame(() => requestAnimationFrame(redimensionarMapaMatrizForcado));
+    }
+}
+
 function garantirMapaSateliteMatriz() {
     const alvo = document.getElementById("matrizMapaSatelite");
     if (!alvo) return null;
@@ -906,7 +938,7 @@ function garantirMapaSateliteMatriz() {
     }
 
     if (matrizMapaOL) {
-        setTimeout(() => matrizMapaOL.updateSize(), 80);
+        agendarRedimensionamentoMapaMatriz();
         return matrizMapaOL;
     }
 
@@ -952,7 +984,7 @@ function garantirMapaSateliteMatriz() {
     if (window.ResizeObserver) {
         const ro = new ResizeObserver(function() {
             if (matrizMapaOL) {
-                setTimeout(() => matrizMapaOL.updateSize(), 40);
+                setTimeout(redimensionarMapaMatrizForcado, 40);
             }
         });
         ro.observe(alvo);
@@ -970,7 +1002,7 @@ function garantirMapaSateliteMatriz() {
         matrizMapaOL.getTargetElement().style.cursor = hit ? "pointer" : "";
     });
 
-    setTimeout(() => matrizMapaOL.updateSize(), 120);
+    agendarRedimensionamentoMapaMatriz();
     return matrizMapaOL;
 }
 
@@ -1015,7 +1047,7 @@ function atualizarMiniMapaMatriz(features) {
         matrizFonteOL.addFeature(olFeature);
     });
 
-    if (typeof mapa.updateSize === "function") mapa.updateSize();
+    redimensionarMapaMatrizForcado();
 
     const extent = matrizFonteOL.getExtent();
     if (pontos.length === 1) {
@@ -1029,9 +1061,7 @@ function atualizarMiniMapaMatriz(features) {
         });
     }
 
-    setTimeout(() => mapa.updateSize(), 80);
-    setTimeout(() => mapa.updateSize(), 350);
-    setTimeout(() => mapa.updateSize(), 900);
+    agendarRedimensionamentoMapaMatriz();
 }
 
 function atualizarTabelaMatriz(features) {
