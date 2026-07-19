@@ -511,3 +511,54 @@
         min-height: 280px !important;
     }
 }
+
+
+/* Patch definitivo: força o OpenLayers da matriz a ocupar todo o box */
+.matriz-layout-principal .matriz-mapa-card {
+    height: 395px !important;
+    min-height: 395px !important;
+    max-height: 395px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+.matriz-layout-principal .matriz-mapa-card .matriz-mapa-header {
+    flex: 0 0 auto !important;
+}
+
+.matriz-layout-principal .matriz-mapa-card .matriz-legenda-mini {
+    flex: 0 0 auto !important;
+    margin: 8px 0 0 0 !important;
+    line-height: 1.25 !important;
+}
+
+#matrizMapaSatelite.matriz-mapa-satelite {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    display: block !important;
+    position: relative !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+#matrizMapaSatelite .ol-viewport,
+#matrizMapaSatelite .ol-unselectable,
+#matrizMapaSatelite .ol-layers,
+#matrizMapaSatelite .ol-layer {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+}
+
+#matrizMapaSatelite canvas {
+    max-width: none !important;
+    max-height: none !important;
+}

@@ -901,17 +901,44 @@ function redimensionarMapaMatrizForcado() {
     const alvo = document.getElementById("matrizMapaSatelite");
     if (!alvo || !matrizMapaOL) return;
 
-    // O OpenLayers às vezes calcula o tamanho antes do layout final do dashboard.
-    // Aqui forçamos o viewport interno a ocupar 100% do box e pedimos novo render.
-    const internos = alvo.querySelectorAll(".ol-viewport, .ol-unselectable, .ol-layers, .ol-layer");
+    const rect = alvo.getBoundingClientRect();
+    const largura = Math.max(300, Math.round(rect.width || alvo.clientWidth || 0));
+    const altura = Math.max(240, Math.round(rect.height || alvo.clientHeight || 0));
+
+    // O OpenLayers pode guardar o tamanho em pixels calculado no primeiro render.
+    // Aqui forçamos o tamanho real do box e também atualizamos o tamanho interno do mapa.
+    alvo.style.width = "100%";
+    alvo.style.height = altura + "px";
+
+    const viewport = alvo.querySelector(".ol-viewport");
+    if (viewport) {
+        viewport.style.position = "absolute";
+        viewport.style.inset = "0";
+        viewport.style.width = largura + "px";
+        viewport.style.height = altura + "px";
+        viewport.style.maxWidth = "none";
+        viewport.style.maxHeight = "none";
+    }
+
+    const internos = alvo.querySelectorAll(".ol-unselectable, .ol-layers, .ol-layer");
     internos.forEach(el => {
-        el.style.width = "100%";
-        el.style.height = "100%";
+        el.style.width = largura + "px";
+        el.style.height = altura + "px";
         el.style.maxWidth = "none";
         el.style.maxHeight = "none";
     });
 
+    alvo.querySelectorAll("canvas").forEach(canvas => {
+        canvas.style.width = largura + "px";
+        canvas.style.height = altura + "px";
+        canvas.style.maxWidth = "none";
+        canvas.style.maxHeight = "none";
+    });
+
     try {
+        if (typeof matrizMapaOL.setSize === "function") {
+            matrizMapaOL.setSize([largura, altura]);
+        }
         matrizMapaOL.updateSize();
         if (typeof matrizMapaOL.renderSync === "function") matrizMapaOL.renderSync();
     } catch (e) {
@@ -920,7 +947,7 @@ function redimensionarMapaMatrizForcado() {
 }
 
 function agendarRedimensionamentoMapaMatriz() {
-    [50, 150, 350, 700, 1200, 2000].forEach(ms => {
+    [50, 150, 350, 700, 1200, 2000, 3500].forEach(ms => {
         setTimeout(redimensionarMapaMatrizForcado, ms);
     });
     if (window.requestAnimationFrame) {
