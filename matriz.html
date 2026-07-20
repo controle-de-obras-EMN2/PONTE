@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PONTE | Matriz de Risco</title>
+
+    <link rel="stylesheet" href="ponte.css">
+    <link rel="stylesheet" href="MAPA/resources/ol.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="ponte-dashboard-fix.css">
+</head>
+
+<body>
+
+    <header id="header">
+
+        <img src="images/logo_ponte.png" id="logo" alt="Logo PONTE">
+
+        <div id="titulo">
+            Plataforma de Operação e Navegação Técnica de Engenharia
+        </div>
+
+       <div id="menu">
+
+    <a href="index.html" class="menu-btn">
+        🗺️ Mapa
+    </a>
+
+    <a href="dashboard.html" class="menu-btn">
+        📊 Dashboard
+    </a>
+
+    <a href="matriz.html" class="menu-btn">
+        ⚠️ Matriz
+    </a>
+
+    <a href="fluxo.html" class="menu-btn">
+        🧭 Fluxo
+    </a>
+
+</div>
+
+    </header>
+
+    <main id="dashboard">
+
+        <section class="dashboard-export-toolbar">
+            <a href="dashboard.html" class="btn-link-dashboard">Voltar ao dashboard</a>
+        </section>
+
+        <section class="secao-dashboard matriz-risco-secao" id="secaoMatrizRisco">
+
+            <div class="matriz-risco-header">
+                <h2>Matriz de Risco</h2>
+            </div>
+
+            <div class="matriz-filtros">
+                <select id="matrizFiltroContrato" aria-label="Filtrar contrato">
+                    <option value="TODOS">Todos os contratos</option>
+                </select>
+                <select id="matrizFiltroRisco" aria-label="Filtrar risco">
+                    <option value="TODOS">Todos os riscos</option>
+                </select>
+                <select id="matrizFiltroStatus" aria-label="Filtrar status">
+                    <option value="TODOS">Todos os status</option>
+                </select>
+                <select id="matrizFiltroMetodo" aria-label="Filtrar método">
+                    <option value="TODOS">Todos os métodos</option>
+                </select>
+                <select id="matrizFiltroGas" aria-label="Filtrar gás">
+                    <option value="TODOS">Gás: todos</option>
+                    <option value="SIM">Gás: sim</option>
+                    <option value="NAO">Gás: não</option>
+                </select>
+                <select id="matrizFiltroEletrica" aria-label="Filtrar elétrica">
+                    <option value="TODOS">Elétrica: todos</option>
+                    <option value="SIM">Elétrica: sim</option>
+                    <option value="NAO">Elétrica: não</option>
+                </select>
+                <select id="matrizFiltroTelecom" aria-label="Filtrar telecom">
+                    <option value="TODOS">Telecom: todos</option>
+                    <option value="SIM">Telecom: sim</option>
+                    <option value="NAO">Telecom: não</option>
+                </select>
+                <select id="matrizFiltroDrenagem" aria-label="Filtrar drenagem">
+                    <option value="TODOS">Drenagem: todos</option>
+                    <option value="SIM">Drenagem: sim</option>
+                    <option value="NAO">Drenagem: não</option>
+                </select>
+
+                <button id="btnMatrizLimpar" type="button">Limpar filtros</button>
+                <button id="btnMatrizCSV" type="button">Exportar matriz CSV</button>
+            </div>
+
+            <div class="cards cards-5 matriz-cards">
+                <div class="card">
+                    <h3>Frentes filtradas</h3>
+                    <strong id="matrizTotalFrentes">0</strong>
+                    <p>Total no recorte atual</p>
+                </div>
+                <div class="card">
+                    <h3>Risco alto</h3>
+                    <strong id="matrizRiscoAlto">0</strong>
+                    <span id="matrizRiscoAltoPerc">0%</span>
+                    <p>Prioridade crítica</p>
+                </div>
+                <div class="card">
+                    <h3>Com gás</h3>
+                    <strong id="matrizComGas">0</strong>
+                    <span id="matrizComGasPerc">0%</span>
+                    <p>Interferência registrada</p>
+                </div>
+                <div class="card">
+                    <h3>Paralisadas</h3>
+                    <strong id="matrizParalisadas">0</strong>
+                    <span id="matrizParalisadasPerc">0%</span>
+                    <p>Status/justificativa de parada</p>
+                </div>
+                <div class="card">
+                    <h3>Em andamento</h3>
+                    <strong id="matrizEmAndamento">0</strong>
+                    <span id="matrizEmAndamentoPerc">0%</span>
+                    <p>Frentes em execução</p>
+                </div>
+            </div>
+
+            <div class="matriz-layout matriz-layout-principal">
+                <div class="grafico-card matriz-mapa-card">
+                    <div class="matriz-mapa-header">
+                        <h3>Localização das frentes filtradas</h3>
+                        <span id="matrizMapaResumo">0 com coordenada</span>
+                    </div>
+                    <div id="matrizMapaSatelite" class="matriz-mapa-satelite"></div>
+                    <p class="matriz-legenda-mini">Cores por risco: vermelho = alto, amarelo = médio, verde = baixo, azul = demais. Clique no pin para abrir no mapa principal.</p>
+                </div>
+
+                <div class="grafico-card matriz-pizza-card">
+                    <h3>Risco</h3>
+                    <canvas id="graficoMatrizRisco"></canvas>
+                </div>
+
+                <div class="grafico-card matriz-pizza-card">
+                    <h3>Status</h3>
+                    <canvas id="graficoMatrizStatus"></canvas>
+                </div>
+            </div>
+
+            <div class="grafico-card matriz-tabela-card">
+                <div class="matriz-tabela-header">
+                    <h3>Frentes da matriz</h3>
+                    <span id="matrizTabelaResumo">0 registros</span>
+                </div>
+                <div class="matriz-tabela-wrap">
+                    <table class="tabela-modal tabela-compacta matriz-tabela" id="matrizTabela">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Contrato</th>
+                                <th>Status</th>
+                                <th>Risco</th>
+                                <th>Métodos</th>
+                                <th>Profundidade</th>
+                                <th>Gás</th>
+                                <th>Elétrica</th>
+                                <th>Telecom</th>
+                                <th>Drenagem</th>
+                                <th>Soma</th>
+                                <th>Endereço</th>
+                                <th>Início</th>
+                                <th>Término</th>
+                                <th>Mapa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matrizTabelaBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <div id="modal" class="modal" style="display:none;">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h2 id="modalTitulo"></h2>
+                <button class="modal-close" type="button" onclick="fecharModal()">×</button>
+            </div>
+
+            <div id="modalCorpo"></div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script src="dados/metas.js"></script>
+
+    <script src="MAPA/layers/COMGS_1.js"></script>
+    <script src="MAPA/layers/VIRADADEMANCHA_2.js"></script>
+    <script src="MAPA/layers/PROJETOBSICO_3.js"></script>
+    <script src="MAPA/layers/OBRAS_EMN2_4.js"></script>
+    <script src="MAPA/layers/ETES_5.js"></script>
+    <script src="MAPA/layers/EEE_6.js"></script>
+    <script src="MAPA/layers/SinistroEMN2_7.js"></script>
+    <script src="MAPA/layers/PONTOSDELANAMENTO_8.js"></script>
+    <script src="MAPA/layers/FRENTES_9.js"></script>
+    <script src="MAPA/layers/FRENTES_10.js"></script>
+    <script src="MAPA/resources/ol.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script src="dashboard.js"></script>
+
+</body>
+
+</html>

@@ -4,13 +4,13 @@
    Arquivo externo ao qgis2web para preservar melhorias do PONTE
    ========================================================= */
 
-console.log("ponte-map-tools.js carregado - atualização geral 2026-07-20");
+console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
 
 (function () {
     const CAMPOS = {
         contrato: ["NUM_CONTRA", "Contrato_N", "CONTRATO", "Contrato", "contrato"],
         frente: ["FRENTE", "Frente", "frente", "OBRA", "Nome_Lanca", "EEE"],
-        metodo: ["METODO", "Metod_Cons", "MÉTODO", "Método", "Metodo", "metodo", "DETA_METOD", "DETAL_METODO", "DETAL_MÉTODO"],
+        metodo: ["DETA_METOD", "DETA_METODO", "DETAL_METOD", "DETAL_METODO", "DETAL_MÉTODO"],
         diametro: ["DIAMETR_MM", "Diametro", "DIAMETRO", "diametro"]
     };
 
@@ -110,6 +110,17 @@ console.log("ponte-map-tools.js carregado - atualização geral 2026-07-20");
             .trim();
     }
 
+    function valorValidoParaFiltro(valor) {
+        const n = normalizar(valor).replace(/\s+/g, " ");
+        const invalidos = [
+            "NAO INFORMADO", "NAO DISPONIVEL", "N/A", "NA", "N.A", "N.D", "N.D.",
+            "ND", "NULL", "-", "0", "SEM INFORMACAO", "SEM INFORMAÇÃO", "VAZIO"
+        ];
+        if (!n || invalidos.includes(n)) return false;
+        if (n.includes("NAO INFORMADO") || n.includes("NAO DISPONIVEL")) return false;
+        return true;
+    }
+
     function ehCamadaBase(layer) {
         const titulo = normalizar(layer.get("title") || layer.get("name") || "");
         const source = layer.getSource ? layer.getSource() : null;
@@ -198,21 +209,6 @@ console.log("ponte-map-tools.js carregado - atualização geral 2026-07-20");
         const direto = obterValorCampo(properties, CAMPOS[tipo] || []);
         if (direto) return direto;
 
-        // Para a camada de FRENTES/matriz, o método pode vir separado em campos booleanos/númericos.
-        if (tipo === "metodo" && properties) {
-            const metodos = [];
-            const temValor = function (valor) {
-                if (valor === undefined || valor === null || String(valor).trim() === "") return false;
-                const n = Number(String(valor).replace(",", "."));
-                if (!Number.isNaN(n)) return n > 0;
-                return !["NAO", "NÃO", "NULL", "N/A", "NA", "0"].includes(normalizar(valor));
-            };
-            if (temValor(properties.VCA)) metodos.push("VCA");
-            if (temValor(properties.HDD)) metodos.push("HDD");
-            if (temValor(properties.OUTROS_MND)) metodos.push("Outros MND");
-            if (metodos.length) return metodos.join(" + ");
-        }
-
         return "";
     }
 
@@ -260,7 +256,10 @@ console.log("ponte-map-tools.js carregado - atualização geral 2026-07-20");
         obterRegistrosFiltravel(map).forEach(function (registro) {
             if (!registroAtendeFiltros(registro, filtros, tipo)) return;
             const valor = valorTipo(registro.props, tipo);
-            if (valor) valores.add(valor);
+            if (!valor) return;
+            if (tipo === "metodo" && !valorValidoParaFiltro(valor)) return;
+            if (tipo === "diametro" && !valorValidoParaFiltro(valor)) return;
+            valores.add(valor);
         });
 
         return Array.from(valores).sort(function (a, b) {
@@ -645,6 +644,94 @@ console.log("ponte-map-tools.js carregado - atualização geral 2026-07-20");
         instalarCliqueStreetView(contexto);
     }
 
+    function prepararLayoutImpressaoMapa(contexto) {
+        const win = contexto.janelaMapa;
+        const doc = win.document;
+
+        let style = doc.getElementById("ponte-print-map-style");
+        if (!style) {
+            style = doc.createElement("style");
+            style.id = "ponte-print-map-style";
+            style.textContent = `
+                @media print {
+                    @page { size: A4 landscape; margin: 6mm; }
+
+                    html, body {
+                        width: 100% !important;
+                        height: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
+                        background: #ffffff !important;
+                    }
+
+                    #map {
+                        position: fixed !important;
+                        inset: 0 !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        page-break-inside: avoid !important;
+                    }
+
+                    .ol-control {
+                        opacity: 1 !important;
+                    }
+
+                    .layer-switcher {
+                        display: block !important;
+                        position: absolute !important;
+                        top: 10px !important;
+                        right: 10px !important;
+                        max-width: 310px !important;
+                        max-height: calc(100vh - 26px) !important;
+                        overflow: auto !important;
+                        z-index: 99999 !important;
+                        background: rgba(255, 255, 255, .96) !important;
+                        box-shadow: 0 2px 12px rgba(0,0,0,.25) !important;
+                        border-radius: 8px !important;
+                        padding: 8px !important;
+                    }
+
+                    .layer-switcher > button {
+                        display: none !important;
+                    }
+
+                    .layer-switcher .panel {
+                        display: block !important;
+                        position: static !important;
+                        max-height: none !important;
+                        overflow: visible !important;
+                        background: transparent !important;
+                    }
+
+                    .layer-switcher.shown .panel {
+                        display: block !important;
+                    }
+                }
+            `;
+            doc.head.appendChild(style);
+        }
+
+        const layerSwitcher = doc.querySelector(".layer-switcher");
+        if (layerSwitcher) {
+            layerSwitcher.classList.add("shown");
+            layerSwitcher.style.display = "block";
+            layerSwitcher.style.zIndex = "99999";
+            const panel = layerSwitcher.querySelector(".panel");
+            if (panel) panel.style.display = "block";
+        }
+
+        if (contexto.map && contexto.map.updateSize) {
+            setTimeout(function() {
+                contexto.map.updateSize();
+                if (contexto.map.renderSync) contexto.map.renderSync();
+                else if (contexto.map.render) contexto.map.render();
+            }, 150);
+        }
+    }
+
     function exportarMapaPDF() {
         const contexto = obterContextoMapa();
         if (!contexto) {
@@ -652,8 +739,12 @@ console.log("ponte-map-tools.js carregado - atualização geral 2026-07-20");
             return;
         }
 
-        contexto.iframe.contentWindow.focus();
-        window.print();
+        prepararLayoutImpressaoMapa(contexto);
+
+        setTimeout(function() {
+            contexto.janelaMapa.focus();
+            contexto.janelaMapa.print();
+        }, 450);
     }
 
     window.PONTE_MAP_TOOLS = {

@@ -706,3 +706,78 @@
         width: 100%;
     }
 }
+
+
+/* Revisão final: título de Metas como botão e organização da matriz */
+.titulo-botao {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #0b2f5b;
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 3px 10px rgba(0,0,0,.12);
+}
+
+.titulo-botao::after {
+    content: "Ver previsão";
+    font-size: 12px;
+    font-weight: 800;
+    background: rgba(255,255,255,.16);
+    border-radius: 999px;
+    padding: 4px 8px;
+}
+
+.titulo-botao:hover {
+    background: #123f76;
+}
+
+.btn-link-dashboard {
+    display: inline-flex;
+    align-items: center;
+    background: #0b2f5b;
+    color: #ffffff;
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.btn-link-dashboard:hover {
+    background: #123f76;
+}
+
+.matriz-risco-header {
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.matriz-risco-header h2 {
+    margin: 0;
+}
+
+.matriz-filtros button {
+    min-height: 40px;
+}
+
+@media print {
+    .dashboard-export-toolbar,
+    .filtros-dashboard,
+    header {
+        display: none !important;
+    }
+
+    #dashboard {
+        padding: 0 !important;
+    }
+
+    .secao-dashboard,
+    .grafico-card,
+    .card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}

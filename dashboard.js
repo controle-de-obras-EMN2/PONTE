@@ -3,7 +3,7 @@
    Camadas esperadas: OBRAS_EMN2_4, FRENTES_9, SinistroEMN2_7, PONTOSDELANAMENTO_8, EEE_6.
 */
 
-console.log("dashboard.js PONTE estável carregado - atualização geral 2026-07-20");
+console.log("dashboard.js PONTE carregado - revisão layout, PDF e dados 2026-07-20");
 
 let contratoSelecionado = "TODOS";
 let graficoStatusObras = null;
@@ -243,7 +243,7 @@ function statusLancamentoResumo(features) {
 function extensaoObraFeature(feature) {
     const p = feature.properties || {};
     return numeroDashboard(valorCampo(p, [
-        "EXTENSAO_M", "EXTENSÃO_M", "EXTENSAO", "EXTENSÃO",
+        "EXTENSAO_M", "EXTENSÃO_M", "EXTENSÂO_M", "EXTENSAO", "EXTENSÃO", "EXTENSÂO",
         "EXT_M", "EXT", "EXTEN", "COMPRIMENTO", "COMP_M",
         "LENGTH", "Shape_Leng", "Shape_Length", "length"
     ]));
@@ -260,7 +260,7 @@ function itemObraUnica(feature) {
         contrato,
         frente: frente || "Não informado",
         status: textoCampo(p, ["STATUS_C", "STATUS", "Status"]) || "Não informado",
-        metodo: textoCampo(p, ["METODO", "Metod_Cons", "MÉTODO", "Método", "DETA_METOD"]) || "Não informado",
+        metodo: textoCampo(p, ["DETA_METOD", "DETA_METODO", "DETAL_METOD", "DETAL_METODO", "DETAL_MÉTODO"]) || "Não informado",
         diametro: textoCampo(p, ["DIAMETR_MM", "DIAMETRO", "DIÂMETRO", "Diâmetro"]) || "Não informado",
         extensao: extensaoObraFeature(feature),
         municipio: textoCampo(p, ["MUNICIPIO", "Município"]),
@@ -307,10 +307,14 @@ function agruparObrasUnicas(features) {
 }
 
 function categoriaValidaParaGraficoObras(valor, tipo) {
-    const n = normalizarTexto(valor);
-    if (!n || ["NAO INFORMADO", "NAO DISPONIVEL", "N/A", "NA", "N.D", "ND", "NULL", "-"].includes(n)) return false;
+    const n = normalizarTexto(valor).replace(/\s+/g, " ");
+    const invalidos = [
+        "NAO INFORMADO", "NAO DISPONIVEL", "N/A", "NA", "N.A", "N.D", "N.D.", "ND",
+        "NULL", "-", "0", "SEM INFORMACAO", "SEM INFORMAÇÃO", "VAZIO"
+    ];
+    if (!n || invalidos.includes(n)) return false;
+    if (n.includes("NAO INFORMADO") || n.includes("NAO DISPONIVEL")) return false;
     if (tipo === "status" && n.includes("EXISTENTE")) return false;
-    if ((tipo === "metodo" || tipo === "diametro") && (n === "0" || n.includes("NAO INFORMADO") || n.includes("NAO DISPONIVEL"))) return false;
     return true;
 }
 
@@ -616,6 +620,82 @@ function parseCSVDashboard(texto) {
     });
 }
 
+function linhasBasePorTipo(tipo) {
+    const alvo = normalizarTexto(tipo);
+    return (baseDashboardLinhas || []).filter(linha => normalizarTexto(linha.tipo) === alvo);
+}
+
+function linhaMetaCsv(periodo, indicador) {
+    const periodoNorm = normalizarTexto(periodo);
+    const indicadorNorm = normalizarTexto(indicador);
+    return linhasBasePorTipo("META").find(linha =>
+        normalizarTexto(linha.periodo).includes(periodoNorm) &&
+        normalizarTexto(linha.indicador) === indicadorNorm
+    );
+}
+
+function metaDoCsv(periodo, indicador) {
+    const linha = linhaMetaCsv(periodo, indicador);
+    if (!linha) return null;
+    return {
+        previsto: numeroDashboard(linha.previsto),
+        realizado: numeroDashboard(linha.realizado),
+        unidade: linha.unidade || ""
+    };
+}
+
+function aplicarBaseDashboardEmMetas() {
+    if (!baseDashboardLinhas || !baseDashboardLinhas.length) return;
+
+    const alvoMetas = (typeof metas !== "undefined") ? metas : (window.metas = window.metas || {});
+
+    const ecoFU = metaDoCsv("ATUAL", "Economias Fator U");
+    const ecoCT = metaDoCsv("ATUAL", "Economias Contrato");
+    const imob = metaDoCsv("ATUAL", "Imobilizado");
+    const prodI = metaDoCsv("ATUAL", "Producao Integra") || metaDoCsv("ATUAL", "Produção Integra");
+    const prodA = metaDoCsv("ATUAL", "Producao Andamento") || metaDoCsv("ATUAL", "Produção Andamento");
+
+    alvoMetas.economias = alvoMetas.economias || {};
+    if (ecoFU) alvoMetas.economias.fatorU = ecoFU;
+    if (ecoCT) alvoMetas.economias.contrato = ecoCT;
+    if (imob) alvoMetas.imobilizado = imob;
+    alvoMetas.producao = alvoMetas.producao || {};
+    if (prodI) alvoMetas.producao.integra = prodI;
+    if (prodA) alvoMetas.producao.andamento = prodA;
+
+    const proxFU = metaDoCsv("PROXIMO", "Economias Fator U");
+    const proxCT = metaDoCsv("PROXIMO", "Economias Contrato");
+    const proxImob = metaDoCsv("PROXIMO", "Imobilizado");
+    const proxProdI = metaDoCsv("PROXIMO", "Producao Integra") || metaDoCsv("PROXIMO", "Produção Integra");
+    const proxProdA = metaDoCsv("PROXIMO", "Producao Andamento") || metaDoCsv("PROXIMO", "Produção Andamento");
+
+    alvoMetas.proximoMes = alvoMetas.proximoMes || { referencia: "Próximo mês" };
+    alvoMetas.proximoMes.economias = alvoMetas.proximoMes.economias || {};
+    if (proxFU) alvoMetas.proximoMes.economias.fatorU = proxFU;
+    if (proxCT) alvoMetas.proximoMes.economias.contrato = proxCT;
+    if (proxImob) alvoMetas.proximoMes.imobilizado = proxImob;
+    alvoMetas.proximoMes.producao = alvoMetas.proximoMes.producao || {};
+    if (proxProdI) alvoMetas.proximoMes.producao.integra = proxProdI;
+    if (proxProdA) alvoMetas.proximoMes.producao.andamento = proxProdA;
+
+    const valores = linhasBasePorTipo("CONTRATO_VALOR").map(linha => ({
+        contrato: linha.contrato,
+        valorContratual: numeroDashboard(linha.valor_contratual),
+        totalPedido: numeroDashboard(linha.total_pedido),
+        totalUnitizado: numeroDashboard(linha.total_unitizado)
+    })).filter(linha => linha.contrato);
+    if (valores.length) alvoMetas.valoresContratos = valores;
+
+    const extensoes = linhasBasePorTipo("CONTRATO_EXTENSAO").map(linha => ({
+        contrato: linha.contrato,
+        contratual: numeroDashboard(linha.ext_contratual),
+        atual: numeroDashboard(linha.ext_atual),
+        executada: numeroDashboard(linha.ext_executada),
+        unitizada: numeroDashboard(linha.ext_unitizada)
+    })).filter(linha => linha.contrato);
+    if (extensoes.length) alvoMetas.extensaoContratos = extensoes;
+}
+
 async function carregarBaseDashboardCsv() {
     if (baseDashboardCsvCarregado) return;
     const caminhos = ["dados/base_dashboard_teste.csv", "dados/base_dashboard.csv"];
@@ -625,6 +705,7 @@ async function carregarBaseDashboardCsv() {
             if (!resp.ok) continue;
             const texto = await resp.text();
             baseDashboardLinhas = parseCSVDashboard(texto);
+            aplicarBaseDashboardEmMetas();
             baseDashboardCsvCarregado = true;
             console.log("PONTE: base CSV carregada", caminho, baseDashboardLinhas.length);
             return;
@@ -670,16 +751,23 @@ function criarGraficoAvancoEEE(itens, graficoAnterior) {
 
     const dados = (itens || []).filter(item => item.item);
     const opcoes = opcoesGraficoBarraBase();
+    opcoes.indexAxis = "y";
+    opcoes.interaction = { mode: "nearest", intersect: false, axis: "y" };
+    opcoes.hover = { mode: "nearest", intersect: false };
+    opcoes.plugins.legend = { display: false };
     opcoes.plugins.tooltip.callbacks.label = function(context) {
-        const valor = context.parsed?.y ?? context.raw ?? 0;
+        const valor = context.parsed?.x ?? context.raw ?? 0;
         const item = dados[context.dataIndex] || {};
         return ["Avanço geral: " + formatarNumero(valor) + "%", item.status ? "Status: " + item.status : ""];
     };
-    opcoes.scales.y = {
+    opcoes.scales.x = {
         beginAtZero: true,
         suggestedMax: 100,
         max: 100,
         ticks: { callback: function(value) { return value + "%"; } }
+    };
+    opcoes.scales.y = {
+        ticks: { autoSkip: false }
     };
     opcoes.onClick = function(event, elementos, chart) {
         const pontos = chart.getElementsAtEventForMode(event, "nearest", { intersect: false }, true);
@@ -688,13 +776,41 @@ function criarGraficoAvancoEEE(itens, graficoAnterior) {
         abrirDetalhesAvancoEEE(item);
     };
 
+    const pluginPercentualBarras = {
+        id: "pontePercentualBarrasEEE",
+        afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            const dataset = chart.data.datasets[0];
+            const meta = chart.getDatasetMeta(0);
+            ctx.save();
+            ctx.font = "700 11px Arial";
+            ctx.fillStyle = "#0b2f5b";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            meta.data.forEach((bar, i) => {
+                const valor = Number(dataset.data[i] || 0);
+                const texto = formatarNumero(valor) + "%";
+                const x = Math.min(bar.x + 6, chart.chartArea.right - 42);
+                ctx.fillText(texto, x, bar.y);
+            });
+            ctx.restore();
+        }
+    };
+
     return new Chart(canvas, {
         type: "bar",
         data: {
             labels: dados.map(item => item.item),
-            datasets: [{ label: "Avanço geral (%)", data: dados.map(item => item.avanco || 0) }]
+            datasets: [{
+                label: "Avanço geral (%)",
+                data: dados.map(item => item.avanco || 0),
+                borderWidth: 1,
+                barThickness: 18,
+                maxBarThickness: 24
+            }]
         },
-        options: opcoes
+        options: opcoes,
+        plugins: [pluginPercentualBarras]
     });
 }
 
@@ -746,7 +862,7 @@ function atualizarDashboard() {
     setTexto("statusLancamentos", "Ativos: " + formatarNumero(lancResumo.ativos) + " | Suprimidos: " + formatarNumero(lancResumo.suprimidos));
 
     graficoStatusObras = criarGraficoBarraExtensao("graficoStatusObras", "Extensão por Status", somarExtensaoObrasPorCampo(obras, ["STATUS_C", "STATUS", "Status"], "status"), graficoStatusObras);
-    graficoMetodo = criarGraficoBarraExtensao("graficoMetodo", "Extensão por Método", somarExtensaoObrasPorCampo(obras, ["METODO", "Metod_Cons", "MÉTODO", "Método", "DETA_METOD"], "metodo"), graficoMetodo);
+    graficoMetodo = criarGraficoBarraExtensao("graficoMetodo", "Extensão por Método", somarExtensaoObrasPorCampo(obras, ["DETA_METOD", "DETA_METODO", "DETAL_METOD", "DETAL_METODO", "DETAL_MÉTODO"], "metodo"), graficoMetodo);
     graficoDiametro = criarGraficoBarraExtensao("graficoDiametro", "Extensão por Diâmetro", somarExtensaoObrasPorCampo(obras, ["DIAMETR_MM", "DIAMETRO", "DIÂMETRO", "Diâmetro"], "diametro"), graficoDiametro);
     graficoEEEStatus = criarGraficoBarra("graficoEEEStatus", "EEE por Status", contarPorCampo(eee, "STATUS"), graficoEEEStatus);
     graficoManchas = criarGraficoManchasEconomias(manchas, graficoManchas);
@@ -1018,7 +1134,6 @@ function ativarCliquesDosCards() {
         cardSinistros: window.abrirDetalhesSinistros,
         cardEEE: window.abrirDetalhesEEE,
         cardLancamentos: window.abrirDetalhesLancamentos,
-        btnMetasProximoMes: window.abrirMetasProximoMes,
         tituloMetasGerais: window.abrirMetasProximoMes
     };
     Object.entries(mapa).forEach(([id, fn]) => {
@@ -1671,7 +1786,10 @@ function inicializarDashboard() {
     atualizarMetas();
     atualizarBotaoContratoAtivo();
     atualizarDashboard();
-    carregarBaseDashboardCsv().then(atualizarDashboard);
+    carregarBaseDashboardCsv().then(function() {
+        atualizarMetas();
+        atualizarDashboard();
+    });
     inicializarMatrizRisco();
     ativarCliquesDosCards();
 
