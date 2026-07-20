@@ -1,30 +1,24 @@
 var size = 0;
 var placement = 'point';
-function categories_VIRADADEMANCHA_2(feature, value, size, resolution, labelText,
+function categories_PONTOSDELANAMENTO_9(feature, value, size, resolution, labelText,
                        labelFont, labelFill, bufferColor, bufferWidth,
                        placement, textAlign, offsetX, offsetY, overflow, repeat) {
     var valueStr = (value !== null && value !== undefined) ? value.toString() : 'default';
     switch(valueStr) {
-        case 'AZUL':
+        case 'ATIVO':
             return [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(35,35,35,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 0.988}),fill: new ol.style.Fill({color: 'rgba(0,172,255,1.0)'}),
+        image: new ol.style.Circle({radius: 10.0 + size,
+            displacement: [0, 0], stroke: new ol.style.Stroke({color: 'rgba(0,0,0,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 1.52}), fill: new ol.style.Fill({color: 'rgba(197,38,0,1.0)'})}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth, textAlign, offsetX, offsetY, overflow, repeat)
     })];
 			break;
 
-        case 'VERDE':
+        case 'ELIMINADO':
             return [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(35,35,35,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 0.988}),fill: new ol.style.Fill({color: 'rgba(27,179,60,1.0)'}),
-        text: createTextStyle(feature, resolution, labelText, labelFont,
-                              labelFill, placement, bufferColor,
-                              bufferWidth, textAlign, offsetX, offsetY, overflow, repeat)
-    })];
-			break;
-default:
-            return [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(35,35,35,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 0.988}),fill: new ol.style.Fill({color: 'rgba(38,137,218,1.0)'}),
+        image: new ol.style.Circle({radius: 10.0 + size,
+            displacement: [0, 0], stroke: new ol.style.Stroke({color: 'rgba(0,0,0,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 1.52}), fill: new ol.style.Fill({color: 'rgba(0,0,0,1.0)'})}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth, textAlign, offsetX, offsetY, overflow, repeat)
@@ -32,14 +26,14 @@ default:
 			break;
     }};
 
-var style_VIRADADEMANCHA_2 = function(feature, resolution){
+var style_PONTOSDELANAMENTO_9 = function(feature, resolution){
     var context = {
         feature: feature,
         variables: {}
     };
     
     var labelText = ""; 
-    var value = feature.get("COR_MANCHA");
+    var value = feature.get("Status");
     var labelFont = "10px, sans-serif";
     var labelFill = "#000000";
     var bufferColor = "";
@@ -54,7 +48,7 @@ var style_VIRADADEMANCHA_2 = function(feature, resolution){
         labelText = String("");
     }
     
-    var style = categories_VIRADADEMANCHA_2(feature, value, size, resolution, labelText,
+    var style = categories_PONTOSDELANAMENTO_9(feature, value, size, resolution, labelText,
                           labelFont, labelFill, bufferColor,
                           bufferWidth, placement, textAlign, offsetX, offsetY, overflow, repeat);
 

@@ -1,30 +1,34 @@
 var size = 0;
 var placement = 'point';
-function categories_VIRADADEMANCHA_2(feature, value, size, resolution, labelText,
+function categories_EEE_7(feature, value, size, resolution, labelText,
                        labelFont, labelFill, bufferColor, bufferWidth,
                        placement, textAlign, offsetX, offsetY, overflow, repeat) {
     var valueStr = (value !== null && value !== undefined) ? value.toString() : 'default';
     switch(valueStr) {
-        case 'AZUL':
+        case 'A INICIAR':
             return [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(35,35,35,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 0.988}),fill: new ol.style.Fill({color: 'rgba(0,172,255,1.0)'}),
+        image: new ol.style.RegularShape({radius: 8.0 + size, points: 3,
+            displacement: [0, 0], stroke: new ol.style.Stroke({color: 'rgba(128,17,25,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 1.52}), fill: new ol.style.Fill({color: 'rgba(197,38,0,1.0)'})}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth, textAlign, offsetX, offsetY, overflow, repeat)
     })];
 			break;
 
-        case 'VERDE':
+        case 'EM CONSTRUÇÃO':
             return [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(35,35,35,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 0.988}),fill: new ol.style.Fill({color: 'rgba(27,179,60,1.0)'}),
+        image: new ol.style.RegularShape({radius: 8.0 + size, points: 3,
+            displacement: [0, 0], stroke: new ol.style.Stroke({color: 'rgba(128,17,25,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 1.52}), fill: new ol.style.Fill({color: 'rgba(227,200,0,1.0)'})}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth, textAlign, offsetX, offsetY, overflow, repeat)
     })];
 			break;
-default:
+
+        case 'SUPRIMIDO':
             return [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(35,35,35,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 0.988}),fill: new ol.style.Fill({color: 'rgba(38,137,218,1.0)'}),
+        image: new ol.style.RegularShape({radius: 8.0 + size, points: 3,
+            displacement: [0, 0], stroke: new ol.style.Stroke({color: 'rgba(128,17,25,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 1.52}), fill: new ol.style.Fill({color: 'rgba(255,0,255,1.0)'})}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth, textAlign, offsetX, offsetY, overflow, repeat)
@@ -32,21 +36,21 @@ default:
 			break;
     }};
 
-var style_VIRADADEMANCHA_2 = function(feature, resolution){
+var style_EEE_7 = function(feature, resolution){
     var context = {
         feature: feature,
         variables: {}
     };
     
     var labelText = ""; 
-    var value = feature.get("COR_MANCHA");
-    var labelFont = "10px, sans-serif";
-    var labelFill = "#000000";
+    var value = feature.get("STATUS");
+    var labelFont = "10.4px \'Open Sans\', sans-serif";
+    var labelFill = "#323232";
     var bufferColor = "";
     var bufferWidth = 0;
-    var textAlign = 'left';
-    var offsetX = 8;
-    var offsetY = 3;
+    var textAlign = 'center';
+    var offsetX = 0.0;
+    var offsetY = 20.0;
     var overflow = false;
     var repeat = 0;
     var placement = 'point';
@@ -54,7 +58,7 @@ var style_VIRADADEMANCHA_2 = function(feature, resolution){
         labelText = String("");
     }
     
-    var style = categories_VIRADADEMANCHA_2(feature, value, size, resolution, labelText,
+    var style = categories_EEE_7(feature, value, size, resolution, labelText,
                           labelFont, labelFill, bufferColor,
                           bufferWidth, placement, textAlign, offsetX, offsetY, overflow, repeat);
 

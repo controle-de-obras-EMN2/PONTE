@@ -1,30 +1,31 @@
 var size = 0;
 var placement = 'point';
-function categories_VIRADADEMANCHA_2(feature, value, size, resolution, labelText,
+function categories_INTEGRA2_4(feature, value, size, resolution, labelText,
                        labelFont, labelFill, bufferColor, bufferWidth,
                        placement, textAlign, offsetX, offsetY, overflow, repeat) {
     var valueStr = (value !== null && value !== undefined) ? value.toString() : 'default';
     switch(valueStr) {
-        case 'AZUL':
+        case 'OBRA EM CONTRATAÇÃO':
             return [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(35,35,35,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 0.988}),fill: new ol.style.Fill({color: 'rgba(0,172,255,1.0)'}),
+        stroke: new ol.style.Stroke({color: 'rgba(255,221,0,1.0)', lineDash: null, lineCap: 'square', lineJoin: 'bevel', width: 4.028}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth, textAlign, offsetX, offsetY, overflow, repeat)
     })];
 			break;
 
-        case 'VERDE':
+        case 'COM PROJETO BASICO':
             return [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(35,35,35,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 0.988}),fill: new ol.style.Fill({color: 'rgba(27,179,60,1.0)'}),
+        stroke: new ol.style.Stroke({color: 'rgba(27,179,60,1.0)', lineDash: null, lineCap: 'square', lineJoin: 'bevel', width: 4.028}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth, textAlign, offsetX, offsetY, overflow, repeat)
     })];
 			break;
-default:
+
+        case 'SEM PROJETO BASICO':
             return [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(35,35,35,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 0.988}),fill: new ol.style.Fill({color: 'rgba(38,137,218,1.0)'}),
+        stroke: new ol.style.Stroke({color: 'rgba(234,49,61,1.0)', lineDash: null, lineCap: 'square', lineJoin: 'bevel', width: 4.028}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth, textAlign, offsetX, offsetY, overflow, repeat)
@@ -32,14 +33,14 @@ default:
 			break;
     }};
 
-var style_VIRADADEMANCHA_2 = function(feature, resolution){
+var style_INTEGRA2_4 = function(feature, resolution){
     var context = {
         feature: feature,
         variables: {}
     };
     
     var labelText = ""; 
-    var value = feature.get("COR_MANCHA");
+    var value = feature.get("SITUAÇÃO");
     var labelFont = "10px, sans-serif";
     var labelFill = "#000000";
     var bufferColor = "";
@@ -49,12 +50,12 @@ var style_VIRADADEMANCHA_2 = function(feature, resolution){
     var offsetY = 3;
     var overflow = false;
     var repeat = 0;
-    var placement = 'point';
+    var placement = 'line';
     if ("" !== null) {
         labelText = String("");
     }
     
-    var style = categories_VIRADADEMANCHA_2(feature, value, size, resolution, labelText,
+    var style = categories_INTEGRA2_4(feature, value, size, resolution, labelText,
                           labelFont, labelFill, bufferColor,
                           bufferWidth, placement, textAlign, offsetX, offsetY, overflow, repeat);
 
