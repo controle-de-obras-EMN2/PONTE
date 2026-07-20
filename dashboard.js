@@ -813,24 +813,49 @@ async function carregarBaseDashboardCsv() {
     baseDashboardCsvCarregado = true;
 }
 
+function montarRegistroAvancoEEE(linha) {
+    if (!linha) return null;
+
+    let contrato = linha.contrato || linha.CONTRATO || "";
+    let item = linha.item || linha.EEE || linha.nome || linha.NOME || "";
+    let avancoRaw = linha.avanco ?? linha.percentual ?? linha.realizado ?? linha["%"] ?? "";
+    let status = linha.status || linha.STATUS || "";
+
+    // Correção robusta para CSV com um separador a mais antes da coluna item.
+    // Nesse caso o nome da EEE cai na coluna avanco, a porcentagem cai em status
+    // e o status real cai na coluna de cabeçalho vazio.
+    const extraSemCabecalho = linha[""] || linha.extra || linha.EXTRA || "";
+    const avancoTexto = String(avancoRaw ?? "").trim();
+    const statusTexto = String(status ?? "").trim();
+    const avancoTemTexto = /[A-Za-zÀ-ÿ]/.test(avancoTexto);
+    const statusParecePercentual = /\d/.test(statusTexto) && !/[A-Za-zÀ-ÿ]/.test(statusTexto);
+
+    if ((!item || normalizarTexto(item) === "EEE") && avancoTexto && avancoTemTexto && statusParecePercentual) {
+        item = avancoTexto;
+        avancoRaw = statusTexto;
+        status = extraSemCabecalho;
+    }
+
+    item = String(item || "").trim();
+    if (!item) item = "EEE";
+
+    return {
+        contrato: String(contrato || "").trim(),
+        item,
+        avanco: numeroDashboard(avancoRaw),
+        status: String(status || "").trim()
+    };
+}
+
 function obterAvancoEEEBase() {
     const metasObj = (typeof metas !== "undefined") ? metas : {};
     const itensMetas = metasObj.avancoEEE || metasObj.avancoPopup || metasObj.avanco_popup || [];
-    const deMetas = Array.isArray(itensMetas) ? itensMetas.map(item => ({
-        contrato: item.contrato || item.CONTRATO || "",
-        item: item.item || item.EEE || item.nome || "EEE",
-        avanco: numeroDashboard(item.avanco ?? item.percentual ?? item.realizado),
-        status: item.status || item.STATUS || ""
-    })) : [];
+    const deMetas = Array.isArray(itensMetas) ? itensMetas.map(montarRegistroAvancoEEE).filter(Boolean) : [];
 
     const deCsv = (baseDashboardLinhas || [])
         .filter(linha => normalizarTexto(linha.tipo) === "AVANCO_POPUP" || normalizarTexto(linha.tipo) === "AVANCO_EEE")
-        .map(linha => ({
-            contrato: linha.contrato || linha.CONTRATO || "",
-            item: linha.item || linha.EEE || linha.nome || "EEE",
-            avanco: numeroDashboard(linha.avanco || linha.percentual || linha.realizado),
-            status: linha.status || linha.STATUS || ""
-        }));
+        .map(montarRegistroAvancoEEE)
+        .filter(Boolean);
 
     return deCsv.length ? deCsv : deMetas;
 }
