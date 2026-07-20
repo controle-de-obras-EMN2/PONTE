@@ -152,6 +152,22 @@ function obterObras() {
     return obterFeaturesPorNomeParcial(["OBRAS_EMN2", "OBRAS"]);
 }
 
+
+function ehProjetoBasicoObra(featureOuItem) {
+    const p = featureOuItem?.properties || featureOuItem || {};
+    const campos = [
+        p.STATUS_C, p.STATUS, p.Status, p.status,
+        p.ETAPA, p.Etapa, p.etapa,
+        p.TIPO, p.Tipo, p.tipo,
+        p.OBJ_REDUZI, p.OBJETO, p.DESCRICAO
+    ];
+    return campos.some(valor => normalizarTexto(valor).includes("PROJETO BASICO"));
+}
+
+function obterObrasCadastradas() {
+    return obterObras().filter(feature => !ehProjetoBasicoObra(feature));
+}
+
 function obterFrentesCampo() {
     const direto = obterFeaturesPorVariavel("json_FRENTES_9");
     if (direto.length) return direto;
@@ -415,7 +431,7 @@ function setTexto(id, texto) {
 }
 
 function atualizarDashboard() {
-    const obras = filtrarPorContrato(obterObras());
+    const obras = filtrarPorContrato(obterObrasCadastradas());
     const frentesCampo = filtrarPorContrato(obterFrentesCampo().filter(f => !ehStatusConcluidoMatriz(f.properties || {})));
     const sinistros = filtrarPorContrato(obterSinistros());
     const eee = filtrarPorContrato(obterEEE());
@@ -647,7 +663,7 @@ window.abrirDetalhesFrentes = function() {
 };
 
 window.abrirDetalhesObras = function() {
-    const obras = filtrarPorContrato(obterObras());
+    const obras = filtrarPorContrato(obterObrasCadastradas());
     const unicas = agruparObrasUnicas(obras);
     ponteModalCols = ["Contrato", "Frente", "Status", "Método", "Diâmetro", "Material", "Município", "Bairro", "Logradouro"];
     ponteModalRows = unicas.map(o => [o.contrato, o.frente, o.status, o.metodo, o.diametro, o.material, o.municipio, o.bairro, o.logradouro]);
@@ -1304,7 +1320,7 @@ function inicializarDashboard() {
     if (btnCsv) btnCsv.onclick = exportarResumoCSV;
 
     console.log("PONTE dashboard - contagens", {
-        obras: obterObras().length,
+        obras: obterObrasCadastradas().length,
         frentes: obterFrentesCampo().length,
         sinistros: obterSinistros().length,
         eee: obterEEE().length,
