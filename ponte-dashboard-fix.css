@@ -781,3 +781,169 @@
         page-break-inside: avoid;
     }
 }
+
+/* Patch 2026-07-20: Metas como título clicável e evolução das EEE em lista */
+.titulo-metas-click {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: #0b2f5b;
+    cursor: pointer;
+    padding: 6px 2px;
+    border-radius: 8px;
+    user-select: none;
+}
+
+.titulo-metas-click::after {
+    content: "Abrir resumo";
+    display: inline-flex;
+    align-items: center;
+    background: #0b2f5b;
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.titulo-metas-click:hover::after {
+    background: #123f76;
+}
+
+.metas-modal-bloco {
+    margin-bottom: 18px;
+}
+
+.metas-modal-bloco h3 {
+    margin: 0 0 8px 0;
+    color: #0b2f5b;
+}
+
+.metas-modal-cards {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.metas-modal-card {
+    background: #ffffff;
+    border-left: 5px solid #0b2f5b;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.08);
+    padding: 14px;
+}
+
+.metas-modal-card h4 {
+    margin: 0 0 8px 0;
+    color: #0b2f5b;
+    font-size: 13px;
+}
+
+.metas-modal-card strong {
+    display: block;
+    font-size: 20px;
+    color: #111111;
+    margin-bottom: 4px;
+}
+
+.metas-modal-card span {
+    display: block;
+    color: #e52525;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.metas-modal-card p {
+    margin: 0;
+    color: #5d6b7a;
+    font-size: 12px;
+}
+
+.lista-avanco-eee {
+    height: 250px;
+    overflow-y: auto;
+    padding: 4px 6px 4px 2px;
+}
+
+.linha-avanco-eee {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(120px, 1.2fr) minmax(140px, 2fr) 54px;
+    gap: 10px;
+    align-items: center;
+    border: 0;
+    background: transparent;
+    padding: 8px 4px;
+    border-bottom: 1px solid #e6edf3;
+    cursor: pointer;
+    text-align: left;
+}
+
+.linha-avanco-eee:hover {
+    background: #f5f8fb;
+}
+
+.avanco-eee-nome {
+    color: #0b2f5b;
+    font-size: 12px;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.avanco-eee-barra-wrap {
+    height: 12px;
+    border-radius: 999px;
+    background: #e8eef5;
+    overflow: hidden;
+    position: relative;
+}
+
+.avanco-eee-barra {
+    display: block;
+    height: 100%;
+    min-width: 2px;
+    border-radius: 999px;
+    background: #0b74c9;
+}
+
+.avanco-eee-percentual {
+    color: #0b2f5b;
+    font-size: 12px;
+    font-weight: 900;
+    text-align: right;
+}
+
+.lista-avanco-vazia {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    color: #5d6b7a;
+    font-weight: 700;
+    text-align: center;
+}
+
+@media (max-width: 1050px) {
+    .metas-modal-cards {
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .metas-modal-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .linha-avanco-eee {
+        grid-template-columns: 1fr 54px;
+    }
+
+    .avanco-eee-barra-wrap {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+}

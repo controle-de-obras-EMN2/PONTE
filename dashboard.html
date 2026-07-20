@@ -53,6 +53,7 @@
 
         <section class="filtros-dashboard">
             <button onclick="filtrarContrato('TODOS')">Todos</button>
+            <button onclick="filtrarContrato('02069/22')">02069/22</button>
             <button onclick="filtrarContrato('00268/24')">00268/24</button>
             <button onclick="filtrarContrato('00272/24')">00272/24</button>
             <button onclick="filtrarContrato('00274/24')">00274/24</button>
@@ -67,7 +68,7 @@
         <section class="secao-dashboard">
 
             <div class="secao-titulo-linha">
-                <h2 id="tituloMetasGerais" class="titulo-botao" title="Clique para ver a previsão do mês seguinte">Metas Gerais</h2>
+                <h2 id="tituloMetasGerais" class="titulo-metas-click" title="Clique para abrir as metas atuais e a previsão do mês seguinte">Metas Gerais</h2>
             </div>
 
             <div class="cards cards-5">
@@ -186,7 +187,7 @@
 
                 <div class="grafico-card">
                     <h3>Evolução das EEE</h3>
-                    <canvas id="graficoAvancoEEE"></canvas>
+                    <div id="listaAvancoEEE" class="lista-avanco-eee"></div>
                 </div>
 
             </div>

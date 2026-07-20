@@ -114,11 +114,30 @@ function opcoesGraficoBarraBase() {
 }
 
 function valorCampo(props, campos) {
+    if (!props) return "";
+
+    // 1) tenta o nome exato do campo
     for (const campo of campos) {
-        if (props && props[campo] !== undefined && props[campo] !== null && String(props[campo]).trim() !== "") {
+        if (props[campo] !== undefined && props[campo] !== null && String(props[campo]).trim() !== "") {
             return props[campo];
         }
     }
+
+    // 2) tenta comparar sem acento/caixa, porque o qgis2web pode exportar EXTENSÃO,
+    // EXTENSÂO, EXTENSAO, campos truncados ou com diferenças pequenas de codificação.
+    const mapaNormalizado = {};
+    Object.keys(props).forEach(chave => {
+        mapaNormalizado[normalizarTexto(chave).replace(/[^A-Z0-9]/g, "")] = chave;
+    });
+
+    for (const campo of campos) {
+        const chaveNorm = normalizarTexto(campo).replace(/[^A-Z0-9]/g, "");
+        const chaveReal = mapaNormalizado[chaveNorm];
+        if (chaveReal && props[chaveReal] !== undefined && props[chaveReal] !== null && String(props[chaveReal]).trim() !== "") {
+            return props[chaveReal];
+        }
+    }
+
     return "";
 }
 
@@ -240,13 +259,70 @@ function statusLancamentoResumo(features) {
     return resumo;
 }
 
+function campoExtensaoDetectado(props) {
+    if (!props) return "";
+    const preferidos = [
+        "EXTENSÃO", "EXTENSÂO", "EXTENSAO", "EXTENSAO_M", "EXTENSÃO_M", "EXTENSÂO_M",
+        "EXT_M", "EXT", "EXTEN", "COMPRIMENTO", "COMP_M", "LENGTH", "Shape_Leng", "Shape_Length", "length"
+    ];
+
+    const direto = valorCampo(props, preferidos);
+    if (direto !== "") return direto;
+
+    const chaves = Object.keys(props);
+    const candidata = chaves.find(chave => {
+        const n = normalizarTexto(chave).replace(/[^A-Z0-9]/g, "");
+        return n.includes("EXTENS") || n.includes("COMPR") || n.includes("LENGTH") || n.includes("SHAPELENG");
+    });
+
+    return candidata ? props[candidata] : "";
+}
+
+function distanciaHaversineMetros(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return 0;
+    const lon1 = Number(a[0]);
+    const lat1 = Number(a[1]);
+    const lon2 = Number(b[0]);
+    const lat2 = Number(b[1]);
+    if (![lon1, lat1, lon2, lat2].every(Number.isFinite)) return 0;
+
+    const R = 6371000;
+    const rad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * rad;
+    const dLon = (lon2 - lon1) * rad;
+    const p1 = lat1 * rad;
+    const p2 = lat2 * rad;
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+function comprimentoLinhaCoordenadas(coords) {
+    if (!Array.isArray(coords) || coords.length < 2) return 0;
+    let total = 0;
+    for (let i = 1; i < coords.length; i++) {
+        total += distanciaHaversineMetros(coords[i - 1], coords[i]);
+    }
+    return total;
+}
+
+function extensaoPorGeometria(feature) {
+    const geom = feature?.geometry || {};
+    const tipo = geom.type;
+    const coords = geom.coordinates;
+
+    if (tipo === "LineString") return comprimentoLinhaCoordenadas(coords);
+    if (tipo === "MultiLineString") return (coords || []).reduce((soma, linha) => soma + comprimentoLinhaCoordenadas(linha), 0);
+    return 0;
+}
+
 function extensaoObraFeature(feature) {
     const p = feature.properties || {};
-    return numeroDashboard(valorCampo(p, [
-        "EXTENSAO_M", "EXTENSÃO_M", "EXTENSÂO_M", "EXTENSAO", "EXTENSÃO", "EXTENSÂO",
-        "EXT_M", "EXT", "EXTEN", "COMPRIMENTO", "COMP_M",
-        "LENGTH", "Shape_Leng", "Shape_Length", "length"
-    ]));
+    const valorCampoExtensao = campoExtensaoDetectado(p);
+    const extCampo = numeroDashboard(valorCampoExtensao);
+    if (extCampo > 0) return extCampo;
+
+    // Se a camada ainda não foi reexportada com o campo EXTENSÃO, usa a geometria da linha como reserva.
+    return extensaoPorGeometria(feature);
 }
 
 function itemObraUnica(feature) {
@@ -556,21 +632,42 @@ function dadosMetasProximoMes() {
     ];
 }
 
-window.abrirMetasProximoMes = function() {
+function blocoCardsMetasModal(titulo, linhas, subtitulo) {
+    let html = `<div class="metas-modal-bloco"><h3>${escaparHtml(titulo)}</h3>`;
+    if (subtitulo) html += `<p class="modal-nota">${escaparHtml(subtitulo)}</p>`;
+    html += `<div class="metas-modal-cards">`;
+    (linhas || []).forEach(linha => {
+        html += `
+            <div class="metas-modal-card">
+                <h4>${escaparHtml(linha[0])}</h4>
+                <strong>${escaparHtml(linha[2])}</strong>
+                <span>${escaparHtml(linha[3])}</span>
+                <p>Meta: ${escaparHtml(linha[1])}</p>
+            </div>`;
+    });
+    html += `</div></div>`;
+    return html;
+}
+
+window.abrirMetasGeraisModal = function() {
     if (typeof metas === "undefined") return;
     const referencia = metas.proximoMes?.referencia || "próximo mês";
-    ponteModalCols = ["Indicador", "Previsto", "Realizado", "%"];
-    ponteModalRows = dadosMetasProximoMes();
+    const atuais = dadosMetasAtuais();
+    const proximas = dadosMetasProximoMes();
+
+    ponteModalCols = ["Seção", "Indicador", "Previsto", "Realizado", "%"];
+    ponteModalRows = [
+        ...atuais.map(linha => ["Metas gerais", linha[0], linha[1], linha[2], linha[3]]),
+        ...proximas.map(linha => ["Previsão do mês seguinte", linha[0], linha[1], linha[2], linha[3]])
+    ];
 
     let html = botaoExportacaoModal();
-    html += `<p class="modal-nota"><strong>Referência:</strong> ${escaparHtml(referencia)}</p>`;
-    html += `<table class="tabela-modal tabela-compacta"><thead><tr><th>Indicador</th><th>Previsto</th><th>Realizado</th><th>%</th></tr></thead><tbody>`;
-    ponteModalRows.forEach(linha => {
-        html += "<tr>" + linha.map(v => `<td>${escaparHtml(v)}</td>`).join("") + "</tr>";
-    });
-    html += "</tbody></table>";
-    abrirModal("Previsão do mês seguinte", html);
+    html += blocoCardsMetasModal("Metas gerais", atuais, "Resumo do mês atual.");
+    html += blocoCardsMetasModal("Previsão do mês seguinte", proximas, "Referência: " + referencia + ".");
+    abrirModal("Metas Gerais", html);
 };
+
+window.abrirMetasProximoMes = window.abrirMetasGeraisModal;
 
 function setTexto(id, texto) {
     const el = document.getElementById(id);
@@ -744,74 +841,43 @@ function filtrarAvancoEEEPorContrato(itens) {
 }
 
 function criarGraficoAvancoEEE(itens, graficoAnterior) {
-    const canvas = document.getElementById("graficoAvancoEEE");
-    if (!canvas || typeof Chart === "undefined") return graficoAnterior;
+    const container = document.getElementById("listaAvancoEEE");
+    if (!container) return graficoAnterior;
 
-    destruirGrafico(graficoAnterior);
+    const dados = (itens || [])
+        .filter(item => item.item)
+        .sort((a, b) => String(a.item || "").localeCompare(String(b.item || ""), "pt-BR", { numeric: true }));
 
-    const dados = (itens || []).filter(item => item.item);
-    const opcoes = opcoesGraficoBarraBase();
-    opcoes.indexAxis = "y";
-    opcoes.interaction = { mode: "nearest", intersect: false, axis: "y" };
-    opcoes.hover = { mode: "nearest", intersect: false };
-    opcoes.plugins.legend = { display: false };
-    opcoes.plugins.tooltip.callbacks.label = function(context) {
-        const valor = context.parsed?.x ?? context.raw ?? 0;
-        const item = dados[context.dataIndex] || {};
-        return ["Avanço geral: " + formatarNumero(valor) + "%", item.status ? "Status: " + item.status : ""];
-    };
-    opcoes.scales.x = {
-        beginAtZero: true,
-        suggestedMax: 100,
-        max: 100,
-        ticks: { callback: function(value) { return value + "%"; } }
-    };
-    opcoes.scales.y = {
-        ticks: { autoSkip: false }
-    };
-    opcoes.onClick = function(event, elementos, chart) {
-        const pontos = chart.getElementsAtEventForMode(event, "nearest", { intersect: false }, true);
-        if (!pontos.length) return;
-        const item = dados[pontos[0].index];
-        abrirDetalhesAvancoEEE(item);
-    };
+    container.innerHTML = "";
 
-    const pluginPercentualBarras = {
-        id: "pontePercentualBarrasEEE",
-        afterDatasetsDraw(chart) {
-            const ctx = chart.ctx;
-            const dataset = chart.data.datasets[0];
-            const meta = chart.getDatasetMeta(0);
-            ctx.save();
-            ctx.font = "700 11px Arial";
-            ctx.fillStyle = "#0b2f5b";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "middle";
-            meta.data.forEach((bar, i) => {
-                const valor = Number(dataset.data[i] || 0);
-                const texto = formatarNumero(valor) + "%";
-                const x = Math.min(bar.x + 6, chart.chartArea.right - 42);
-                ctx.fillText(texto, x, bar.y);
-            });
-            ctx.restore();
-        }
-    };
+    if (!dados.length) {
+        container.innerHTML = `<div class="lista-avanco-vazia">Nenhuma elevatória para o contrato selecionado.</div>`;
+    } else {
+        dados.forEach(item => {
+            const valor = Math.max(0, Math.min(100, Number(item.avanco || 0)));
+            const linha = document.createElement("button");
+            linha.type = "button";
+            linha.className = "linha-avanco-eee";
+            linha.title = "Clique para abrir detalhes da elevatória";
+            linha.innerHTML = `
+                <span class="avanco-eee-nome">${escaparHtml(item.item || "EEE")}</span>
+                <span class="avanco-eee-barra-wrap">
+                    <span class="avanco-eee-barra" style="width:${valor}%"></span>
+                </span>
+                <span class="avanco-eee-percentual">${formatarNumero(valor)}%</span>
+            `;
+            linha.addEventListener("click", () => abrirDetalhesAvancoEEE(item));
+            container.appendChild(linha);
+        });
+    }
 
-    return new Chart(canvas, {
-        type: "bar",
+    // Objeto compatível com exportação CSV do dashboard.
+    return {
         data: {
             labels: dados.map(item => item.item),
-            datasets: [{
-                label: "Avanço geral (%)",
-                data: dados.map(item => item.avanco || 0),
-                borderWidth: 1,
-                barThickness: 18,
-                maxBarThickness: 24
-            }]
-        },
-        options: opcoes,
-        plugins: [pluginPercentualBarras]
-    });
+            datasets: [{ label: "Avanço geral (%)", data: dados.map(item => item.avanco || 0) }]
+        }
+    };
 }
 
 function abrirDetalhesAvancoEEE(item) {
@@ -1134,7 +1200,7 @@ function ativarCliquesDosCards() {
         cardSinistros: window.abrirDetalhesSinistros,
         cardEEE: window.abrirDetalhesEEE,
         cardLancamentos: window.abrirDetalhesLancamentos,
-        tituloMetasGerais: window.abrirMetasProximoMes
+        tituloMetasGerais: window.abrirMetasGeraisModal
     };
     Object.entries(mapa).forEach(([id, fn]) => {
         const el = document.getElementById(id);

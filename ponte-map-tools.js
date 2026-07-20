@@ -10,7 +10,7 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
     const CAMPOS = {
         contrato: ["NUM_CONTRA", "Contrato_N", "CONTRATO", "Contrato", "contrato"],
         frente: ["FRENTE", "Frente", "frente", "OBRA", "Nome_Lanca", "EEE"],
-        metodo: ["DETA_METOD", "DETA_METODO", "DETAL_METOD", "DETAL_METODO", "DETAL_MÉTODO"],
+        metodo: ["DETA_METOD"],
         diametro: ["DIAMETR_MM", "Diametro", "DIAMETRO", "diametro"]
     };
 
