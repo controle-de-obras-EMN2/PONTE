@@ -4,33 +4,34 @@
    Arquivo externo ao qgis2web para preservar melhorias do PONTE
    ========================================================= */
 
-console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
+console.log("ponte-map-tools.js carregado - atualização geral 2026-07-20");
 
 (function () {
     const CAMPOS = {
         contrato: ["NUM_CONTRA", "Contrato_N", "CONTRATO", "Contrato", "contrato"],
         frente: ["FRENTE", "Frente", "frente", "OBRA", "Nome_Lanca", "EEE"],
-        material: ["MATERIAL", "Material", "material", "TIPO", "Tipo", "tipo"],
+        metodo: ["METODO", "Metod_Cons", "MÉTODO", "Método", "Metodo", "metodo", "DETA_METOD", "DETAL_METODO", "DETAL_MÉTODO"],
         diametro: ["DIAMETR_MM", "Diametro", "DIAMETRO", "diametro"]
     };
 
     const SELECTS = {
         contrato: "filtroMapaContrato",
         frente: "filtroMapaFrente",
-        material: "filtroMapaMaterial",
+        metodo: "filtroMapaMetodo",
         diametro: "filtroMapaDiametro"
     };
 
     const LABELS = {
         contrato: "Todos os contratos",
         frente: "Todas as frentes",
-        material: "Todos os materiais",
+        metodo: "Todos os métodos",
         diametro: "Todos os diâmetros"
     };
 
     let mapReadyTentativas = 0;
     let streetViewAtivo = false;
     let atualizandoSelects = false;
+    let zoomParametroAplicado = false;
 
     document.addEventListener("DOMContentLoaded", function () {
         const iframe = obterIframeMapa();
@@ -71,7 +72,6 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
         }
 
         prepararBackupsDeFeicoes(contexto.map);
-        removerFrentesConcluidasDoMapa(contexto.map);
 
         const totalFeatures = obterRegistrosFiltravel(contexto.map).length;
         if (!totalFeatures) {
@@ -81,6 +81,7 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
 
         atualizarOpcoesFunil(contexto.map);
         instalarCliqueStreetView(contexto);
+        aplicarZoomDeParametroURL(contexto);
         console.log("PONTE: filtros do mapa prontos.", totalFeatures, "feições lidas.");
     }
 
@@ -107,41 +108,6 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
             .replace(/<[^>]*>/g, " ")
             .replace(/\s+/g, " ")
             .trim();
-    }
-
-    function valorStatusFrente(props) {
-        if (!props) return "";
-        return props["AJUSTE STA"] ?? props.STATUS ?? props.Status ?? props.status ?? "";
-    }
-
-    function ehFrenteMatriz(props) {
-        if (!props) return false;
-        return (
-            props["AJUSTE STA"] !== undefined ||
-            props.RISCO !== undefined ||
-            props.Risco !== undefined ||
-            props.GAS !== undefined ||
-            props.SOMA !== undefined
-        );
-    }
-
-    function ehFrenteConcluida(featureOuProps) {
-        const props = featureOuProps && featureOuProps.getProperties ? featureOuProps.getProperties() : featureOuProps;
-        if (!ehFrenteMatriz(props)) return false;
-        return normalizar(valorStatusFrente(props)).includes("CONCLUID");
-    }
-
-    function removerFrentesConcluidasDoMapa(map) {
-        obterCamadasVetoriais(map).forEach(function(layer) {
-            const source = layer.getSource();
-            const todas = layer.get("ponte_features_original") || source.getFeatures() || [];
-            const visiveis = todas.filter(feature => !ehFrenteConcluida(feature));
-            if (visiveis.length !== todas.length) {
-                source.clear(true);
-                if (visiveis.length) source.addFeatures(visiveis);
-                if (layer.changed) layer.changed();
-            }
-        });
     }
 
     function ehCamadaBase(layer) {
@@ -229,7 +195,25 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
     }
 
     function valorTipo(properties, tipo) {
-        return obterValorCampo(properties, CAMPOS[tipo] || []);
+        const direto = obterValorCampo(properties, CAMPOS[tipo] || []);
+        if (direto) return direto;
+
+        // Para a camada de FRENTES/matriz, o método pode vir separado em campos booleanos/númericos.
+        if (tipo === "metodo" && properties) {
+            const metodos = [];
+            const temValor = function (valor) {
+                if (valor === undefined || valor === null || String(valor).trim() === "") return false;
+                const n = Number(String(valor).replace(",", "."));
+                if (!Number.isNaN(n)) return n > 0;
+                return !["NAO", "NÃO", "NULL", "N/A", "NA", "0"].includes(normalizar(valor));
+            };
+            if (temValor(properties.VCA)) metodos.push("VCA");
+            if (temValor(properties.HDD)) metodos.push("HDD");
+            if (temValor(properties.OUTROS_MND)) metodos.push("Outros MND");
+            if (metodos.length) return metodos.join(" + ");
+        }
+
+        return "";
     }
 
     function obterRegistrosFiltravel(map) {
@@ -242,7 +226,6 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
 
             features.forEach(function (feature) {
                 const props = feature.getProperties ? feature.getProperties() : {};
-                if (ehFrenteConcluida(props)) return;
                 registros.push({ layer, feature, props, titulo });
             });
         });
@@ -254,13 +237,13 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
         return {
             contrato: document.getElementById(SELECTS.contrato)?.value || "",
             frente: document.getElementById(SELECTS.frente)?.value || "",
-            material: document.getElementById(SELECTS.material)?.value || "",
+            metodo: document.getElementById(SELECTS.metodo)?.value || "",
             diametro: document.getElementById(SELECTS.diametro)?.value || ""
         };
     }
 
     function registroAtendeFiltros(registro, filtros, ignorarTipo) {
-        return ["contrato", "frente", "material", "diametro"].every(function (tipo) {
+        return ["contrato", "frente", "metodo", "diametro"].every(function (tipo) {
             if (tipo === ignorarTipo) return true;
 
             const valorFiltro = filtros[tipo];
@@ -319,7 +302,7 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
         atualizandoSelects = true;
         const filtros = obterFiltrosAtuais();
 
-        ["contrato", "frente", "material", "diametro"].forEach(function (tipo) {
+        ["contrato", "frente", "metodo", "diametro"].forEach(function (tipo) {
             const valores = coletarValoresFiltrados(map, tipo, filtros);
             filtros[tipo] = preencherSelect(SELECTS[tipo], valores, LABELS[tipo], filtros[tipo]);
         });
@@ -330,7 +313,7 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
     function featureAtendeFiltros(feature, filtros) {
         const props = feature.getProperties ? feature.getProperties() : {};
 
-        return ["contrato", "frente", "material", "diametro"].every(function (tipo) {
+        return ["contrato", "frente", "metodo", "diametro"].every(function (tipo) {
             const valorFiltro = filtros[tipo];
             if (!valorFiltro) return true;
 
@@ -357,7 +340,7 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
             const source = layer.getSource();
             const todas = layer.get("ponte_features_original") || source.getFeatures().slice();
             const filtradas = todas.filter(function (feature) {
-                return !ehFrenteConcluida(feature) && featureAtendeFiltros(feature, filtros);
+                return featureAtendeFiltros(feature, filtros);
             });
 
             source.clear(true);
@@ -399,7 +382,7 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
         const contexto = obterContextoMapa();
         if (!contexto) return;
 
-        ["contrato", "frente", "material", "diametro"].forEach(function (tipo) {
+        ["contrato", "frente", "metodo", "diametro"].forEach(function (tipo) {
             const el = document.getElementById(SELECTS[tipo]);
             if (el) el.value = "";
         });
@@ -409,9 +392,8 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
             const todas = layer.get("ponte_features_original");
 
             if (todas) {
-                const visiveis = todas.filter(feature => !ehFrenteConcluida(feature));
                 source.clear(true);
-                source.addFeatures(visiveis);
+                source.addFeatures(todas);
             }
 
             if (typeof layer.setVisible === "function") layer.setVisible(true);
@@ -447,6 +429,165 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
         if (resumo) resumo.textContent = "Camadas ocultadas";
 
         if (contexto.map.render) contexto.map.render();
+    }
+
+    function lerParametrosZoom() {
+        const params = new URLSearchParams(window.location.search || "");
+        const layer = params.get("ponteLayer") || params.get("layer") || "";
+        const campo = params.get("ponteCampo") || params.get("campo") || "";
+        const valor = params.get("ponteValor") || params.get("valor") || "";
+        if (!layer && !campo && !valor) return null;
+        return { layer, campo, valor };
+    }
+
+    function camadaCombina(layer, alvo) {
+        if (!alvo) return true;
+        const alvoNorm = normalizar(alvo);
+        const titulo = normalizar(layer.get("title") || layer.get("name") || "");
+        if (!titulo) return false;
+        if (titulo.includes(alvoNorm) || alvoNorm.includes(titulo)) return true;
+
+        const equivalencias = {
+            "FRENTES": ["FRENTE", "FRENTES", "FRENTES_9", "FRENTES_10", "EMN2 FRENTES"],
+            "OBRAS": ["OBRAS", "OBRAS_EMN2", "OBRA"],
+            "EEE": ["EEE", "ELEVATORIA", "ELEVATORIAS"],
+            "SINISTRO": ["SINISTRO", "SINISTROEMN2"],
+            "PONTOSDELANAMENTO": ["PONTOSDELANAMENTO", "PONTOS DE LANCAMENTO", "PONTOS DE LANÇAMENTO", "LANCAMENTO", "LANÇAMENTO"]
+        };
+
+        const chaves = Object.keys(equivalencias);
+        for (const chave of chaves) {
+            if (!alvoNorm.includes(chave)) continue;
+            if (equivalencias[chave].some(nome => titulo.includes(normalizar(nome)))) return true;
+        }
+
+        return false;
+    }
+
+    function obterValorCampoFlexivel(props, campoSolicitado) {
+        if (!props || !campoSolicitado) return "";
+        if (props[campoSolicitado] !== undefined && props[campoSolicitado] !== null) return String(props[campoSolicitado]).trim();
+
+        const campoNorm = normalizar(campoSolicitado);
+        const chave = Object.keys(props).find(k => normalizar(k) === campoNorm);
+        if (chave && props[chave] !== undefined && props[chave] !== null) return String(props[chave]).trim();
+
+        return "";
+    }
+
+    function featureCombinaBusca(feature, campo, valor) {
+        const props = feature.getProperties ? feature.getProperties() : {};
+        const valorNorm = normalizar(valor);
+        if (!valorNorm) return false;
+
+        const camposPreferenciais = campo ? [campo] : [];
+        camposPreferenciais.push("ID", "FRENTE", "Frente", "NOME_FRENTE", "OBRA", "EEE", "Ficha", "Nome_Lanca", "Nome", "fid", "id");
+
+        for (const c of camposPreferenciais) {
+            const v = obterValorCampoFlexivel(props, c);
+            if (v && normalizar(v) === valorNorm) return true;
+        }
+
+        return Object.keys(props).some(k => normalizar(props[k]) === valorNorm);
+    }
+
+    function ajustarMapaParaFeatures(contexto, features) {
+        if (!features || !features.length) return false;
+
+        const extent = contexto.ol.extent.createEmpty();
+        let pontoUnico = null;
+        let totalComGeometria = 0;
+
+        features.forEach(function(feature) {
+            const geom = feature.getGeometry && feature.getGeometry();
+            if (!geom) return;
+            totalComGeometria++;
+            contexto.ol.extent.extend(extent, geom.getExtent());
+            if (totalComGeometria === 1) pontoUnico = contexto.ol.extent.getCenter(geom.getExtent());
+        });
+
+        if (!totalComGeometria || contexto.ol.extent.isEmpty(extent)) return false;
+
+        if (totalComGeometria === 1) {
+            const largura = Math.abs(extent[2] - extent[0]);
+            const altura = Math.abs(extent[3] - extent[1]);
+            if (largura < 2 && altura < 2 && pontoUnico) {
+                contexto.map.getView().animate({ center: pontoUnico, zoom: 18, duration: 700 });
+                return true;
+            }
+        }
+
+        contexto.map.getView().fit(extent, {
+            padding: [100, 100, 100, 100],
+            maxZoom: 18,
+            duration: 700
+        });
+        return true;
+    }
+
+    function aplicarZoomDeParametroURL(contexto) {
+        if (zoomParametroAplicado) return;
+        const busca = lerParametrosZoom();
+        if (!busca || !busca.valor) return;
+
+        prepararBackupsDeFeicoes(contexto.map);
+
+        const camadas = obterCamadasVetoriais(contexto.map);
+        let encontradas = [];
+        let camadasEncontradas = [];
+
+        camadas.forEach(function(layer) {
+            if (!camadaCombina(layer, busca.layer)) return;
+            const source = layer.getSource();
+            const todas = layer.get("ponte_features_original") || (source.getFeatures ? source.getFeatures() : []);
+            const match = todas.filter(function(feature) {
+                return featureCombinaBusca(feature, busca.campo, busca.valor);
+            });
+            if (match.length) {
+                encontradas = encontradas.concat(match);
+                camadasEncontradas.push({ layer, match });
+            }
+        });
+
+        // Plano B: se o nome da camada mudou no qgis2web, procura em todas as camadas vetoriais.
+        if (!encontradas.length) {
+            camadas.forEach(function(layer) {
+                const source = layer.getSource();
+                const todas = layer.get("ponte_features_original") || (source.getFeatures ? source.getFeatures() : []);
+                const match = todas.filter(function(feature) {
+                    return featureCombinaBusca(feature, busca.campo, busca.valor);
+                });
+                if (match.length) {
+                    encontradas = encontradas.concat(match);
+                    camadasEncontradas.push({ layer, match });
+                }
+            });
+        }
+
+        if (!encontradas.length) {
+            console.warn("PONTE: não localizou item para zoom", busca);
+            return;
+        }
+
+        camadasEncontradas.forEach(function(item) {
+            const layer = item.layer;
+            const source = layer.getSource();
+            const atuais = source.getFeatures ? source.getFeatures() : [];
+            if (!atuais.length && layer.get("ponte_features_original")) {
+                source.addFeatures(layer.get("ponte_features_original"));
+            }
+            if (typeof layer.setVisible === "function") layer.setVisible(true);
+            if (layer.changed) layer.changed();
+        });
+
+        setTimeout(function() {
+            ajustarMapaParaFeatures(contexto, encontradas);
+            const resumo = document.getElementById("resumoFiltrosMapa");
+            if (resumo) resumo.textContent = `Zoom aplicado: ${busca.valor}`;
+            if (contexto.map.render) contexto.map.render();
+        }, 350);
+
+        zoomParametroAplicado = true;
     }
 
     function ativarBotoesDoMapa() {
@@ -524,6 +665,13 @@ console.log("ponte-map-tools.js carregado - versão funil robusta 2026-07-17");
         preencherFiltros: function () {
             const contexto = obterContextoMapa();
             if (contexto) atualizarOpcoesFunil(contexto.map);
+        },
+        aplicarZoomDeParametroURL: function () {
+            const contexto = obterContextoMapa();
+            if (contexto) {
+                zoomParametroAplicado = false;
+                aplicarZoomDeParametroURL(contexto);
+            }
         }
     };
 })();

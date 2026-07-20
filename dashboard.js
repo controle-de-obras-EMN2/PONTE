@@ -3,7 +3,7 @@
    Camadas esperadas: OBRAS_EMN2_4, FRENTES_9, SinistroEMN2_7, PONTOSDELANAMENTO_8, EEE_6.
 */
 
-console.log("dashboard.js PONTE estável carregado - 2026-07-17");
+console.log("dashboard.js PONTE estável carregado - atualização geral 2026-07-20");
 
 let contratoSelecionado = "TODOS";
 let graficoStatusObras = null;
@@ -13,6 +13,7 @@ let graficoMaterial = null;
 let graficoFrentesStatus = null;
 let graficoEEEStatus = null;
 let graficoManchas = null;
+let graficoAvancoEEE = null;
 let graficoValores = null;
 let graficoExtensao = null;
 let graficoMatrizRisco = null;
@@ -22,6 +23,8 @@ let graficoMatrizMetodos = null;
 let matrizRiscoInicializada = false;
 let matrizMapaLeaflet = null;
 let matrizLayerPontosLeaflet = null;
+let baseDashboardLinhas = [];
+let baseDashboardCsvCarregado = false;
 
 let ponteModalCols = [];
 let ponteModalRows = [];
@@ -169,6 +172,9 @@ function obterObrasCadastradas() {
 }
 
 function obterFrentesCampo() {
+    const direto10 = obterFeaturesPorVariavel("json_FRENTES_10");
+    if (direto10.length) return direto10;
+
     const direto = obterFeaturesPorVariavel("json_FRENTES_9");
     if (direto.length) return direto;
 
@@ -234,10 +240,19 @@ function statusLancamentoResumo(features) {
     return resumo;
 }
 
+function extensaoObraFeature(feature) {
+    const p = feature.properties || {};
+    return numeroDashboard(valorCampo(p, [
+        "EXTENSAO_M", "EXTENSÃO_M", "EXTENSAO", "EXTENSÃO",
+        "EXT_M", "EXT", "EXTEN", "COMPRIMENTO", "COMP_M",
+        "LENGTH", "Shape_Leng", "Shape_Length", "length"
+    ]));
+}
+
 function itemObraUnica(feature) {
     const p = feature.properties || {};
-    const contrato = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
-    const frente = textoCampo(p, ["FRENTE", "Frente", "frente"]);
+    const contrato = textoCampo(p, ["NUM_CONTRA", "NUM_CONTRATO", "CONTRATO", "Contrato"]);
+    const frente = textoCampo(p, ["FRENTE", "FRENTES", "Frente", "frente", "NOME_FRENTE", "NOME_OBRA", "OBRA"]);
     const chave = contrato + "|" + (frente || textoCampo(p, ["NUM_BP", "fid", "id"]) || JSON.stringify(feature.geometry || {}));
 
     return {
@@ -245,22 +260,76 @@ function itemObraUnica(feature) {
         contrato,
         frente: frente || "Não informado",
         status: textoCampo(p, ["STATUS_C", "STATUS", "Status"]) || "Não informado",
-        metodo: textoCampo(p, ["METODO", "Metod_Cons", "Método"]) || "Não informado",
-        diametro: textoCampo(p, ["DIAMETR_MM", "DIAMETRO", "Diâmetro"]) || "Não informado",
-        material: textoCampo(p, ["MATERIAL", "Material", "TIPO"]) || "Não informado",
+        metodo: textoCampo(p, ["METODO", "Metod_Cons", "MÉTODO", "Método", "DETA_METOD"]) || "Não informado",
+        diametro: textoCampo(p, ["DIAMETR_MM", "DIAMETRO", "DIÂMETRO", "Diâmetro"]) || "Não informado",
+        extensao: extensaoObraFeature(feature),
         municipio: textoCampo(p, ["MUNICIPIO", "Município"]),
         bairro: textoCampo(p, ["BAIRRO", "Bairro"]),
         logradouro: textoCampo(p, ["LOGRADOURO", "Logradouro"])
     };
 }
 
+function escolherStatusAgregado(statusAtual, statusNovo) {
+    const prioridade = [
+        "OBRA EM ANDAMENTO",
+        "OBRA A INICIAR",
+        "PAVIMENTACAO PROVISORIA CONCLUIDA",
+        "PAVIMENTACAO DEFINITIVA CONCLUIDA",
+        "OBRA CONCLUIDA",
+        "IMOBILIZADO",
+        "SUPRIMIDO"
+    ];
+    const a = normalizarTexto(statusAtual);
+    const b = normalizarTexto(statusNovo);
+    const ia = prioridade.indexOf(a);
+    const ib = prioridade.indexOf(b);
+    if (ia === -1 && ib === -1) return statusAtual || statusNovo;
+    if (ia === -1) return statusNovo;
+    if (ib === -1) return statusAtual;
+    return ib < ia ? statusNovo : statusAtual;
+}
+
 function agruparObrasUnicas(features) {
     const mapa = new Map();
     features.forEach(feature => {
         const item = itemObraUnica(feature);
-        if (!mapa.has(item.chave)) mapa.set(item.chave, item);
+        if (!mapa.has(item.chave)) {
+            mapa.set(item.chave, item);
+        } else {
+            const existente = mapa.get(item.chave);
+            existente.extensao += item.extensao || 0;
+            existente.status = escolherStatusAgregado(existente.status, item.status);
+            if (existente.metodo === "Não informado" && item.metodo !== "Não informado") existente.metodo = item.metodo;
+            if (existente.diametro === "Não informado" && item.diametro !== "Não informado") existente.diametro = item.diametro;
+        }
     });
     return Array.from(mapa.values());
+}
+
+function categoriaValidaParaGraficoObras(valor, tipo) {
+    const n = normalizarTexto(valor);
+    if (!n || ["NAO INFORMADO", "NAO DISPONIVEL", "N/A", "NA", "N.D", "ND", "NULL", "-"].includes(n)) return false;
+    if (tipo === "status" && n.includes("EXISTENTE")) return false;
+    if ((tipo === "metodo" || tipo === "diametro") && (n === "0" || n.includes("NAO INFORMADO") || n.includes("NAO DISPONIVEL"))) return false;
+    return true;
+}
+
+function somarExtensaoObrasPorCampo(features, campos, tipo) {
+    const r = {};
+    (features || []).forEach(feature => {
+        const p = feature.properties || {};
+        const valor = textoCampo(p, campos) || "Não informado";
+        if (!categoriaValidaParaGraficoObras(valor, tipo)) return;
+        const ext = extensaoObraFeature(feature);
+        if (!ext) return;
+        r[valor] = (r[valor] || 0) + ext;
+    });
+
+    if (tipo === "diametro") {
+        return Object.fromEntries(Object.entries(r).sort((a, b) => numeroDashboard(a[0]) - numeroDashboard(b[0])));
+    }
+
+    return Object.fromEntries(Object.entries(r).sort((a, b) => String(a[0]).localeCompare(String(b[0]), "pt-BR", { numeric: true })));
 }
 
 function contarPorCampo(features, campo) {
@@ -302,6 +371,33 @@ function criarGraficoBarra(idCanvas, titulo, dados, graficoAnterior) {
             datasets: [{ label: titulo, data: valores }]
         },
         options: opcoesGraficoBarraBase()
+    });
+}
+
+function criarGraficoBarraExtensao(idCanvas, titulo, dados, graficoAnterior) {
+    const canvas = document.getElementById(idCanvas);
+    if (!canvas || typeof Chart === "undefined") return graficoAnterior;
+
+    destruirGrafico(graficoAnterior);
+
+    const labels = Object.keys(dados || {});
+    const valores = Object.values(dados || {});
+    const opcoes = opcoesGraficoBarraBase();
+    opcoes.plugins.tooltip.callbacks.label = function(context) {
+        const valor = context.parsed?.y ?? context.raw ?? 0;
+        return "Extensão: " + formatarNumero(valor) + " m";
+    };
+    opcoes.scales.y.ticks = {
+        callback: function(value) { return formatarNumero(value) + " m"; }
+    };
+
+    return new Chart(canvas, {
+        type: "bar",
+        data: {
+            labels,
+            datasets: [{ label: "Extensão (m)", data: valores }]
+        },
+        options: opcoes
     });
 }
 
@@ -425,9 +521,200 @@ function atualizarMetas() {
     setTexto("prodAndamentoMeta", "Meta: " + formatarNumero(prodA.previsto) + " m");
 }
 
+function linhaMeta(nome, item, unidade, moeda) {
+    const previsto = numeroDashboard(item?.previsto || 0);
+    const realizado = numeroDashboard(item?.realizado || 0);
+    const perc = percentual(realizado, previsto);
+    const fmt = moeda ? formatarMoeda : function(v) { return formatarNumero(v) + (unidade ? " " + unidade : ""); };
+    return [nome, fmt(previsto), fmt(realizado), perc.toFixed(2) + "%"];
+}
+
+function dadosMetasAtuais() {
+    if (typeof metas === "undefined") return [];
+    return [
+        linhaMeta("Economias Fator U", metas.economias?.fatorU || {}, "", false),
+        linhaMeta("Economias Contrato", metas.economias?.contrato || {}, "", false),
+        linhaMeta("Imobilizado", metas.imobilizado || {}, "", true),
+        linhaMeta("Produção Integra", metas.producao?.integra || {}, "m", false),
+        linhaMeta("Produção Andamento", metas.producao?.andamento || {}, "m", false)
+    ];
+}
+
+function dadosMetasProximoMes() {
+    if (typeof metas === "undefined") return [];
+    const prox = metas.proximoMes || {};
+    return [
+        linhaMeta("Economias Fator U", prox.economias?.fatorU || {}, "", false),
+        linhaMeta("Economias Contrato", prox.economias?.contrato || {}, "", false),
+        linhaMeta("Imobilizado", prox.imobilizado || {}, "", true),
+        linhaMeta("Produção Integra", prox.producao?.integra || {}, "m", false),
+        linhaMeta("Produção Andamento", prox.producao?.andamento || {}, "m", false)
+    ];
+}
+
+window.abrirMetasProximoMes = function() {
+    if (typeof metas === "undefined") return;
+    const referencia = metas.proximoMes?.referencia || "próximo mês";
+    ponteModalCols = ["Indicador", "Previsto", "Realizado", "%"];
+    ponteModalRows = dadosMetasProximoMes();
+
+    let html = botaoExportacaoModal();
+    html += `<p class="modal-nota"><strong>Referência:</strong> ${escaparHtml(referencia)}</p>`;
+    html += `<table class="tabela-modal tabela-compacta"><thead><tr><th>Indicador</th><th>Previsto</th><th>Realizado</th><th>%</th></tr></thead><tbody>`;
+    ponteModalRows.forEach(linha => {
+        html += "<tr>" + linha.map(v => `<td>${escaparHtml(v)}</td>`).join("") + "</tr>";
+    });
+    html += "</tbody></table>";
+    abrirModal("Previsão do mês seguinte", html);
+};
+
 function setTexto(id, texto) {
     const el = document.getElementById(id);
     if (el) el.innerText = texto;
+}
+
+function detectarSeparadorCSV(linha) {
+    const pontoVirgula = (linha.match(/;/g) || []).length;
+    const virgula = (linha.match(/,/g) || []).length;
+    return pontoVirgula >= virgula ? ";" : ",";
+}
+
+function separarLinhaCSV(linha, sep) {
+    const partes = [];
+    let atual = "";
+    let aspas = false;
+    for (let i = 0; i < linha.length; i++) {
+        const ch = linha[i];
+        if (ch === '"') {
+            if (aspas && linha[i + 1] === '"') {
+                atual += '"';
+                i++;
+            } else {
+                aspas = !aspas;
+            }
+        } else if (ch === sep && !aspas) {
+            partes.push(atual);
+            atual = "";
+        } else {
+            atual += ch;
+        }
+    }
+    partes.push(atual);
+    return partes.map(v => v.trim());
+}
+
+function parseCSVDashboard(texto) {
+    const linhas = String(texto || "").replace(/^\uFEFF/, "").split(/\r?\n/).filter(l => l.trim());
+    if (!linhas.length) return [];
+    const sep = detectarSeparadorCSV(linhas[0]);
+    const cabecalho = separarLinhaCSV(linhas[0], sep);
+    return linhas.slice(1).map(linha => {
+        const valores = separarLinhaCSV(linha, sep);
+        const obj = {};
+        cabecalho.forEach((campo, i) => obj[campo] = valores[i] ?? "");
+        return obj;
+    });
+}
+
+async function carregarBaseDashboardCsv() {
+    if (baseDashboardCsvCarregado) return;
+    const caminhos = ["dados/base_dashboard_teste.csv", "dados/base_dashboard.csv"];
+    for (const caminho of caminhos) {
+        try {
+            const resp = await fetch(caminho, { cache: "no-store" });
+            if (!resp.ok) continue;
+            const texto = await resp.text();
+            baseDashboardLinhas = parseCSVDashboard(texto);
+            baseDashboardCsvCarregado = true;
+            console.log("PONTE: base CSV carregada", caminho, baseDashboardLinhas.length);
+            return;
+        } catch (erro) {
+            console.warn("PONTE: não foi possível carregar", caminho, erro);
+        }
+    }
+    baseDashboardCsvCarregado = true;
+}
+
+function obterAvancoEEEBase() {
+    const metasObj = (typeof metas !== "undefined") ? metas : {};
+    const itensMetas = metasObj.avancoEEE || metasObj.avancoPopup || metasObj.avanco_popup || [];
+    const deMetas = Array.isArray(itensMetas) ? itensMetas.map(item => ({
+        contrato: item.contrato || item.CONTRATO || "",
+        item: item.item || item.EEE || item.nome || "EEE",
+        avanco: numeroDashboard(item.avanco ?? item.percentual ?? item.realizado),
+        status: item.status || item.STATUS || ""
+    })) : [];
+
+    const deCsv = (baseDashboardLinhas || [])
+        .filter(linha => normalizarTexto(linha.tipo) === "AVANCO_POPUP" || normalizarTexto(linha.tipo) === "AVANCO_EEE")
+        .map(linha => ({
+            contrato: linha.contrato || linha.CONTRATO || "",
+            item: linha.item || linha.EEE || linha.nome || "EEE",
+            avanco: numeroDashboard(linha.avanco || linha.percentual || linha.realizado),
+            status: linha.status || linha.STATUS || ""
+        }));
+
+    return deCsv.length ? deCsv : deMetas;
+}
+
+function filtrarAvancoEEEPorContrato(itens) {
+    if (!contratoSelecionado || contratoSelecionado === "TODOS") return itens || [];
+    return (itens || []).filter(item => String(item.contrato || "").trim() === contratoSelecionado);
+}
+
+function criarGraficoAvancoEEE(itens, graficoAnterior) {
+    const canvas = document.getElementById("graficoAvancoEEE");
+    if (!canvas || typeof Chart === "undefined") return graficoAnterior;
+
+    destruirGrafico(graficoAnterior);
+
+    const dados = (itens || []).filter(item => item.item);
+    const opcoes = opcoesGraficoBarraBase();
+    opcoes.plugins.tooltip.callbacks.label = function(context) {
+        const valor = context.parsed?.y ?? context.raw ?? 0;
+        const item = dados[context.dataIndex] || {};
+        return ["Avanço geral: " + formatarNumero(valor) + "%", item.status ? "Status: " + item.status : ""];
+    };
+    opcoes.scales.y = {
+        beginAtZero: true,
+        suggestedMax: 100,
+        max: 100,
+        ticks: { callback: function(value) { return value + "%"; } }
+    };
+    opcoes.onClick = function(event, elementos, chart) {
+        const pontos = chart.getElementsAtEventForMode(event, "nearest", { intersect: false }, true);
+        if (!pontos.length) return;
+        const item = dados[pontos[0].index];
+        abrirDetalhesAvancoEEE(item);
+    };
+
+    return new Chart(canvas, {
+        type: "bar",
+        data: {
+            labels: dados.map(item => item.item),
+            datasets: [{ label: "Avanço geral (%)", data: dados.map(item => item.avanco || 0) }]
+        },
+        options: opcoes
+    });
+}
+
+function abrirDetalhesAvancoEEE(item) {
+    if (!item) return;
+    ponteModalCols = ["EEE", "Contrato", "Avanço geral", "Status"];
+    ponteModalRows = [[item.item || "", item.contrato || "", (item.avanco || 0) + "%", item.status || ""]];
+    const html = botaoExportacaoModal() + `
+        <table class="tabela-modal tabela-compacta">
+            <thead><tr><th>EEE</th><th>Contrato</th><th>Avanço geral</th><th>Status</th></tr></thead>
+            <tbody><tr>
+                <td>${escaparHtml(item.item || "")}</td>
+                <td>${escaparHtml(item.contrato || "")}</td>
+                <td>${escaparHtml((item.avanco || 0) + "%")}</td>
+                <td>${escaparHtml(item.status || "")}</td>
+            </tr></tbody>
+        </table>
+        <p class="modal-nota">Detalhamento por fase ainda não cadastrado. Quando a planilha por fase for incluída, este popup passa a mostrar as barras de cada etapa da elevatória.</p>
+    `;
+    abrirModal("Evolução da EEE", html);
 }
 
 function atualizarDashboard() {
@@ -458,13 +745,12 @@ function atualizarDashboard() {
     setTexto("totalLancamentos", formatarNumero(lancResumo.total));
     setTexto("statusLancamentos", "Ativos: " + formatarNumero(lancResumo.ativos) + " | Suprimidos: " + formatarNumero(lancResumo.suprimidos));
 
-    graficoStatusObras = criarGraficoBarra("graficoStatusObras", "Obras por Status", contarPorArray(obrasUnicas, "status"), graficoStatusObras);
-    graficoMetodo = criarGraficoBarra("graficoMetodo", "Obras por Método", contarPorArray(obrasUnicas, "metodo"), graficoMetodo);
-    graficoDiametro = criarGraficoBarra("graficoDiametro", "Obras por Diâmetro", contarPorArray(obrasUnicas, "diametro"), graficoDiametro);
-    graficoMaterial = criarGraficoBarra("graficoMaterial", "Obras por Material", contarPorArray(obrasUnicas, "material"), graficoMaterial);
-    graficoFrentesStatus = criarGraficoBarra("graficoFrentesStatus", "Frentes por Status", contarPorCampo(frentesCampo, "AJUSTE STA"), graficoFrentesStatus);
+    graficoStatusObras = criarGraficoBarraExtensao("graficoStatusObras", "Extensão por Status", somarExtensaoObrasPorCampo(obras, ["STATUS_C", "STATUS", "Status"], "status"), graficoStatusObras);
+    graficoMetodo = criarGraficoBarraExtensao("graficoMetodo", "Extensão por Método", somarExtensaoObrasPorCampo(obras, ["METODO", "Metod_Cons", "MÉTODO", "Método", "DETA_METOD"], "metodo"), graficoMetodo);
+    graficoDiametro = criarGraficoBarraExtensao("graficoDiametro", "Extensão por Diâmetro", somarExtensaoObrasPorCampo(obras, ["DIAMETR_MM", "DIAMETRO", "DIÂMETRO", "Diâmetro"], "diametro"), graficoDiametro);
     graficoEEEStatus = criarGraficoBarra("graficoEEEStatus", "EEE por Status", contarPorCampo(eee, "STATUS"), graficoEEEStatus);
     graficoManchas = criarGraficoManchasEconomias(manchas, graficoManchas);
+    graficoAvancoEEE = criarGraficoAvancoEEE(filtrarAvancoEEEPorContrato(obterAvancoEEEBase()), graficoAvancoEEE);
 
     atualizarGraficosContratos();
 }
@@ -606,6 +892,8 @@ function criarUrlVerNoMapa(layer, campo, valor) {
     params.set("ponteLayer", layer || "");
     params.set("ponteCampo", campo || "");
     params.set("ponteValor", String(valor || ""));
+    params.set("ponteZoom", "1");
+    params.set("t", Date.now().toString());
     return "index.html?" + params.toString();
 }
 
@@ -665,14 +953,14 @@ window.abrirDetalhesFrentes = function() {
 window.abrirDetalhesObras = function() {
     const obras = filtrarPorContrato(obterObrasCadastradas());
     const unicas = agruparObrasUnicas(obras);
-    ponteModalCols = ["Contrato", "Frente", "Status", "Método", "Diâmetro", "Material", "Município", "Bairro", "Logradouro"];
-    ponteModalRows = unicas.map(o => [o.contrato, o.frente, o.status, o.metodo, o.diametro, o.material, o.municipio, o.bairro, o.logradouro]);
+    ponteModalCols = ["Contrato", "Frente", "Status", "Método", "Diâmetro", "Extensão total (m)", "Município", "Bairro", "Logradouro"];
+    ponteModalRows = unicas.map(o => [o.contrato, o.frente, o.status, o.metodo, o.diametro, formatarNumero(o.extensao || 0), o.municipio, o.bairro, o.logradouro]);
 
     let html = botaoExportacaoModal();
     html += "<table class='tabela-modal tabela-compacta'><thead><tr>" + ponteModalCols.map(c => `<th>${escaparHtml(c)}</th>`).join("") + "<th>Mapa</th></tr></thead><tbody>";
     unicas.forEach(o => {
         html += "<tr>";
-        [o.contrato, o.frente, o.status, o.metodo, o.diametro, o.material, o.municipio, o.bairro, o.logradouro].forEach(v => {
+        [o.contrato, o.frente, o.status, o.metodo, o.diametro, formatarNumero(o.extensao || 0), o.municipio, o.bairro, o.logradouro].forEach(v => {
             html += `<td>${escaparHtml(v)}</td>`;
         });
         html += `<td><a class="link-ver-mapa" target="_blank" href="${criarUrlVerNoMapa("OBRAS", "FRENTE", o.frente)}">Ver</a></td>`;
@@ -729,7 +1017,9 @@ function ativarCliquesDosCards() {
         cardFrentes: window.abrirDetalhesFrentes,
         cardSinistros: window.abrirDetalhesSinistros,
         cardEEE: window.abrirDetalhesEEE,
-        cardLancamentos: window.abrirDetalhesLancamentos
+        cardLancamentos: window.abrirDetalhesLancamentos,
+        btnMetasProximoMes: window.abrirMetasProximoMes,
+        tituloMetasGerais: window.abrirMetasProximoMes
     };
     Object.entries(mapa).forEach(([id, fn]) => {
         const el = document.getElementById(id);
@@ -749,16 +1039,7 @@ window.exportarModalPDF = async function() {
         window.print();
         return;
     }
-    const canvas = await html2canvas(corpo, { scale: 1.5, useCORS: true });
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF("l", "mm", "a4");
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const imgW = pageW - 16;
-    const imgH = canvas.height * imgW / canvas.width;
-    pdf.text(document.getElementById("modalTitulo")?.innerText || "PONTE", 8, 8);
-    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 8, 14, imgW, Math.min(imgH, pageH - 20));
-    pdf.save("ponte_modal.pdf");
+    await exportarElementoParaPDF(corpo, "ponte_modal.pdf", document.getElementById("modalTitulo")?.innerText || "PONTE", "p", 1.6);
 };
 
 function baixarArquivo(nome, tipo, conteudo) {
@@ -773,17 +1054,106 @@ function baixarArquivo(nome, tipo, conteudo) {
     URL.revokeObjectURL(url);
 }
 
+function linhasDeGraficoCSV(titulo, grafico) {
+    if (!grafico || !grafico.data) return [];
+    const labels = grafico.data.labels || [];
+    const linhas = [];
+    (grafico.data.datasets || []).forEach(dataset => {
+        (dataset.data || []).forEach((valor, i) => {
+            linhas.push([titulo, "Gráfico", labels[i] ?? "", dataset.label || "Valor", valor ?? 0, ""]);
+        });
+    });
+    return linhas;
+}
+
+function linhasDeMetasCSV(nomeSecao, linhasMetas) {
+    return (linhasMetas || []).map(l => [nomeSecao, "Meta", l[0], "Previsto", l[1], "Realizado: " + l[2] + " | " + l[3]]);
+}
+
 function exportarResumoCSV() {
-    const linhas = [
-        ["Indicador", "Valor", "Detalhe"],
-        ["Obras cadastradas", document.getElementById("totalObras")?.innerText || "", document.getElementById("percentualObrasProntas")?.innerText || ""],
-        ["Frentes em campo", document.getElementById("totalFrentes")?.innerText || "", ""],
-        ["Sinistros", document.getElementById("totalSinistros")?.innerText || "", ""],
-        ["EEE", document.getElementById("totalEEE")?.innerText || "", ""],
-        ["Pontos de lançamento", document.getElementById("totalLancamentos")?.innerText || "", document.getElementById("statusLancamentos")?.innerText || ""]
-    ];
-    const csv = linhas.map(linha => linha.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
-    baixarArquivo("ponte_resumo_dashboard.csv", "text/csv;charset=utf-8", "\ufeff" + csv);
+    const linhas = [["Seção", "Tipo", "Indicador/Categoria", "Série", "Valor", "Detalhe"]];
+
+    linhas.push(...linhasDeMetasCSV("Metas gerais", dadosMetasAtuais()));
+    linhas.push(...linhasDeMetasCSV("Previsão do mês seguinte", dadosMetasProximoMes()));
+
+    linhas.push(["Operação", "Card", "Obras cadastradas", "Total", document.getElementById("totalObras")?.innerText || "", document.getElementById("percentualObrasProntas")?.innerText || ""]);
+    linhas.push(["Operação", "Card", "Frentes em campo", "Total", document.getElementById("totalFrentes")?.innerText || "", ""]);
+    linhas.push(["Operação", "Card", "Sinistros", "Total", document.getElementById("totalSinistros")?.innerText || "", ""]);
+    linhas.push(["Operação", "Card", "EEE", "Total", document.getElementById("totalEEE")?.innerText || "", ""]);
+    linhas.push(["Operação", "Card", "Pontos de lançamento", "Total", document.getElementById("totalLancamentos")?.innerText || "", document.getElementById("statusLancamentos")?.innerText || ""]);
+
+    linhas.push(["Matriz de Risco", "Card", "Frentes filtradas", "Total", document.getElementById("matrizTotalFrentes")?.innerText || "", ""]);
+    linhas.push(["Matriz de Risco", "Card", "Risco alto", "Total", document.getElementById("matrizRiscoAlto")?.innerText || "", document.getElementById("matrizRiscoAltoPerc")?.innerText || ""]);
+    linhas.push(["Matriz de Risco", "Card", "Com gás", "Total", document.getElementById("matrizComGas")?.innerText || "", document.getElementById("matrizComGasPerc")?.innerText || ""]);
+    linhas.push(["Matriz de Risco", "Card", "Paralisadas", "Total", document.getElementById("matrizParalisadas")?.innerText || "", document.getElementById("matrizParalisadasPerc")?.innerText || ""]);
+    linhas.push(["Matriz de Risco", "Card", "Em andamento", "Total", document.getElementById("matrizEmAndamento")?.innerText || "", document.getElementById("matrizEmAndamentoPerc")?.innerText || ""]);
+
+    linhas.push(...linhasDeGraficoCSV("Extensão por Status", graficoStatusObras));
+    linhas.push(...linhasDeGraficoCSV("Extensão por Método", graficoMetodo));
+    linhas.push(...linhasDeGraficoCSV("Extensão por Diâmetro", graficoDiametro));
+    linhas.push(...linhasDeGraficoCSV("EEE por Status", graficoEEEStatus));
+    linhas.push(...linhasDeGraficoCSV("Economias por Mancha", graficoManchas));
+    linhas.push(...linhasDeGraficoCSV("Evolução das EEE", graficoAvancoEEE));
+    linhas.push(...linhasDeGraficoCSV("Valor Contratual x Pedido x Unitizado", graficoValores));
+    linhas.push(...linhasDeGraficoCSV("Extensão Contratual x Atual x Executada x Unitizada", graficoExtensao));
+    linhas.push(...linhasDeGraficoCSV("Matriz - Risco", graficoMatrizRisco));
+    linhas.push(...linhasDeGraficoCSV("Matriz - Status", graficoMatrizStatus));
+
+    const csv = linhas.map(linha => linha.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
+    baixarArquivo("ponte_dashboard_completo.csv", "text/csv;charset=utf-8", "\ufeff" + csv);
+}
+
+async function exportarElementoParaPDF(elemento, nomeArquivo, titulo, orientacao, escala) {
+    if (!elemento || typeof html2canvas === "undefined" || !window.jspdf) {
+        window.print();
+        return;
+    }
+
+    const canvas = await html2canvas(elemento, {
+        scale: escala || 1.3,
+        useCORS: true,
+        backgroundColor: "#f4f6f8",
+        scrollY: -window.scrollY,
+        windowWidth: document.documentElement.scrollWidth
+    });
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF(orientacao || "p", "mm", "a4");
+    const margem = 8;
+    const tituloAltura = 8;
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const usableW = pageW - margem * 2;
+    const usableHPrimeira = pageH - margem * 2 - tituloAltura;
+    const usableHOutras = pageH - margem * 2;
+
+    let yCanvas = 0;
+    let pagina = 0;
+
+    while (yCanvas < canvas.height) {
+        if (pagina > 0) pdf.addPage();
+
+        const usableH = pagina === 0 ? usableHPrimeira : usableHOutras;
+        const sliceHCanvas = Math.min(canvas.height - yCanvas, Math.floor(usableH * canvas.width / usableW));
+        const slice = document.createElement("canvas");
+        slice.width = canvas.width;
+        slice.height = sliceHCanvas;
+        const ctx = slice.getContext("2d");
+        ctx.drawImage(canvas, 0, yCanvas, canvas.width, sliceHCanvas, 0, 0, canvas.width, sliceHCanvas);
+
+        if (pagina === 0) {
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(12);
+            pdf.text(titulo || "PONTE", margem, margem + 2);
+        }
+
+        const imgH = sliceHCanvas * usableW / canvas.width;
+        pdf.addImage(slice.toDataURL("image/png"), "PNG", margem, pagina === 0 ? margem + tituloAltura : margem, usableW, imgH);
+        yCanvas += sliceHCanvas;
+        pagina++;
+    }
+
+    pdf.save(nomeArquivo);
 }
 
 async function exportarDashboardPDF() {
@@ -792,17 +1162,7 @@ async function exportarDashboardPDF() {
         window.print();
         return;
     }
-    const canvas = await html2canvas(dashboard, { scale: 1.2, useCORS: true });
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF("l", "mm", "a4");
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const imgW = pageW - 16;
-    const imgH = canvas.height * imgW / canvas.width;
-    pdf.setFont("helvetica", "bold");
-    pdf.text("PONTE - Dashboard", 8, 8);
-    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 8, 14, imgW, Math.min(imgH, pageH - 20));
-    pdf.save("ponte_dashboard.pdf");
+    await exportarElementoParaPDF(dashboard, "ponte_dashboard.pdf", "PONTE - Dashboard", "p", 1.15);
 }
 
 
@@ -1311,6 +1671,7 @@ function inicializarDashboard() {
     atualizarMetas();
     atualizarBotaoContratoAtivo();
     atualizarDashboard();
+    carregarBaseDashboardCsv().then(atualizarDashboard);
     inicializarMatrizRisco();
     ativarCliquesDosCards();
 

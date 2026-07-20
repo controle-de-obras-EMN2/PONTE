@@ -657,3 +657,52 @@
 .matriz-leaflet-pin-wrapper:hover .matriz-leaflet-pin {
     transform: scale(1.25);
 }
+
+/* Patch final: Metas Gerais como ação clara */
+.secao-titulo-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.secao-titulo-linha h2 {
+    margin: 0;
+}
+
+.btn-secao {
+    background: #0b2f5b;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.10);
+}
+
+.btn-secao:hover {
+    background: #123f76;
+}
+
+#tituloMetasGerais {
+    cursor: pointer;
+}
+
+.modal-nota {
+    color: #5d6b7a;
+    font-size: 13px;
+    margin: 0 0 12px 0;
+}
+
+@media (max-width: 760px) {
+    .secao-titulo-linha {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .btn-secao {
+        width: 100%;
+    }
+}

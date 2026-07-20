@@ -44,7 +44,7 @@
 
         <section class="dashboard-export-toolbar">
             <button id="btnExportarDashboardPDF" type="button">Exportar dashboard PDF</button>
-            <button id="btnExportarResumoCSV" type="button">Exportar resumo CSV</button>
+            <button id="btnExportarResumoCSV" type="button">Exportar dashboard CSV</button>
         </section>
 
         <section class="filtros-dashboard">
@@ -196,7 +196,10 @@
 
         <section class="secao-dashboard">
 
-            <h2 id="tituloMetasGerais" class="titulo-click">Metas Gerais</h2>
+            <div class="secao-titulo-linha">
+                <h2 id="tituloMetasGerais">Metas Gerais</h2>
+                <button id="btnMetasProximoMes" class="btn-secao" type="button">Ver previsão do mês seguinte</button>
+            </div>
 
             <div class="cards cards-5">
 
@@ -288,28 +291,18 @@
             <div class="graficos graficos-3">
 
                 <div class="grafico-card">
-                    <h3>Obras por Status</h3>
+                    <h3>Extensão por Status</h3>
                     <canvas id="graficoStatusObras"></canvas>
                 </div>
 
                 <div class="grafico-card">
-                    <h3>Obras por Método</h3>
+                    <h3>Extensão por Método</h3>
                     <canvas id="graficoMetodo"></canvas>
                 </div>
 
                 <div class="grafico-card">
-                    <h3>Obras por Diâmetro</h3>
+                    <h3>Extensão por Diâmetro</h3>
                     <canvas id="graficoDiametro"></canvas>
-                </div>
-
-                <div class="grafico-card">
-                    <h3>Obras por Material</h3>
-                    <canvas id="graficoMaterial"></canvas>
-                </div>
-
-                <div class="grafico-card">
-                    <h3>Frentes por Status</h3>
-                    <canvas id="graficoFrentesStatus"></canvas>
                 </div>
 
                 <div class="grafico-card">
@@ -320,6 +313,11 @@
                 <div class="grafico-card">
                     <h3>Economias por Mancha</h3>
                     <canvas id="graficoManchas"></canvas>
+                </div>
+
+                <div class="grafico-card">
+                    <h3>Evolução das EEE</h3>
+                    <canvas id="graficoAvancoEEE"></canvas>
                 </div>
 
             </div>
@@ -376,6 +374,7 @@
     <script src="MAPA/layers/SinistroEMN2_7.js"></script>
     <script src="MAPA/layers/PONTOSDELANAMENTO_8.js"></script>
     <script src="MAPA/layers/FRENTES_9.js"></script>
+    <script src="MAPA/layers/FRENTES_10.js"></script>
     <script src="MAPA/resources/ol.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 

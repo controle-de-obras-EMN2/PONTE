@@ -39,8 +39,8 @@
             <option value="">Todas as frentes</option>
         </select>
 
-        <select id="filtroMapaMaterial" title="Filtrar por material">
-            <option value="">Todos os materiais</option>
+        <select id="filtroMapaMetodo" title="Filtrar por método">
+            <option value="">Todos os métodos</option>
         </select>
 
         <select id="filtroMapaDiametro" title="Filtrar por diâmetro">
@@ -68,16 +68,6 @@
         title="Mapa PONTE">
     </iframe>
 </div>
-
-<script>
-(function () {
-    const iframe = document.getElementById("iframeMapa");
-    const busca = window.location.search || "";
-    if (iframe && busca && busca.includes("ponteCampo=")) {
-        iframe.src = "MAPA/index.html" + busca;
-    }
-})();
-</script>
 
 <div id="logo-footer">
     <img src="images/logo_empresa.png" alt="Logos">
