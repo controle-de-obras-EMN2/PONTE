@@ -1072,3 +1072,68 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Ajustes finais - Checklists no dashboard */
+.cards-5 {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(150px, 1fr));
+    gap: 14px;
+}
+
+.subtitulo-card-grafico {
+    margin: -6px 0 8px 0;
+    color: #5d6b7a;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#secaoChecklistsDashboard,
+#secaoChecklistsDashboard .grafico-card,
+.checklist-tabela-card {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.checklist-tabela-card {
+    width: 100%;
+}
+
+.checklist-tabela-wrap-dashboard {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    max-height: 320px;
+    overflow: auto;
+    box-sizing: border-box;
+    border-radius: 12px;
+    border: 1px solid #d9e0e7;
+}
+
+.checklist-tabela-wrap-dashboard .checklist-tabela {
+    min-width: 980px;
+    width: max-content;
+    max-width: none;
+}
+
+#dashboardChecklistResumo {
+    white-space: nowrap;
+}
+
+@media (max-width: 1250px) {
+    .cards-5 {
+        grid-template-columns: repeat(3, minmax(170px, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .cards-5 {
+        grid-template-columns: 1fr;
+    }
+
+    #dashboardChecklistResumo {
+        white-space: normal;
+        text-align: right;
+    }
+}

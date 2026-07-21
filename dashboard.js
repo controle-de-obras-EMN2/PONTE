@@ -31,6 +31,18 @@ let graficoChecklistStatus = null;
 let graficoChecklistContrato = null;
 let graficoChecklistTipo = null;
 
+const CONTRATOS_DASHBOARD_PADRAO = [
+    "02069/22",
+    "00268/24",
+    "00272/24",
+    "00274/24",
+    "00277/24",
+    "00797/24",
+    "00900/24",
+    "01151/21",
+    "03179/23"
+];
+
 let ponteModalCols = [];
 let ponteModalRows = [];
 
@@ -966,6 +978,80 @@ function topChecklistsPorTipo(itens, limite = 10) {
     );
 }
 
+function contratosPadraoComDadosChecklists(itens) {
+    const extras = Array.from(new Set((itens || [])
+        .map(item => String(item.contrato || "").trim())
+        .filter(Boolean)
+        .filter(contrato => !CONTRATOS_DASHBOARD_PADRAO.includes(contrato))
+    )).sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+
+    if (contratoSelecionado && contratoSelecionado !== "TODOS") {
+        return [contratoSelecionado];
+    }
+
+    return CONTRATOS_DASHBOARD_PADRAO.concat(extras);
+}
+
+function dadosChecklistPorContratoDetalhado(itens, raioMetros = 80) {
+    const contratos = contratosPadraoComDadosChecklists(itens);
+    const total = {};
+    const vinculados = {};
+    contratos.forEach(contrato => {
+        total[contrato] = 0;
+        vinculados[contrato] = 0;
+    });
+
+    const associados = associarChecklistsComFrentes(itens || [], raioMetros);
+    associados.forEach(item => {
+        const contrato = String(item.contrato || "Não informado").trim() || "Não informado";
+        if (!(contrato in total)) {
+            total[contrato] = 0;
+            vinculados[contrato] = 0;
+            contratos.push(contrato);
+        }
+        total[contrato] += 1;
+        if (item.associado) vinculados[contrato] += 1;
+    });
+
+    const semVinculo = {};
+    contratos.forEach(contrato => {
+        semVinculo[contrato] = Math.max(0, (total[contrato] || 0) - (vinculados[contrato] || 0));
+    });
+
+    return { contratos, total, vinculados, semVinculo };
+}
+
+function criarGraficoChecklistContrato(idCanvas, itens, graficoAnterior, raioMetros = 80) {
+    const canvas = document.getElementById(idCanvas);
+    if (!canvas || typeof Chart === "undefined") return graficoAnterior;
+
+    destruirGrafico(graficoAnterior);
+
+    const dados = dadosChecklistPorContratoDetalhado(itens || [], raioMetros);
+    const opcoes = opcoesGraficoBarraBase();
+    opcoes.plugins.legend = { display: true, position: "top" };
+    opcoes.plugins.tooltip.callbacks.label = function(context) {
+        const label = context.dataset?.label ? context.dataset.label + ": " : "";
+        return label + formatarNumero(context.parsed?.y ?? context.raw ?? 0);
+    };
+    opcoes.scales.x.ticks.maxRotation = 35;
+    opcoes.scales.x.ticks.minRotation = 20;
+    opcoes.scales.y.ticks = { precision: 0 };
+
+    return new Chart(canvas, {
+        type: "bar",
+        data: {
+            labels: dados.contratos,
+            datasets: [
+                { label: "Total da semana", data: dados.contratos.map(c => dados.total[c] || 0) },
+                { label: "Vinculados à frente", data: dados.contratos.map(c => dados.vinculados[c] || 0) },
+                { label: "Sem vínculo", data: dados.contratos.map(c => dados.semVinculo[c] || 0) }
+            ]
+        },
+        options: opcoes
+    });
+}
+
 function resumoChecklists(itens, raioMetros = 80) {
     const associados = associarChecklistsComFrentes(itens, raioMetros);
     return {
@@ -1038,16 +1124,27 @@ function atualizarChecklistsDashboardDetalhado() {
     setTexto("checklistDashAnalisePerc", resumo.total ? percentual(resumo.emAnalise, resumo.total).toFixed(1) + "% dos checklists" : "0%");
     setTexto("checklistDashAssociados", formatarNumero(resumo.associados));
     setTexto("checklistDashAssociadosPerc", resumo.total ? percentual(resumo.associados, resumo.total).toFixed(1) + "% vinculados" : "0% vinculados");
+    setTexto("checklistDashSemVinculo", formatarNumero(Math.max(0, resumo.total - resumo.associados)));
+    setTexto("checklistDashSemVinculoPerc", resumo.total ? percentual(Math.max(0, resumo.total - resumo.associados), resumo.total).toFixed(1) + "% sem vínculo" : "0% sem vínculo");
 
     graficoChecklistStatus = criarGraficoBarra("graficoChecklistStatus", "Checklists por Status", contarChecklistsPor(itens, item => item.status), graficoChecklistStatus);
-    graficoChecklistContrato = criarGraficoBarra("graficoChecklistContrato", "Checklists por Contrato", contarChecklistsPor(itens, item => item.contrato || "Não informado"), graficoChecklistContrato);
+    graficoChecklistContrato = criarGraficoChecklistContrato("graficoChecklistContrato", itens, graficoChecklistContrato, 80);
     graficoChecklistTipo = criarGraficoBarra("graficoChecklistTipo", "Top tipos de checklist", topChecklistsPorTipo(itens, 10), graficoChecklistTipo);
 
     const body = document.getElementById("dashboardChecklistTabelaBody");
-    setTexto("dashboardChecklistResumo", formatarNumero(associados.length) + " registros da semana");
+    const semVinculo = Math.max(0, resumo.total - resumo.associados);
+    setTexto("dashboardChecklistResumo", `${formatarNumero(resumo.total)} registros da semana • ${formatarNumero(resumo.associados)} vinculados • ${formatarNumero(semVinculo)} sem vínculo`);
     if (!body) return;
 
-    body.innerHTML = associados.slice(0, 80).map(item => {
+    const associadosOrdenados = associados.slice().sort((a, b) => {
+        if (a.associado !== b.associado) return a.associado ? 1 : -1;
+        const ca = String(a.contrato || "");
+        const cb = String(b.contrato || "");
+        if (ca !== cb) return ca.localeCompare(cb, "pt-BR", { numeric: true });
+        return String(a.codigo || "").localeCompare(String(b.codigo || ""), "pt-BR", { numeric: true });
+    });
+
+    body.innerHTML = associadosOrdenados.slice(0, 120).map(item => {
         const url = item.frenteId ? criarUrlVerNoMapa("FRENTES", "ID", item.frenteId) : "";
         return `<tr>
             <td>${escaparHtml(item.codigo)}</td>
@@ -1144,7 +1241,7 @@ function atualizarChecklistsPage() {
     setTexto("checklistAssociadosPerc", resumo.total ? percentual(resumo.associados, resumo.total).toFixed(1) + "% vinculados" : "0% vinculados");
 
     graficoChecklistStatus = criarGraficoBarra("graficoChecklistStatus", "Checklists por Status", contarChecklistsPor(itens, item => item.status), graficoChecklistStatus);
-    graficoChecklistContrato = criarGraficoBarra("graficoChecklistContrato", "Checklists por Contrato", contarChecklistsPor(itens, item => item.contrato), graficoChecklistContrato);
+    graficoChecklistContrato = criarGraficoChecklistContrato("graficoChecklistContrato", itens, graficoChecklistContrato, filtros.raio);
     graficoChecklistTipo = criarGraficoBarra("graficoChecklistTipo", "Top tipos de checklist", topChecklistsPorTipo(itens, 10), graficoChecklistTipo);
 
     atualizarTabelaChecklistsPagina(itens);

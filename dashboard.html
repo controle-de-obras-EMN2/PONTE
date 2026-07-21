@@ -165,7 +165,7 @@
 
             <h2>Checklists da semana</h2>
 
-            <div class="cards cards-4 checklist-dashboard-cards">
+            <div class="cards cards-5 checklist-dashboard-cards">
                 <div class="card">
                     <h3>Total da semana</h3>
                     <strong id="checklistDashTotal">0</strong>
@@ -186,6 +186,11 @@
                     <strong id="checklistDashAssociados">0</strong>
                     <p id="checklistDashAssociadosPerc">0% vinculados</p>
                 </div>
+                <div class="card">
+                    <h3>Sem vínculo</h3>
+                    <strong id="checklistDashSemVinculo">0</strong>
+                    <p id="checklistDashSemVinculoPerc">0% sem vínculo</p>
+                </div>
             </div>
 
             <div class="graficos graficos-3 checklist-dashboard-graficos">
@@ -195,6 +200,7 @@
                 </div>
                 <div class="grafico-card">
                     <h3>Checklists por Contrato</h3>
+                    <p class="subtitulo-card-grafico">Total da semana, vinculados e sem vínculo</p>
                     <canvas id="graficoChecklistContrato"></canvas>
                 </div>
                 <div class="grafico-card">
@@ -205,7 +211,7 @@
 
             <div class="grafico-card checklist-tabela-card">
                 <div class="card-header-linha">
-                    <h3>Checklists vinculados às frentes</h3>
+                    <h3>Checklists da semana e vínculo com frentes</h3>
                     <span id="dashboardChecklistResumo">0 registros</span>
                 </div>
                 <div class="checklist-tabela-wrap-dashboard">
