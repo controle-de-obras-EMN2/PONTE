@@ -1137,3 +1137,111 @@
         text-align: right;
     }
 }
+
+/* Correção visual da tabela de checklists no dashboard */
+#secaoChecklistsDashboard .checklist-tabela-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-card .card-header-linha {
+    flex: 0 0 auto;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    height: 360px;
+    max-height: 360px;
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid #d9e0e7;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 11px;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #0b2f5b;
+    color: #ffffff;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela th,
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela td {
+    padding: 5px 7px;
+    line-height: 1.2;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela th:nth-child(1),
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela td:nth-child(1) {
+    width: 10%;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela th:nth-child(2),
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela td:nth-child(2) {
+    width: 8%;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela th:nth-child(3),
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela td:nth-child(3) {
+    width: 9%;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela th:nth-child(4),
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela td:nth-child(4) {
+    width: 34%;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela th:nth-child(5),
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela td:nth-child(5) {
+    width: 12%;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela th:nth-child(6),
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela td:nth-child(6) {
+    width: 7%;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela th:nth-child(7),
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela td:nth-child(7) {
+    width: 14%;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela th:nth-child(8),
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela td:nth-child(8) {
+    width: 6%;
+    text-align: center;
+}
+
+#secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela tbody tr:first-child td {
+    border-top: 0;
+}
+
+@media (max-width: 1200px) {
+    #secaoChecklistsDashboard .checklist-tabela-wrap-dashboard .checklist-tabela {
+        min-width: 980px;
+        max-width: none;
+    }
+}
