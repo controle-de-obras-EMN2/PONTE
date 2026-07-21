@@ -947,3 +947,128 @@
         grid-row: 2;
     }
 }
+
+
+/* =========================
+   Checklists
+========================= */
+
+.cards-6 {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(150px, 1fr));
+    gap: 14px;
+}
+
+.checklist-page .checklist-header p {
+    margin: 4px 0 0 0;
+    color: #5d6b7a;
+    font-size: 13px;
+}
+
+.checklist-filtros select {
+    min-width: 180px;
+}
+
+.checklist-cards {
+    margin-bottom: 16px;
+}
+
+.checklist-graficos {
+    margin-bottom: 16px;
+}
+
+.checklist-tabela-card {
+    margin-top: 16px;
+}
+
+.checklist-tabela-wrap,
+.checklist-tabela-wrap-page {
+    max-height: 430px;
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid #d9e0e7;
+}
+
+.checklist-tabela th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #0b2f5b;
+    color: #fff;
+}
+
+.checklist-tabela td:nth-child(4) {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.checklist-status-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #eef4fb;
+    color: #0b2f5b;
+    padding: 3px 8px;
+    font-weight: 800;
+    font-size: 11px;
+}
+
+@media (max-width: 1300px) {
+    .cards-6 {
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .cards-6 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.cards-4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(170px, 1fr));
+    gap: 14px;
+}
+
+.checklist-dashboard-cards {
+    margin-bottom: 16px;
+}
+
+.checklist-dashboard-graficos {
+    margin-bottom: 16px;
+}
+
+.card-header-linha {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.card-header-linha span {
+    color: #5d6b7a;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.checklist-tabela-wrap-dashboard {
+    max-height: 360px;
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid #d9e0e7;
+}
+
+@media (max-width: 1100px) {
+    .cards-4 {
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .cards-4 {
+        grid-template-columns: 1fr;
+    }
+}

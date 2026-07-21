@@ -25,6 +25,11 @@ let matrizMapaLeaflet = null;
 let matrizLayerPontosLeaflet = null;
 let baseDashboardLinhas = [];
 let baseDashboardCsvCarregado = false;
+let checklistsLinhas = [];
+let checklistsCsvCarregado = false;
+let graficoChecklistStatus = null;
+let graficoChecklistContrato = null;
+let graficoChecklistTipo = null;
 
 let ponteModalCols = [];
 let ponteModalRows = [];
@@ -813,6 +818,377 @@ async function carregarBaseDashboardCsv() {
     baseDashboardCsvCarregado = true;
 }
 
+
+/* =========================
+   Checklists
+========================= */
+
+function montarRegistroChecklist(linha) {
+    if (!linha) return null;
+    const contrato = String(linha.contrato || linha.CONTRATO || "").trim();
+    const lat = numeroDashboard(linha.lat || linha.LAT || linha.latitude || linha.Latitude || "");
+    const lon = numeroDashboard(linha.lon || linha.LON || linha.longitude || linha.Longitude || "");
+    return {
+        codigo: String(linha.codigo || linha["Código da avaliação"] || linha.codigo_avaliacao || "").trim(),
+        status: String(linha.status || linha.Status || linha.STATUS || "Não informado").trim() || "Não informado",
+        contrato,
+        unidade: String(linha.unidade || linha.Unidade || "").trim(),
+        nomeChecklist: String(linha.nome_checklist || linha["Nome do checklist"] || linha.nome || "").trim(),
+        tipoChecklist: String(linha.tipo_checklist || linha.tipo || linha.nome_checklist || linha["Nome do checklist"] || "Não informado").trim() || "Não informado",
+        autor: String(linha.autor || linha.Autor || "").trim(),
+        dataInicial: String(linha.data_inicial || linha["Data inicial"] || "").trim(),
+        dataFinal: String(linha.data_final || linha["Data final"] || "").trim(),
+        dataAprovacao: String(linha.data_aprovacao || linha["Data de aprovação"] || "").trim(),
+        coordenada: String(linha.coordenada || linha.Coordenada || "").trim(),
+        lat: Number.isFinite(lat) ? lat : 0,
+        lon: Number.isFinite(lon) ? lon : 0,
+        mesInicial: String(linha.mes_inicial || linha["Data inicial2"] || "").trim(),
+        mesAprovacao: String(linha.mes_aprovacao || linha["Data de aprovação2"] || "").trim(),
+        tempoFinalizar: String(linha.tempo_finalizar || linha["Tempo para finalizar"] || "").trim(),
+        tempoAprovacao: String(linha.tempo_aprovacao || linha["Tempo para aprovação"] || "").trim(),
+        semanaInicialAtual: String(linha.semana_inicial_atual || linha["Semana inicial atual"] || linha["SEMANA INICIAL ATUAL"] || "").trim()
+    };
+}
+
+function checklistSemanaInicialAtual(item) {
+    const valor = normalizarTexto(item?.semanaInicialAtual || "");
+    // Se o CSV já veio filtrado e a coluna não existir, mantemos o registro.
+    if (!valor) return true;
+    return valor === "SIM";
+}
+
+function obterChecklists() {
+    return (checklistsLinhas || [])
+        .map(montarRegistroChecklist)
+        .filter(Boolean)
+        .filter(checklistSemanaInicialAtual);
+}
+
+async function carregarChecklistsCsv() {
+    if (checklistsCsvCarregado) return;
+    const caminhos = ["dados/checklists_resumo.csv", "dados/checklists.csv"];
+    for (const caminho of caminhos) {
+        try {
+            const resp = await fetch(caminho, { cache: "no-store" });
+            if (!resp.ok) continue;
+            const texto = await resp.text();
+            checklistsLinhas = parseCSVDashboard(texto);
+            checklistsCsvCarregado = true;
+            console.log("PONTE: checklists carregados", caminho, checklistsLinhas.length);
+            return;
+        } catch (erro) {
+            console.warn("PONTE: não foi possível carregar", caminho, erro);
+        }
+    }
+    checklistsCsvCarregado = true;
+}
+
+function filtrarChecklistsPorContrato(itens) {
+    if (!contratoSelecionado || contratoSelecionado === "TODOS") return itens || [];
+    return (itens || []).filter(item => String(item.contrato || "").trim() === contratoSelecionado);
+}
+
+function checklistTemCoordenada(item) {
+    return item && Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lon)) && Number(item.lat) !== 0 && Number(item.lon) !== 0;
+}
+
+function coordenadaChecklist(item) {
+    if (!checklistTemCoordenada(item)) return null;
+    return normalizarCoordBrasil({ lat: Number(item.lat), lon: Number(item.lon) });
+}
+
+function statusChecklistEhConcluido(status) {
+    return normalizarTexto(status).includes("CONCLUID");
+}
+
+function statusChecklistEmAnalise(status) {
+    const s = normalizarTexto(status);
+    return s.includes("ANALISE") || s.includes("ANDAMENTO") || s.includes("REPROVADO");
+}
+
+function frentesParaAssociacaoChecklist(contrato) {
+    const todas = obterFrentesCampo().filter(f => !ehStatusConcluidoMatriz(f.properties || {}));
+    const mesmoContrato = todas.filter(f => textoCampo(f.properties || {}, ["NUM_CONTRA", "CONTRATO", "Contrato"]) === contrato);
+    return mesmoContrato.length ? mesmoContrato : todas;
+}
+
+function associarChecklistsComFrentes(itens, raioMetros = 80) {
+    const cacheFrentesPorContrato = new Map();
+    return (itens || []).map(item => {
+        const coordItem = coordenadaChecklist(item);
+        let melhor = null;
+        let melhorDist = Infinity;
+        if (coordItem) {
+            if (!cacheFrentesPorContrato.has(item.contrato)) {
+                const frentes = frentesParaAssociacaoChecklist(item.contrato)
+                    .map(feature => ({ feature, coord: normalizarCoordBrasil(coordenadaFrente(feature)) }))
+                    .filter(obj => obj.coord);
+                cacheFrentesPorContrato.set(item.contrato, frentes);
+            }
+            const frentes = cacheFrentesPorContrato.get(item.contrato) || [];
+            frentes.forEach(obj => {
+                const dist = distanciaHaversineMetros([coordItem.lon, coordItem.lat], [obj.coord.lon, obj.coord.lat]);
+                if (dist < melhorDist) {
+                    melhorDist = dist;
+                    melhor = obj.feature;
+                }
+            });
+        }
+        if (!melhor || melhorDist > raioMetros) {
+            return { ...item, frenteId: "", frenteContrato: "", frenteStatus: "", distanciaFrente: "", associado: false };
+        }
+        const p = melhor.properties || {};
+        return {
+            ...item,
+            frenteId: textoCampo(p, ["ID", "FRENTE", "fid"]),
+            frenteContrato: textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]),
+            frenteStatus: statusFrenteMatriz(p),
+            distanciaFrente: Math.round(melhorDist),
+            associado: true
+        };
+    });
+}
+
+function contarChecklistsPor(itens, fn) {
+    const r = {};
+    (itens || []).forEach(item => {
+        const valor = String(fn(item) || "Não informado").trim() || "Não informado";
+        r[valor] = (r[valor] || 0) + 1;
+    });
+    return Object.fromEntries(Object.entries(r).sort((a, b) => String(a[0]).localeCompare(String(b[0]), "pt-BR", { numeric: true })));
+}
+
+function topChecklistsPorTipo(itens, limite = 10) {
+    return Object.fromEntries(
+        Object.entries(contarChecklistsPor(itens, item => item.tipoChecklist))
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, limite)
+    );
+}
+
+function resumoChecklists(itens, raioMetros = 80) {
+    const associados = associarChecklistsComFrentes(itens, raioMetros);
+    return {
+        total: itens.length,
+        concluidos: itens.filter(item => statusChecklistEhConcluido(item.status)).length,
+        emAnalise: itens.filter(item => statusChecklistEmAnalise(item.status) && !statusChecklistEhConcluido(item.status)).length,
+        comCoordenada: itens.filter(checklistTemCoordenada).length,
+        associados: associados.filter(item => item.associado).length,
+        associadosDetalhe: associados
+    };
+}
+
+function preencherSelectChecklist(id, rotuloTodos, valores) {
+    const select = document.getElementById(id);
+    if (!select) return;
+    const atual = select.value || "TODOS";
+    const unicos = Array.from(new Set((valores || []).filter(v => String(v || "").trim()))).sort((a, b) => String(a).localeCompare(String(b), "pt-BR", { numeric: true }));
+    select.innerHTML = `<option value="TODOS">${escaparHtml(rotuloTodos)}</option>` + unicos.map(v => `<option value="${escaparHtml(v)}">${escaparHtml(v)}</option>`).join("");
+    select.value = unicos.includes(atual) ? atual : "TODOS";
+}
+
+function checklistFiltrosPagina() {
+    return {
+        contrato: document.getElementById("checklistFiltroContrato")?.value || "TODOS",
+        status: document.getElementById("checklistFiltroStatus")?.value || "TODOS",
+        tipo: document.getElementById("checklistFiltroTipo")?.value || "TODOS",
+        associacao: document.getElementById("checklistFiltroAssociacao")?.value || "TODOS",
+        raio: Number(document.getElementById("checklistRaio")?.value || 80) || 80
+    };
+}
+
+function aplicarFiltrosChecklistsPagina() {
+    const filtros = checklistFiltrosPagina();
+    let itens = obterChecklists();
+    if (filtros.contrato !== "TODOS") itens = itens.filter(item => item.contrato === filtros.contrato);
+    if (filtros.status !== "TODOS") itens = itens.filter(item => item.status === filtros.status);
+    if (filtros.tipo !== "TODOS") itens = itens.filter(item => item.tipoChecklist === filtros.tipo);
+    const associados = associarChecklistsComFrentes(itens, filtros.raio);
+    if (filtros.associacao === "ASSOCIADOS") return associados.filter(item => item.associado);
+    if (filtros.associacao === "SEM_ASSOCIACAO") return associados.filter(item => !item.associado);
+    return associados;
+}
+
+function atualizarOpcoesChecklistsPagina() {
+    const itens = obterChecklists();
+    preencherSelectChecklist("checklistFiltroContrato", "Todos os contratos", itens.map(item => item.contrato));
+    preencherSelectChecklist("checklistFiltroStatus", "Todos os status", itens.map(item => item.status));
+    preencherSelectChecklist("checklistFiltroTipo", "Todos os tipos", itens.map(item => item.tipoChecklist));
+}
+
+function atualizarCardsChecklistsDashboard() {
+    const itens = filtrarChecklistsPorContrato(obterChecklists());
+    const resumo = resumoChecklists(itens, 80);
+    setTexto("totalChecklists", formatarNumero(resumo.total));
+    setTexto("statusChecklists", `Concluídos: ${formatarNumero(resumo.concluidos)} | Em análise: ${formatarNumero(resumo.emAnalise)}`);
+}
+
+function atualizarChecklistsDashboardDetalhado() {
+    const secao = document.getElementById("secaoChecklistsDashboard");
+    if (!secao) return;
+
+    const itens = filtrarChecklistsPorContrato(obterChecklists());
+    const associados = associarChecklistsComFrentes(itens, 80);
+    const resumo = resumoChecklists(itens, 80);
+
+    setTexto("checklistDashTotal", formatarNumero(resumo.total));
+    setTexto("checklistDashConcluidos", formatarNumero(resumo.concluidos));
+    setTexto("checklistDashConcluidosPerc", resumo.total ? percentual(resumo.concluidos, resumo.total).toFixed(1) + "% dos checklists" : "0%");
+    setTexto("checklistDashAnalise", formatarNumero(resumo.emAnalise));
+    setTexto("checklistDashAnalisePerc", resumo.total ? percentual(resumo.emAnalise, resumo.total).toFixed(1) + "% dos checklists" : "0%");
+    setTexto("checklistDashAssociados", formatarNumero(resumo.associados));
+    setTexto("checklistDashAssociadosPerc", resumo.total ? percentual(resumo.associados, resumo.total).toFixed(1) + "% vinculados" : "0% vinculados");
+
+    graficoChecklistStatus = criarGraficoBarra("graficoChecklistStatus", "Checklists por Status", contarChecklistsPor(itens, item => item.status), graficoChecklistStatus);
+    graficoChecklistContrato = criarGraficoBarra("graficoChecklistContrato", "Checklists por Contrato", contarChecklistsPor(itens, item => item.contrato || "Não informado"), graficoChecklistContrato);
+    graficoChecklistTipo = criarGraficoBarra("graficoChecklistTipo", "Top tipos de checklist", topChecklistsPorTipo(itens, 10), graficoChecklistTipo);
+
+    const body = document.getElementById("dashboardChecklistTabelaBody");
+    setTexto("dashboardChecklistResumo", formatarNumero(associados.length) + " registros da semana");
+    if (!body) return;
+
+    body.innerHTML = associados.slice(0, 80).map(item => {
+        const url = item.frenteId ? criarUrlVerNoMapa("FRENTES", "ID", item.frenteId) : "";
+        return `<tr>
+            <td>${escaparHtml(item.codigo)}</td>
+            <td>${escaparHtml(item.contrato || "")}</td>
+            <td><span class="checklist-status-badge">${escaparHtml(item.status || "")}</span></td>
+            <td title="${escaparHtml(item.nomeChecklist || "")}">${escaparHtml(item.tipoChecklist || "")}</td>
+            <td>${escaparHtml(item.frenteId || "Sem vínculo")}</td>
+            <td>${item.distanciaFrente ? escaparHtml(item.distanciaFrente + " m") : "-"}</td>
+            <td>${escaparHtml(item.dataInicial || "")}</td>
+            <td>${url ? `<a class="link-ver-mapa" href="${escaparHtml(url)}" target="_blank">Ver</a>` : "-"}</td>
+        </tr>`;
+    }).join("") || `<tr><td colspan="8">Nenhum checklist com Semana inicial atual = SIM para o filtro atual.</td></tr>`;
+}
+
+function contagemChecklistsPorFrente(raioMetros = 80) {
+    const contagem = {};
+    associarChecklistsComFrentes(obterChecklists(), raioMetros).forEach(item => {
+        if (!item.associado || !item.frenteId) return;
+        contagem[item.frenteId] = (contagem[item.frenteId] || 0) + 1;
+    });
+    return contagem;
+}
+
+window.abrirDetalhesChecklists = function() {
+    const itens = associarChecklistsComFrentes(filtrarChecklistsPorContrato(obterChecklists()), 80);
+    ponteModalCols = ["Código", "Contrato", "Status", "Tipo", "Autor", "Data", "Frente próxima", "Distância (m)"];
+    ponteModalRows = itens.map(item => [item.codigo, item.contrato, item.status, item.tipoChecklist, item.autor, item.dataInicial, item.frenteId || "", item.distanciaFrente || ""]);
+    let html = botaoExportacaoModal();
+    html += `<p class="modal-nota">Associação automática por proximidade geográfica com as frentes de serviço ativas. Raio padrão: 80 m.</p>`;
+    html += tabelaChecklistsHtml(itens, true);
+    abrirModal("Checklists", html);
+};
+
+function tabelaChecklistsHtml(itens, incluirMapa) {
+    if (!itens.length) return `<p>Nenhum checklist encontrado para o filtro atual.</p>`;
+    let html = `<div class="checklist-tabela-wrap"><table class="tabela-modal tabela-compacta checklist-tabela"><thead><tr>
+        <th>Código</th><th>Contrato</th><th>Status</th><th>Tipo</th><th>Autor</th><th>Data</th><th>Frente próxima</th><th>Distância</th>${incluirMapa ? "<th>Mapa</th>" : ""}
+    </tr></thead><tbody>`;
+    itens.forEach(item => {
+        const url = item.frenteId ? criarUrlVerNoMapa("FRENTES", "ID", item.frenteId) : "";
+        html += `<tr>
+            <td>${escaparHtml(item.codigo)}</td>
+            <td>${escaparHtml(item.contrato)}</td>
+            <td><span class="checklist-status-badge">${escaparHtml(item.status)}</span></td>
+            <td title="${escaparHtml(item.nomeChecklist)}">${escaparHtml(item.tipoChecklist)}</td>
+            <td>${escaparHtml(item.autor)}</td>
+            <td>${escaparHtml(item.dataInicial)}</td>
+            <td>${escaparHtml(item.frenteId || "Sem associação")}</td>
+            <td>${item.distanciaFrente !== "" ? escaparHtml(item.distanciaFrente + " m") : "-"}</td>
+            ${incluirMapa ? `<td>${url ? `<a class="link-ver-mapa" href="${url}" target="_blank">Ver</a>` : "-"}</td>` : ""}
+        </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    return html;
+}
+
+function atualizarTabelaChecklistsPagina(itens) {
+    const body = document.getElementById("checklistTabelaBody");
+    const resumoEl = document.getElementById("checklistTabelaResumo");
+    if (!body) return;
+    if (resumoEl) resumoEl.innerText = `${formatarNumero(itens.length)} registros`;
+    if (!itens.length) {
+        body.innerHTML = `<tr><td colspan="9">Nenhum checklist encontrado para o filtro atual.</td></tr>`;
+        return;
+    }
+    body.innerHTML = itens.map(item => {
+        const url = item.frenteId ? criarUrlVerNoMapa("FRENTES", "ID", item.frenteId) : "";
+        return `<tr>
+            <td>${escaparHtml(item.codigo)}</td>
+            <td>${escaparHtml(item.contrato)}</td>
+            <td>${escaparHtml(item.status)}</td>
+            <td title="${escaparHtml(item.nomeChecklist)}">${escaparHtml(item.tipoChecklist)}</td>
+            <td>${escaparHtml(item.autor)}</td>
+            <td>${escaparHtml(item.dataInicial)}</td>
+            <td>${escaparHtml(item.frenteId || "Sem associação")}</td>
+            <td>${item.distanciaFrente !== "" ? escaparHtml(item.distanciaFrente + " m") : "-"}</td>
+            <td>${url ? `<a class="link-ver-mapa" href="${url}" target="_blank">Ver</a>` : "-"}</td>
+        </tr>`;
+    }).join("");
+}
+
+function atualizarChecklistsPage() {
+    if (!document.getElementById("secaoChecklistsPage")) return;
+    atualizarOpcoesChecklistsPagina();
+    const filtros = checklistFiltrosPagina();
+    const itens = aplicarFiltrosChecklistsPagina();
+    const resumo = resumoChecklists(itens, filtros.raio);
+
+    setTexto("checklistTotal", formatarNumero(resumo.total));
+    setTexto("checklistConcluidos", formatarNumero(resumo.concluidos));
+    setTexto("checklistEmAnalise", formatarNumero(resumo.emAnalise));
+    setTexto("checklistAssociados", formatarNumero(resumo.associados));
+    setTexto("checklistSemCoord", formatarNumero(resumo.total - resumo.comCoordenada));
+    setTexto("checklistAssociadosPerc", resumo.total ? percentual(resumo.associados, resumo.total).toFixed(1) + "% vinculados" : "0% vinculados");
+
+    graficoChecklistStatus = criarGraficoBarra("graficoChecklistStatus", "Checklists por Status", contarChecklistsPor(itens, item => item.status), graficoChecklistStatus);
+    graficoChecklistContrato = criarGraficoBarra("graficoChecklistContrato", "Checklists por Contrato", contarChecklistsPor(itens, item => item.contrato), graficoChecklistContrato);
+    graficoChecklistTipo = criarGraficoBarra("graficoChecklistTipo", "Top tipos de checklist", topChecklistsPorTipo(itens, 10), graficoChecklistTipo);
+
+    atualizarTabelaChecklistsPagina(itens);
+}
+
+function limparFiltrosChecklists() {
+    ["checklistFiltroContrato", "checklistFiltroStatus", "checklistFiltroTipo", "checklistFiltroAssociacao"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "TODOS";
+    });
+    const raio = document.getElementById("checklistRaio");
+    if (raio) raio.value = "80";
+    atualizarChecklistsPage();
+}
+
+function exportarChecklistsPaginaCSV() {
+    const itens = aplicarFiltrosChecklistsPagina();
+    const linhas = [["Código", "Contrato", "Status", "Tipo", "Checklist", "Autor", "Data inicial", "Coordenada", "Frente próxima", "Distância (m)"]];
+    itens.forEach(item => linhas.push([item.codigo, item.contrato, item.status, item.tipoChecklist, item.nomeChecklist, item.autor, item.dataInicial, item.coordenada, item.frenteId || "", item.distanciaFrente || ""]));
+    const csv = linhas.map(linha => linha.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
+    baixarArquivo("ponte_checklists.csv", "text/csv;charset=utf-8", "\ufeff" + csv);
+}
+
+async function exportarChecklistsPaginaPDF() {
+    const secao = document.getElementById("secaoChecklistsPage");
+    if (!secao) return;
+    await exportarElementoParaPDF(secao, "ponte_checklists.pdf", "PONTE - Checklists", "p", 1.3);
+}
+
+function inicializarChecklistsPage() {
+    if (!document.getElementById("secaoChecklistsPage")) return;
+    ["checklistFiltroContrato", "checklistFiltroStatus", "checklistFiltroTipo", "checklistFiltroAssociacao", "checklistRaio"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("change", atualizarChecklistsPage);
+    });
+    const btnLimpar = document.getElementById("btnChecklistsLimpar");
+    if (btnLimpar) btnLimpar.addEventListener("click", limparFiltrosChecklists);
+    const btnCSV = document.getElementById("btnChecklistsCSV");
+    if (btnCSV) btnCSV.addEventListener("click", exportarChecklistsPaginaCSV);
+    const btnPDF = document.getElementById("btnChecklistsPDF");
+    if (btnPDF) btnPDF.addEventListener("click", exportarChecklistsPaginaPDF);
+    atualizarChecklistsPage();
+}
+
 function montarRegistroAvancoEEE(linha) {
     if (!linha) return null;
 
@@ -947,6 +1323,8 @@ function atualizarDashboard() {
     setTexto("totalFrentes", formatarNumero(frentesCampo.length));
     setTexto("totalSinistros", formatarNumero(sinistros.length));
     setTexto("totalEEE", formatarNumero(eee.length));
+    atualizarCardsChecklistsDashboard();
+    atualizarChecklistsDashboardDetalhado();
 
     const lancResumo = statusLancamentoResumo(lancamentos);
     setTexto("totalLancamentos", formatarNumero(lancResumo.total));
@@ -1013,6 +1391,7 @@ window.filtrarContrato = function(contrato) {
     atualizarDashboard();
     sincronizarFiltroMatrizContrato(contratoSelecionado);
     atualizarMatrizRisco();
+    atualizarChecklistsPage();
 };
 
 function atualizarBotaoContratoAtivo() {
@@ -1224,6 +1603,7 @@ function ativarCliquesDosCards() {
         cardFrentes: window.abrirDetalhesFrentes,
         cardSinistros: window.abrirDetalhesSinistros,
         cardEEE: window.abrirDetalhesEEE,
+        cardChecklists: window.abrirDetalhesChecklists,
         cardLancamentos: window.abrirDetalhesLancamentos,
         tituloMetasGerais: window.abrirMetasGeraisModal
     };
@@ -1286,6 +1666,7 @@ function exportarResumoCSV() {
     linhas.push(["Operação", "Card", "Frentes em campo", "Total", document.getElementById("totalFrentes")?.innerText || "", ""]);
     linhas.push(["Operação", "Card", "Sinistros", "Total", document.getElementById("totalSinistros")?.innerText || "", ""]);
     linhas.push(["Operação", "Card", "EEE", "Total", document.getElementById("totalEEE")?.innerText || "", ""]);
+    linhas.push(["Operação", "Card", "Checklists", "Total", document.getElementById("totalChecklists")?.innerText || "", document.getElementById("statusChecklists")?.innerText || ""]);
     linhas.push(["Operação", "Card", "Pontos de lançamento", "Total", document.getElementById("totalLancamentos")?.innerText || "", document.getElementById("statusLancamentos")?.innerText || ""]);
 
     linhas.push(["Matriz de Risco", "Card", "Frentes filtradas", "Total", document.getElementById("matrizTotalFrentes")?.innerText || "", ""]);
@@ -1304,6 +1685,9 @@ function exportarResumoCSV() {
     linhas.push(...linhasDeGraficoCSV("Extensão Contratual x Atual x Executada x Unitizada", graficoExtensao));
     linhas.push(...linhasDeGraficoCSV("Matriz - Risco", graficoMatrizRisco));
     linhas.push(...linhasDeGraficoCSV("Matriz - Status", graficoMatrizStatus));
+    linhas.push(...linhasDeGraficoCSV("Checklists por Status", graficoChecklistStatus));
+    linhas.push(...linhasDeGraficoCSV("Checklists por Contrato", graficoChecklistContrato));
+    linhas.push(...linhasDeGraficoCSV("Top tipos de checklist", graficoChecklistTipo));
 
     const csv = linhas.map(linha => linha.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
     baixarArquivo("ponte_dashboard_completo.csv", "text/csv;charset=utf-8", "\ufeff" + csv);
@@ -1690,6 +2074,7 @@ function atualizarMiniMapaMatriz(features) {
     }
 
     const bounds = [];
+    const checklistsPorFrente = contagemChecklistsPorFrente(80);
 
     pontos.forEach(({ feature, coord }) => {
         const p = feature.properties || {};
@@ -1699,6 +2084,7 @@ function atualizarMiniMapaMatriz(features) {
         const status = statusFrenteMatriz(p);
         const endereco = textoCampo(p, ["ENDERECO_C", "ENDEREÇO", "ENDERECO", "ENDEREÇO_C"]);
         const url = criarUrlVerNoMapa("FRENTES", "ID", id);
+        const qtdChecklists = checklistsPorFrente[id] || 0;
         const cor = corRiscoMatriz(risco);
         const latLng = [coord.lat, coord.lon];
 
@@ -1713,7 +2099,7 @@ function atualizarMiniMapaMatriz(features) {
             keyboard: false
         });
 
-        marker.bindTooltip(`${id || "Frente"} - ${risco || "Sem risco"}`, {
+        marker.bindTooltip(`${id || "Frente"} - ${risco || "Sem risco"}${qtdChecklists ? " • " + qtdChecklists + " checklists" : ""}`, {
             direction: "top",
             opacity: 0.9
         });
@@ -1724,6 +2110,7 @@ function atualizarMiniMapaMatriz(features) {
                 Contrato: ${escaparHtml(contrato || "-")}<br>
                 Risco: ${escaparHtml(risco || "-")}<br>
                 Status: ${escaparHtml(status || "-")}<br>
+                Checklists da semana: ${escaparHtml(qtdChecklists)}<br>
                 ${endereco ? `Endereço: ${escaparHtml(endereco).slice(0, 120)}<br>` : ""}
                 <a href="${url}" target="_blank">Ver no mapa principal</a>
             </div>
@@ -1758,12 +2145,14 @@ function atualizarTabelaMatriz(features) {
     setTexto("matrizTabelaResumo", formatarNumero(features.length) + " registros");
 
     const limite = 250;
+    const checklistsPorFrente = contagemChecklistsPorFrente(80);
     const linhas = features.slice(0, limite).map(feature => {
         const p = feature.properties || {};
         const id = textoCampo(p, ["ID", "FRENTE", "fid"]);
         const contrato = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
         const endereco = p.ENDERECO_C || p.ENDEREÇO || "";
         const url = criarUrlVerNoMapa("FRENTES", "ID", id);
+        const qtdChecklists = checklistsPorFrente[id] || 0;
         return `<tr>
             <td>${escaparHtml(id)}</td>
             <td>${escaparHtml(contrato)}</td>
@@ -1779,11 +2168,12 @@ function atualizarTabelaMatriz(features) {
             <td class="col-endereco" title="${escaparHtml(endereco)}">${escaparHtml(enderecoCurto(endereco))}</td>
             <td>${escaparHtml(p.DT_INICIO || "")}</td>
             <td>${escaparHtml(p["DT TERMINO"] || p.DT_TERMINO || "")}</td>
+            <td>${escaparHtml(qtdChecklists)}</td>
             <td><a class="link-ver-mapa" href="${escaparHtml(url)}" target="_blank">Ver</a></td>
         </tr>`;
     }).join("");
 
-    body.innerHTML = linhas || `<tr><td colspan="15">Nenhum registro encontrado para o filtro atual.</td></tr>`;
+    body.innerHTML = linhas || `<tr><td colspan="16">Nenhum registro encontrado para o filtro atual.</td></tr>`;
 }
 
 function atualizarMatrizRisco() {
@@ -1815,11 +2205,13 @@ function limparFiltrosMatrizRisco() {
 
 function exportarMatrizCSV() {
     const features = filtrarMatrizRiscoBase(true);
-    const linhas = [["ID", "Contrato", "Status", "Risco", "Métodos", "Profundidade", "Gás", "Elétrica", "Telecom", "Drenagem", "Soma", "Endereço", "Data início", "Data término"]];
+    const checklistsPorFrente = contagemChecklistsPorFrente(80);
+    const linhas = [["ID", "Contrato", "Status", "Risco", "Métodos", "Profundidade", "Gás", "Elétrica", "Telecom", "Drenagem", "Soma", "Endereço", "Data início", "Data término", "Checklists da semana"]];
     features.forEach(feature => {
         const p = feature.properties || {};
+        const id = textoCampo(p, ["ID", "FRENTE", "fid"]);
         linhas.push([
-            textoCampo(p, ["ID", "FRENTE", "fid"]),
+            id,
             textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]),
             statusFrenteMatriz(p),
             riscoFrenteMatriz(p),
@@ -1832,7 +2224,8 @@ function exportarMatrizCSV() {
             p.SOMA ?? "",
             p.ENDERECO_C || p.ENDEREÇO || "",
             p.DT_INICIO || "",
-            p["DT TERMINO"] || p.DT_TERMINO || ""
+            p["DT TERMINO"] || p.DT_TERMINO || "",
+            checklistsPorFrente[id] || 0
         ]);
     });
     const csv = linhas.map(linha => linha.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
@@ -1881,6 +2274,11 @@ function inicializarDashboard() {
         atualizarMetas();
         atualizarDashboard();
     });
+    carregarChecklistsCsv().then(function() {
+        atualizarDashboard();
+        inicializarChecklistsPage();
+        atualizarMatrizRisco();
+    });
     inicializarMatrizRisco();
     ativarCliquesDosCards();
 
@@ -1894,7 +2292,8 @@ function inicializarDashboard() {
         frentes: obterFrentesCampo().length,
         sinistros: obterSinistros().length,
         eee: obterEEE().length,
-        lancamentos: obterLancamentos().length
+        lancamentos: obterLancamentos().length,
+        checklists: obterChecklists().length
     });
 }
 
