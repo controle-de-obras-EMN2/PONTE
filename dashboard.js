@@ -978,21 +978,43 @@ function atualizarChecklistsPorHoraDashboard() {
     if (!body) return;
 
     const itens = filtrarChecklistsHoraPorContrato(obterChecklistsHora());
-    const comMovimento = itens.filter(item => Number(item.total || 0) > 0)
-        .sort((a, b) => Number(b.total || 0) - Number(a.total || 0) || String(a.contrato).localeCompare(String(b.contrato), "pt-BR", { numeric: true }));
-    const total = comMovimento.reduce((acc, item) => acc + Number(item.total || 0), 0);
-    const referencia = comMovimento[0]?.dataReferencia || itens[0]?.dataReferencia || "D-1";
+    const ordenados = [...itens].sort((a, b) => {
+        const ca = String(a.contrato || "");
+        const cb = String(b.contrato || "");
+        const porContrato = ca.localeCompare(cb, "pt-BR", { numeric: true });
+        if (porContrato) return porContrato;
+        const porMovimento = Number(b.total || 0) - Number(a.total || 0);
+        if (porMovimento) return porMovimento;
+        return String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR", { numeric: true });
+    });
+
+    const comMovimento = ordenados.filter(item => Number(item.total || 0) > 0);
+    const total = ordenados.reduce((acc, item) => acc + Number(item.total || 0), 0);
+    const referencia = ordenados[0]?.dataReferencia || "D-1";
 
     if (resumoEl) resumoEl.innerText = `${formatarNumero(total)} checklists em ${referencia} • ${formatarNumero(comMovimento.length)} responsáveis com movimento`;
 
-    body.innerHTML = comMovimento.map(item => `
-        <tr>
-            <td>${escaparHtml(item.contrato || "")}</td>
-            <td title="${escaparHtml(item.nome || "")}">${escaparHtml(item.nome || "")}</td>
-            <td>${escaparHtml(item.funcao || "")}</td>
-            <td>${formatarNumero(item.total || 0)}</td>
-            <td title="${escaparHtml(resumoHorasChecklist(item))}">${escaparHtml(resumoHorasChecklist(item))}</td>
-        </tr>`).join("") || `<tr><td colspan="5">Nenhum checklist do dia anterior para o filtro atual.</td></tr>`;
+    const horas = [];
+    for (let h = 1; h <= 23; h += 1) horas.push(String(h).padStart(2, "0"));
+    horas.push("00");
+
+    body.innerHTML = ordenados.map(item => {
+        const cells = horas.map(hora => {
+            const valor = Number(item.valores?.["h" + hora] || 0);
+            const ativo = valor > 0;
+            const titulo = ativo ? `${hora}h: ${formatarNumero(valor)} checklist(s)` : `${hora}h: sem checklist`;
+            return `<td class="checklist-hora-celula ${ativo ? "checklist-hora-ativo" : "checklist-hora-vazio"}" title="${escaparHtml(titulo)}">${ativo ? `<span>${formatarNumero(valor)}</span>` : ""}</td>`;
+        }).join("");
+
+        return `
+        <tr class="${Number(item.total || 0) > 0 ? "tem-movimento" : "sem-movimento"}">
+            <td class="checklist-hora-contrato">${escaparHtml(item.contrato || "")}</td>
+            <td class="checklist-hora-nome" title="${escaparHtml(item.nome || "")}">${escaparHtml(item.nome || "")}</td>
+            <td class="checklist-hora-funcao" title="${escaparHtml(item.funcao || "")}">${escaparHtml(item.funcao || "")}</td>
+            ${cells}
+            <td class="checklist-hora-total">${formatarNumero(item.total || 0)}</td>
+        </tr>`;
+    }).join("") || `<tr><td colspan="29">Nenhum registro de acompanhamento por hora para o filtro atual.</td></tr>`;
 }
 
 function filtrarChecklistsPorContrato(itens) {
