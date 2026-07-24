@@ -147,7 +147,7 @@
                     <h3>Checklists</h3>
                     <strong id="totalChecklists">0</strong>
                     <span id="statusChecklists">Concluídos: 0 | Em análise: 0</span>
-                    <p>Registros de verificação</p>
+                    <p>Registros do dia anterior (D-1)</p>
                 </div>
 
                 <div class="card card-click" id="cardLancamentos">
@@ -163,13 +163,13 @@
 
         <section class="secao-dashboard" id="secaoChecklistsDashboard">
 
-            <h2>Checklists da semana</h2>
+            <h2>Checklists D-1</h2>
 
             <div class="cards cards-5 checklist-dashboard-cards">
                 <div class="card">
-                    <h3>Total da semana</h3>
+                    <h3>Total D-1</h3>
                     <strong id="checklistDashTotal">0</strong>
-                    <p>Somente Semana inicial atual = SIM</p>
+                    <p>Somente dados do dia anterior</p>
                 </div>
                 <div class="card">
                     <h3>Concluídos</h3>
@@ -200,7 +200,7 @@
                 </div>
                 <div class="grafico-card">
                     <h3>Checklists por Contrato</h3>
-                    <p class="subtitulo-card-grafico">Total da semana, vinculados e sem vínculo</p>
+                    <p class="subtitulo-card-grafico">Total D-1, vinculados e sem vínculo</p>
                     <canvas id="graficoChecklistContrato"></canvas>
                 </div>
                 <div class="grafico-card">
@@ -209,9 +209,30 @@
                 </div>
             </div>
 
+            <div class="grafico-card checklist-hora-card">
+                <div class="card-header-linha">
+                    <h3>Acompanhamento por hora</h3>
+                    <span id="dashboardChecklistHoraResumo">0 registros</span>
+                </div>
+                <div class="checklist-hora-wrap-dashboard">
+                    <table class="tabela-modal tabela-compacta checklist-hora-tabela">
+                        <thead>
+                            <tr>
+                                <th>Contrato</th>
+                                <th>Responsável</th>
+                                <th>Função</th>
+                                <th>Total</th>
+                                <th>Horários com checklist</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardChecklistHoraBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="grafico-card checklist-tabela-card">
                 <div class="card-header-linha">
-                    <h3>Checklists da semana e vínculo com frentes</h3>
+                    <h3>Checklists D-1 e vínculo com frentes</h3>
                     <span id="dashboardChecklistResumo">0 registros</span>
                 </div>
                 <div class="checklist-tabela-wrap-dashboard">

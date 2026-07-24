@@ -1245,3 +1245,69 @@
         max-width: none;
     }
 }
+
+
+/* Acompanhamento de checklists D-1 por hora */
+#secaoChecklistsDashboard .checklist-hora-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+#secaoChecklistsDashboard .checklist-hora-wrap-dashboard {
+    flex: 1 1 auto;
+    width: 100%;
+    max-height: 260px;
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid #d9e0e7;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+#secaoChecklistsDashboard .checklist-hora-tabela {
+    width: 100%;
+    min-width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 11px;
+}
+
+#secaoChecklistsDashboard .checklist-hora-tabela thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #0b2f5b;
+    color: #ffffff;
+}
+
+#secaoChecklistsDashboard .checklist-hora-tabela th,
+#secaoChecklistsDashboard .checklist-hora-tabela td {
+    padding: 5px 7px;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-bottom: 1px solid #edf1f5;
+}
+
+#secaoChecklistsDashboard .checklist-hora-tabela th:nth-child(1),
+#secaoChecklistsDashboard .checklist-hora-tabela td:nth-child(1) { width: 10%; }
+#secaoChecklistsDashboard .checklist-hora-tabela th:nth-child(2),
+#secaoChecklistsDashboard .checklist-hora-tabela td:nth-child(2) { width: 22%; }
+#secaoChecklistsDashboard .checklist-hora-tabela th:nth-child(3),
+#secaoChecklistsDashboard .checklist-hora-tabela td:nth-child(3) { width: 16%; }
+#secaoChecklistsDashboard .checklist-hora-tabela th:nth-child(4),
+#secaoChecklistsDashboard .checklist-hora-tabela td:nth-child(4) { width: 7%; text-align: center; font-weight: 700; }
+#secaoChecklistsDashboard .checklist-hora-tabela th:nth-child(5),
+#secaoChecklistsDashboard .checklist-hora-tabela td:nth-child(5) { width: 45%; }
+
+@media (max-width: 1200px) {
+    #secaoChecklistsDashboard .checklist-hora-tabela {
+        min-width: 980px;
+        max-width: none;
+    }
+}

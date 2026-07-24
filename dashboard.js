@@ -27,6 +27,8 @@ let baseDashboardLinhas = [];
 let baseDashboardCsvCarregado = false;
 let checklistsLinhas = [];
 let checklistsCsvCarregado = false;
+let checklistsHoraLinhas = [];
+let checklistsHoraCsvCarregado = false;
 let graficoChecklistStatus = null;
 let graficoChecklistContrato = null;
 let graficoChecklistTipo = null;
@@ -858,15 +860,25 @@ function montarRegistroChecklist(linha) {
         mesAprovacao: String(linha.mes_aprovacao || linha["Data de aprovação2"] || "").trim(),
         tempoFinalizar: String(linha.tempo_finalizar || linha["Tempo para finalizar"] || "").trim(),
         tempoAprovacao: String(linha.tempo_aprovacao || linha["Tempo para aprovação"] || "").trim(),
+        coordNUTM: String(linha.coord_n_utm || linha.COORD_N_UTM || linha["COORD_N_UTM"] || "").trim(),
+        coordEUTM: String(linha.coord_e_utm || linha.COORD_E_UTM || linha["COORD_E_UTM"] || "").trim(),
+        epsgUtm: String(linha.epsg_utm || linha.EPSG_UTM || "").trim(),
+        statusCoordenada: String(linha.status_coordenada || linha.STATUS_COORDENADA || "").trim(),
+        dataReferencia: String(linha.data_referencia || linha.DATA_REFERENCIA || "").trim(),
+        d1: String(linha.d_1 || linha.D_1 || linha["D-1"] || linha["d-1"] || "").trim(),
         semanaInicialAtual: String(linha.semana_inicial_atual || linha["Semana inicial atual"] || linha["SEMANA INICIAL ATUAL"] || "").trim()
     };
 }
 
 function checklistSemanaInicialAtual(item) {
-    const valor = normalizarTexto(item?.semanaInicialAtual || "");
-    // Se o CSV já veio filtrado e a coluna não existir, mantemos o registro.
-    if (!valor) return true;
-    return valor === "SIM";
+    const valorD1 = normalizarTexto(item?.d1 || "");
+    if (valorD1) return valorD1 === "SIM";
+
+    const valorSemana = normalizarTexto(item?.semanaInicialAtual || "");
+    if (valorSemana) return valorSemana === "SIM";
+
+    // Se o CSV já veio filtrado para D-1 e não trouxe coluna de controle, mantemos o registro.
+    return true;
 }
 
 function obterChecklists() {
@@ -893,6 +905,94 @@ async function carregarChecklistsCsv() {
         }
     }
     checklistsCsvCarregado = true;
+}
+
+async function carregarChecklistsHoraCsv() {
+    if (checklistsHoraCsvCarregado) return;
+    const caminhos = ["dados/checklists_por_hora.csv"];
+    for (const caminho of caminhos) {
+        try {
+            const resp = await fetch(caminho, { cache: "no-store" });
+            if (!resp.ok) continue;
+            const texto = await resp.text();
+            checklistsHoraLinhas = parseCSVDashboard(texto);
+            checklistsHoraCsvCarregado = true;
+            console.log("PONTE: checklists por hora carregados", caminho, checklistsHoraLinhas.length);
+            return;
+        } catch (erro) {
+            console.warn("PONTE: não foi possível carregar", caminho, erro);
+        }
+    }
+    checklistsHoraCsvCarregado = true;
+}
+
+function montarRegistroChecklistHora(linha) {
+    if (!linha) return null;
+    const horas = [];
+    for (let h = 1; h <= 23; h += 1) horas.push(String(h).padStart(2, "0"));
+    horas.push("00");
+
+    const valores = {};
+    let total = 0;
+    horas.forEach(hora => {
+        const chave = "h" + hora;
+        const valor = numeroDashboard(linha[chave] || linha[chave.toUpperCase()] || 0) || 0;
+        valores[chave] = valor;
+        total += valor;
+    });
+
+    const totalCsv = numeroDashboard(linha.total || linha.TOTAL || "");
+    if (Number.isFinite(totalCsv) && totalCsv > total) total = totalCsv;
+
+    return {
+        dataReferencia: String(linha.data_referencia || linha.DATA_REFERENCIA || "").trim(),
+        contrato: String(linha.contrato || linha.CONTRATO || "").trim(),
+        nome: String(linha.nome || linha.NOME || "").trim(),
+        funcao: String(linha.funcao || linha["Função"] || linha.FUNCAO || "").trim(),
+        filtro: String(linha.filtro || linha.FILTRO || "").trim(),
+        horas,
+        valores,
+        total
+    };
+}
+
+function obterChecklistsHora() {
+    return (checklistsHoraLinhas || []).map(montarRegistroChecklistHora).filter(Boolean);
+}
+
+function filtrarChecklistsHoraPorContrato(itens) {
+    if (!contratoSelecionado || contratoSelecionado === "TODOS") return itens || [];
+    return (itens || []).filter(item => String(item.contrato || "").trim() === contratoSelecionado);
+}
+
+function resumoHorasChecklist(item) {
+    if (!item) return "-";
+    const partes = (item.horas || []).map(h => ({ hora: h, valor: item.valores?.["h" + h] || 0 })).filter(obj => obj.valor > 0);
+    if (!partes.length) return "-";
+    return partes.map(obj => `${obj.hora}h: ${formatarNumero(obj.valor)}`).join(" · ");
+}
+
+function atualizarChecklistsPorHoraDashboard() {
+    const body = document.getElementById("dashboardChecklistHoraBody");
+    const resumoEl = document.getElementById("dashboardChecklistHoraResumo");
+    if (!body) return;
+
+    const itens = filtrarChecklistsHoraPorContrato(obterChecklistsHora());
+    const comMovimento = itens.filter(item => Number(item.total || 0) > 0)
+        .sort((a, b) => Number(b.total || 0) - Number(a.total || 0) || String(a.contrato).localeCompare(String(b.contrato), "pt-BR", { numeric: true }));
+    const total = comMovimento.reduce((acc, item) => acc + Number(item.total || 0), 0);
+    const referencia = comMovimento[0]?.dataReferencia || itens[0]?.dataReferencia || "D-1";
+
+    if (resumoEl) resumoEl.innerText = `${formatarNumero(total)} checklists em ${referencia} • ${formatarNumero(comMovimento.length)} responsáveis com movimento`;
+
+    body.innerHTML = comMovimento.map(item => `
+        <tr>
+            <td>${escaparHtml(item.contrato || "")}</td>
+            <td title="${escaparHtml(item.nome || "")}">${escaparHtml(item.nome || "")}</td>
+            <td>${escaparHtml(item.funcao || "")}</td>
+            <td>${formatarNumero(item.total || 0)}</td>
+            <td title="${escaparHtml(resumoHorasChecklist(item))}">${escaparHtml(resumoHorasChecklist(item))}</td>
+        </tr>`).join("") || `<tr><td colspan="5">Nenhum checklist do dia anterior para o filtro atual.</td></tr>`;
 }
 
 function filtrarChecklistsPorContrato(itens) {
@@ -1130,10 +1230,11 @@ function atualizarChecklistsDashboardDetalhado() {
     graficoChecklistStatus = criarGraficoBarra("graficoChecklistStatus", "Checklists por Status", contarChecklistsPor(itens, item => item.status), graficoChecklistStatus);
     graficoChecklistContrato = criarGraficoChecklistContrato("graficoChecklistContrato", itens, graficoChecklistContrato, 80);
     graficoChecklistTipo = criarGraficoBarra("graficoChecklistTipo", "Top tipos de checklist", topChecklistsPorTipo(itens, 10), graficoChecklistTipo);
+    atualizarChecklistsPorHoraDashboard();
 
     const body = document.getElementById("dashboardChecklistTabelaBody");
     const semVinculo = Math.max(0, resumo.total - resumo.associados);
-    setTexto("dashboardChecklistResumo", `${formatarNumero(resumo.total)} registros da semana • ${formatarNumero(resumo.associados)} vinculados • ${formatarNumero(semVinculo)} sem vínculo`);
+    setTexto("dashboardChecklistResumo", `${formatarNumero(resumo.total)} registros D-1 • ${formatarNumero(resumo.associados)} vinculados • ${formatarNumero(semVinculo)} sem vínculo`);
     if (!body) return;
 
     const associadosOrdenados = associados.slice().sort((a, b) => {
@@ -1156,7 +1257,7 @@ function atualizarChecklistsDashboardDetalhado() {
             <td>${escaparHtml(item.dataInicial || "")}</td>
             <td>${url ? `<a class="link-ver-mapa" href="${escaparHtml(url)}" target="_blank">Ver</a>` : "-"}</td>
         </tr>`;
-    }).join("") || `<tr><td colspan="8">Nenhum checklist com Semana inicial atual = SIM para o filtro atual.</td></tr>`;
+    }).join("") || `<tr><td colspan="8">Nenhum checklist D-1 para o filtro atual.</td></tr>`;
 }
 
 function contagemChecklistsPorFrente(raioMetros = 80) {
@@ -2371,7 +2472,7 @@ function inicializarDashboard() {
         atualizarMetas();
         atualizarDashboard();
     });
-    carregarChecklistsCsv().then(function() {
+    Promise.all([carregarChecklistsCsv(), carregarChecklistsHoraCsv()]).then(function() {
         atualizarDashboard();
         inicializarChecklistsPage();
         atualizarMatrizRisco();
