@@ -1408,3 +1408,37 @@
         min-width: 1180px;
     }
 }
+
+
+/* Patch: cards da matriz com detalhamento por serviço */
+.matriz-card-detalhe {
+    cursor: pointer;
+    position: relative;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.matriz-card-detalhe:hover,
+.matriz-card-detalhe:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(15, 40, 70, .14);
+    border-color: #0b4f8a;
+    outline: none;
+}
+
+.matriz-card-detalhe::after {
+    content: "Clique para detalhar por serviço";
+    display: block;
+    margin-top: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #0b4f8a;
+    opacity: .85;
+}
+
+.matriz-detalhe-servico-tabela th:nth-child(2),
+.matriz-detalhe-servico-tabela td:nth-child(2),
+.matriz-detalhe-servico-tabela th:nth-child(3),
+.matriz-detalhe-servico-tabela td:nth-child(3) {
+    text-align: right;
+    white-space: nowrap;
+}

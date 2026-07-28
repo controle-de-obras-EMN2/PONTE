@@ -583,10 +583,69 @@ function criarGraficoPizza(idCanvas, titulo, dados, graficoAnterior) {
     const canvas = document.getElementById(idCanvas);
     if (!canvas || typeof Chart === "undefined") return graficoAnterior;
     destruirGrafico(graficoAnterior);
+
+    const labels = Object.keys(dados || {});
+    const valores = Object.values(dados || {}).map(v => Number(v) || 0);
+    const total = valores.reduce((soma, valor) => soma + valor, 0);
+
+    const pluginPercentualPizza = {
+        id: "pontePercentualPizza_" + idCanvas,
+        afterDatasetsDraw(chart) {
+            if (!total) return;
+            const ctx = chart.ctx;
+            const meta = chart.getDatasetMeta(0);
+            ctx.save();
+            ctx.font = "700 12px Arial, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#ffffff";
+            ctx.strokeStyle = "rgba(0,0,0,0.45)";
+            ctx.lineWidth = 3;
+
+            meta.data.forEach((arc, index) => {
+                const valor = valores[index] || 0;
+                if (!valor) return;
+                const pct = (valor / total) * 100;
+                const texto = pct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+
+                let posicao = null;
+                try {
+                    posicao = arc.tooltipPosition ? arc.tooltipPosition() : null;
+                } catch (e) {
+                    posicao = null;
+                }
+                if (!posicao) return;
+
+                ctx.strokeText(texto, posicao.x, posicao.y);
+                ctx.fillText(texto, posicao.x, posicao.y);
+            });
+            ctx.restore();
+        }
+    };
+
     return new Chart(canvas, {
         type: "pie",
-        data: { labels: Object.keys(dados || {}), datasets: [{ label: titulo, data: Object.values(dados || {}) }] },
-        options: { responsive: true, maintainAspectRatio: false }
+        data: {
+            labels,
+            datasets: [{ label: titulo, data: valores }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true, position: "bottom" },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const valor = Number(context.raw || 0);
+                            const pct = total ? (valor / total) * 100 : 0;
+                            return `${context.label}: ${formatarNumero(valor)} frente(s) - ${pct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+                        }
+                    }
+                }
+            }
+        },
+        plugins: [pluginPercentualPizza]
     });
 }
 
@@ -2158,19 +2217,126 @@ function contarMatrizPor(features, fn) {
     return r;
 }
 
+function servicoFrenteMatriz(p) {
+    const valor = textoCampo(p || {}, [
+        "SERVICO",
+        "SERVIÇO",
+        "SERVICO_EXECUTADO",
+        "SERVIÇO_EXECUTADO",
+        "SERVICO EM EXECUCAO",
+        "SERVIÇO EM EXECUÇÃO",
+        "SERVICO_EXEC",
+        "SERVIÇO_EXEC",
+        "TIPO_SERVICO",
+        "TIPO_SERVIÇO",
+        "TIPO DE SERVICO",
+        "TIPO DE SERVIÇO",
+        "ATIVIDADE",
+        "ATIVIDADE_EXECUTADA",
+        "FRENTE_SERVICO",
+        "FRENTE DE SERVIÇO",
+        "ETAPA_SERVICO",
+        "ETAPA_SERVIÇO",
+        "ETAPA"
+    ]).trim();
+
+    const normalizado = normalizarTexto(valor);
+    if (!valor || ["NAO INFORMADO", "NAO DISPONIVEL", "N/A", "NA", "ND", "NULL", "NULO", "-", "SEM INFORMACAO", "SEM INFORMAÇÃO"].includes(normalizado)) {
+        return "Serviço não informado";
+    }
+    return valor;
+}
+
+function contarMatrizPorServico(features) {
+    return contarMatrizPor(features, p => servicoFrenteMatriz(p));
+}
+
+function ordenarEntradasContagem(obj) {
+    return Object.entries(obj || {}).sort((a, b) => {
+        if ((b[1] || 0) !== (a[1] || 0)) return (b[1] || 0) - (a[1] || 0);
+        return String(a[0]).localeCompare(String(b[0]), "pt-BR");
+    });
+}
+
+function textoResumoServicosMatriz(titulo, features) {
+    const total = features.length;
+    if (!total) return `${titulo}: nenhum registro no recorte atual.`;
+    const linhas = ordenarEntradasContagem(contarMatrizPorServico(features)).map(([servico, qtd]) => {
+        const pct = percentual(qtd, total).toFixed(1).replace(".", ",");
+        return `${servico}: ${qtd} (${pct}%)`;
+    });
+    return `${titulo}: ${total} frente(s)
+` + linhas.join("
+");
+}
+
+function htmlResumoServicosMatriz(features) {
+    const total = features.length;
+    const entradas = ordenarEntradasContagem(contarMatrizPorServico(features));
+    if (!total) return `<p class="modal-nota">Nenhuma frente encontrada nesse recorte.</p>`;
+
+    return `
+        <p class="modal-nota">Distribuição das ${formatarNumero(total)} frente(s) por serviço executado.</p>
+        <table class="tabela-modal tabela-compacta matriz-detalhe-servico-tabela">
+            <thead>
+                <tr>
+                    <th>Serviço</th>
+                    <th>Frentes</th>
+                    <th>% do recorte</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${entradas.map(([servico, qtd]) => `
+                    <tr>
+                        <td>${escaparHtml(servico)}</td>
+                        <td>${formatarNumero(qtd)}</td>
+                        <td>${percentual(qtd, total).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+function configurarCardDetalheServicoMatriz(idValor, titulo, features) {
+    const valor = document.getElementById(idValor);
+    if (!valor) return;
+    const card = valor.closest(".card");
+    if (!card) return;
+
+    card.classList.add("matriz-card-detalhe");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("role", "button");
+    card.setAttribute("title", textoResumoServicosMatriz(titulo, features));
+    card.onclick = function() {
+        abrirModal(titulo + " por serviço", htmlResumoServicosMatriz(features));
+    };
+    card.onkeydown = function(event) {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            card.click();
+        }
+    };
+}
+
 function atualizarCardsMatrizRisco(features) {
     const total = features.length;
-    const riscoAlto = features.filter(f => normalizarTexto(riscoFrenteMatriz(f.properties || {})).includes("ALTO")).length;
-    const comGas = features.filter(f => simNao((f.properties || {}).GAS) === "Sim").length;
-    const paralisadas = features.filter(f => {
+    const riscoAltoFeatures = features.filter(f => normalizarTexto(riscoFrenteMatriz(f.properties || {})).includes("ALTO"));
+    const comGasFeatures = features.filter(f => simNao((f.properties || {}).GAS) === "Sim");
+    const paralisadasFeatures = features.filter(f => {
         const p = f.properties || {};
         const statusNorm = normalizarTexto(statusFrenteMatriz(p));
         return statusNorm.includes("PARALIS")
             || statusNorm.includes("ADEQUACAO ARSESP")
             || normalizarTexto(p.PARALISADO).includes("SIM")
             || !!String(p.JUSTIFICATIVA || "").trim();
-    }).length;
-    const emAndamento = features.filter(f => normalizarTexto(statusFrenteMatriz(f.properties || {})).includes("ANDAMENTO")).length;
+    });
+    const emAndamentoFeatures = features.filter(f => normalizarTexto(statusFrenteMatriz(f.properties || {})).includes("ANDAMENTO"));
+
+    const riscoAlto = riscoAltoFeatures.length;
+    const comGas = comGasFeatures.length;
+    const paralisadas = paralisadasFeatures.length;
+    const emAndamento = emAndamentoFeatures.length;
 
     setTexto("matrizTotalFrentes", formatarNumero(total));
     setTexto("matrizRiscoAlto", formatarNumero(riscoAlto));
@@ -2181,6 +2347,11 @@ function atualizarCardsMatrizRisco(features) {
     setTexto("matrizParalisadasPerc", total ? percentual(paralisadas, total).toFixed(1) + "%" : "0%");
     setTexto("matrizEmAndamento", formatarNumero(emAndamento));
     setTexto("matrizEmAndamentoPerc", total ? percentual(emAndamento, total).toFixed(1) + "%" : "0%");
+
+    configurarCardDetalheServicoMatriz("matrizRiscoAlto", "Risco alto", riscoAltoFeatures);
+    configurarCardDetalheServicoMatriz("matrizComGas", "Frentes com gás", comGasFeatures);
+    configurarCardDetalheServicoMatriz("matrizParalisadas", "Frentes paralisadas", paralisadasFeatures);
+    configurarCardDetalheServicoMatriz("matrizEmAndamento", "Frentes em andamento", emAndamentoFeatures);
 }
 
 function atualizarGraficosMatrizRisco(features) {
@@ -2426,7 +2597,7 @@ function limparFiltrosMatrizRisco() {
 function exportarMatrizCSV() {
     const features = filtrarMatrizRiscoBase(true);
     const checklistsPorFrente = contagemChecklistsPorFrente(80);
-    const linhas = [["ID", "Contrato", "Status", "Risco", "Métodos", "Profundidade", "Gás", "Elétrica", "Telecom", "Drenagem", "Soma", "Endereço", "Data início", "Data término", "Checklists da semana"]];
+    const linhas = [["ID", "Contrato", "Status", "Risco", "Serviço", "Métodos", "Profundidade", "Gás", "Elétrica", "Telecom", "Drenagem", "Soma", "Endereço", "Data início", "Data término", "Checklists da semana"]];
     features.forEach(feature => {
         const p = feature.properties || {};
         const id = textoCampo(p, ["ID", "FRENTE", "fid"]);
@@ -2435,6 +2606,7 @@ function exportarMatrizCSV() {
             textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]),
             statusFrenteMatriz(p),
             riscoFrenteMatriz(p),
+            servicoFrenteMatriz(p),
             metodosFrente(p),
             profundidadeFrente(p),
             simNao(p.GAS),
