@@ -9,6 +9,150 @@
 
     <link rel="icon" type="image/png" href="images/favicon.png">
     <link rel="stylesheet" href="ponte.css">
+
+
+<style>
+    .ponte-multiselect {
+        position: relative;
+        min-width: 210px;
+        flex: 1 1 220px;
+        z-index: 50;
+    }
+
+    .ponte-multiselect-btn {
+        width: 100%;
+        height: 38px;
+        border: 1px solid #cfd8e3;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #07305f;
+        font-weight: 700;
+        text-align: left;
+        padding: 0 34px 0 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        position: relative;
+    }
+
+    .ponte-multiselect-btn::after {
+        content: "⌄";
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-55%);
+        font-size: 14px;
+        color: #07305f;
+    }
+
+    .ponte-multiselect.aberto .ponte-multiselect-btn {
+        border-color: #07305f;
+        box-shadow: 0 0 0 2px rgba(7, 48, 95, .12);
+    }
+
+    .ponte-multiselect-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        width: min(420px, 92vw);
+        max-height: 360px;
+        background: #ffffff;
+        border: 1px solid #cfd8e3;
+        border-radius: 12px;
+        box-shadow: 0 12px 28px rgba(0,0,0,.18);
+        padding: 10px;
+        overflow: hidden;
+        z-index: 9999;
+    }
+
+    .ponte-multiselect.aberto .ponte-multiselect-menu {
+        display: block;
+    }
+
+    .ponte-multiselect-topo,
+    .ponte-multiselect-acoes {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .ponte-multiselect-topo strong {
+        color: #07305f;
+        font-size: 13px;
+    }
+
+    .ponte-multiselect-topo button,
+    .ponte-multiselect-acoes button {
+        border: 0;
+        border-radius: 7px;
+        background: #07305f;
+        color: #ffffff;
+        font-weight: 700;
+        padding: 6px 9px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .ponte-multiselect-topo button {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        font-size: 18px;
+        line-height: 1;
+    }
+
+    .ponte-multiselect-busca {
+        width: 100%;
+        height: 34px;
+        border: 1px solid #cfd8e3;
+        border-radius: 8px;
+        padding: 0 10px;
+        margin-bottom: 8px;
+        color: #07305f;
+    }
+
+    .ponte-multiselect-opcoes {
+        max-height: 235px;
+        overflow: auto;
+        border: 1px solid #edf1f5;
+        border-radius: 8px;
+        background: #fbfdff;
+    }
+
+    .ponte-multiselect-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 9px;
+        font-size: 12px;
+        color: #1f2937;
+        cursor: pointer;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .ponte-multiselect-item:last-child {
+        border-bottom: 0;
+    }
+
+    .ponte-multiselect-item:hover {
+        background: #eef5ff;
+    }
+
+    .ponte-multiselect-item input {
+        flex: 0 0 auto;
+    }
+
+    .ponte-multiselect-vazio {
+        padding: 12px;
+        color: #6b7280;
+        font-size: 12px;
+    }
+</style>
+
 </head>
 
 <body>
@@ -36,9 +180,25 @@
             <option value="">Todos os contratos</option>
         </select>
 
-        <select id="filtroMapaFrente" title="Filtrar por frente">
-            <option value="">Todas as frentes</option>
-        </select>
+        <div id="filtroMapaFrenteBox" class="ponte-multiselect" title="Filtrar por uma ou mais frentes">
+            <button id="filtroMapaFrenteBtn" class="ponte-multiselect-btn" type="button" aria-haspopup="true" aria-expanded="false">
+                Todas as frentes
+            </button>
+            <div id="filtroMapaFrenteMenu" class="ponte-multiselect-menu" aria-label="Selecionar frentes">
+                <div class="ponte-multiselect-topo">
+                    <strong>Selecionar frentes</strong>
+                    <button id="filtroMapaFrenteFechar" type="button" title="Fechar">×</button>
+                </div>
+                <input id="filtroMapaFrenteBusca" class="ponte-multiselect-busca" type="search" placeholder="Buscar frente...">
+                <div class="ponte-multiselect-acoes">
+                    <button id="filtroMapaFrenteMarcarTodos" type="button">Marcar todos</button>
+                    <button id="filtroMapaFrenteLimpar" type="button">Limpar</button>
+                </div>
+                <div id="filtroMapaFrenteOpcoes" class="ponte-multiselect-opcoes">
+                    <div class="ponte-multiselect-vazio">Carregando frentes...</div>
+                </div>
+            </div>
+        </div>
 
         <select id="filtroMapaMetodo" title="Filtrar por método">
             <option value="">Todos os métodos</option>

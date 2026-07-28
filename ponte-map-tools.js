@@ -4,7 +4,7 @@
    Arquivo externo ao qgis2web para preservar melhorias do PONTE
    ========================================================= */
 
-console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
+console.log("ponte-map-tools.js carregado - multifiltro de frentes 2026-07-28");
 
 (function () {
     const CAMPOS = {
@@ -16,9 +16,19 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
 
     const SELECTS = {
         contrato: "filtroMapaContrato",
-        frente: "filtroMapaFrente",
         metodo: "filtroMapaMetodo",
         diametro: "filtroMapaDiametro"
+    };
+
+    const FRENTE_MULTI = {
+        box: "filtroMapaFrenteBox",
+        btn: "filtroMapaFrenteBtn",
+        menu: "filtroMapaFrenteMenu",
+        busca: "filtroMapaFrenteBusca",
+        opcoes: "filtroMapaFrenteOpcoes",
+        marcarTodos: "filtroMapaFrenteMarcarTodos",
+        limpar: "filtroMapaFrenteLimpar",
+        fechar: "filtroMapaFrenteFechar"
     };
 
     const LABELS = {
@@ -32,6 +42,7 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
     let streetViewAtivo = false;
     let atualizandoSelects = false;
     let zoomParametroAplicado = false;
+    let frentesSelecionadas = new Set();
 
     document.addEventListener("DOMContentLoaded", function () {
         const iframe = obterIframeMapa();
@@ -44,6 +55,7 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
 
         aguardarMapaPonte();
         ativarBotoesDoMapa();
+        instalarMultiselectFrente();
     });
 
     function obterIframeMapa() {
@@ -229,13 +241,39 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
         return registros;
     }
 
+    function obterFrentesSelecionadas() {
+        const opcoes = document.getElementById(FRENTE_MULTI.opcoes);
+        if (!opcoes) return Array.from(frentesSelecionadas);
+
+        return Array.from(opcoes.querySelectorAll("input[data-frente-valor]:checked"))
+            .map(input => input.getAttribute("data-frente-valor"))
+            .filter(Boolean);
+    }
+
     function obterFiltrosAtuais() {
         return {
             contrato: document.getElementById(SELECTS.contrato)?.value || "",
-            frente: document.getElementById(SELECTS.frente)?.value || "",
+            frente: obterFrentesSelecionadas(),
             metodo: document.getElementById(SELECTS.metodo)?.value || "",
             diametro: document.getElementById(SELECTS.diametro)?.value || ""
         };
+    }
+
+    function valorFiltroAtendido(valorRegistro, valorFiltro) {
+        if (Array.isArray(valorFiltro)) {
+            if (!valorFiltro.length) return true;
+            const selecionados = new Set(valorFiltro.map(normalizar));
+            return selecionados.has(normalizar(valorRegistro));
+        }
+
+        if (!valorFiltro) return true;
+        return normalizar(valorRegistro) === normalizar(valorFiltro);
+    }
+
+    function haFiltrosAtivos(filtros) {
+        return Object.values(filtros || {}).some(function(valor) {
+            return Array.isArray(valor) ? valor.length > 0 : Boolean(valor);
+        });
     }
 
     function registroAtendeFiltros(registro, filtros, ignorarTipo) {
@@ -243,10 +281,8 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
             if (tipo === ignorarTipo) return true;
 
             const valorFiltro = filtros[tipo];
-            if (!valorFiltro) return true;
-
             const valorRegistro = valorTipo(registro.props, tipo);
-            return normalizar(valorRegistro) === normalizar(valorFiltro);
+            return valorFiltroAtendido(valorRegistro, valorFiltro);
         });
     }
 
@@ -289,6 +325,134 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
         return "";
     }
 
+    function atualizarTextoBotaoFrente() {
+        const btn = document.getElementById(FRENTE_MULTI.btn);
+        if (!btn) return;
+
+        const selecionadas = Array.from(frentesSelecionadas);
+        if (!selecionadas.length) {
+            btn.textContent = LABELS.frente;
+        } else if (selecionadas.length === 1) {
+            btn.textContent = selecionadas[0];
+        } else {
+            btn.textContent = `${selecionadas.length} frentes selecionadas`;
+        }
+    }
+
+    function aplicarBuscaFrentes() {
+        const busca = normalizar(document.getElementById(FRENTE_MULTI.busca)?.value || "");
+        const opcoes = document.getElementById(FRENTE_MULTI.opcoes);
+        if (!opcoes) return;
+
+        opcoes.querySelectorAll(".ponte-multiselect-item").forEach(function(label) {
+            const texto = normalizar(label.textContent || "");
+            label.style.display = (!busca || texto.includes(busca)) ? "flex" : "none";
+        });
+    }
+
+    function preencherMultiselectFrente(valores, selecionadasAtuais) {
+        const opcoes = document.getElementById(FRENTE_MULTI.opcoes);
+        if (!opcoes) return [];
+
+        const selecionadasNorm = new Set((selecionadasAtuais || []).map(normalizar));
+        const selecionadasMantidas = valores.filter(valor => selecionadasNorm.has(normalizar(valor)));
+        frentesSelecionadas = new Set(selecionadasMantidas);
+
+        opcoes.innerHTML = "";
+
+        if (!valores.length) {
+            const vazio = document.createElement("div");
+            vazio.className = "ponte-multiselect-vazio";
+            vazio.textContent = "Nenhuma frente disponível para o recorte atual";
+            opcoes.appendChild(vazio);
+            atualizarTextoBotaoFrente();
+            return selecionadasMantidas;
+        }
+
+        valores.forEach(function(valor, indice) {
+            const id = `filtroMapaFrenteOpcao_${indice}`;
+            const label = document.createElement("label");
+            label.className = "ponte-multiselect-item";
+            label.setAttribute("for", id);
+
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.id = id;
+            input.setAttribute("data-frente-valor", valor);
+            input.checked = frentesSelecionadas.has(valor);
+
+            const span = document.createElement("span");
+            span.textContent = valor;
+            span.title = valor;
+
+            label.appendChild(input);
+            label.appendChild(span);
+            opcoes.appendChild(label);
+        });
+
+        atualizarTextoBotaoFrente();
+        aplicarBuscaFrentes();
+        return selecionadasMantidas;
+    }
+
+    function instalarMultiselectFrente() {
+        const box = document.getElementById(FRENTE_MULTI.box);
+        const btn = document.getElementById(FRENTE_MULTI.btn);
+        const opcoes = document.getElementById(FRENTE_MULTI.opcoes);
+        if (!box || !btn || !opcoes || box.getAttribute("data-ponte-instalado") === "1") return;
+        box.setAttribute("data-ponte-instalado", "1");
+
+        btn.addEventListener("click", function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const aberto = box.classList.toggle("aberto");
+            btn.setAttribute("aria-expanded", aberto ? "true" : "false");
+            if (aberto) setTimeout(() => document.getElementById(FRENTE_MULTI.busca)?.focus(), 50);
+        });
+
+        document.getElementById(FRENTE_MULTI.fechar)?.addEventListener("click", function(event) {
+            event.preventDefault();
+            box.classList.remove("aberto");
+            btn.setAttribute("aria-expanded", "false");
+        });
+
+        document.getElementById(FRENTE_MULTI.busca)?.addEventListener("input", aplicarBuscaFrentes);
+
+        document.getElementById(FRENTE_MULTI.limpar)?.addEventListener("click", function(event) {
+            event.preventDefault();
+            frentesSelecionadas = new Set();
+            opcoes.querySelectorAll("input[data-frente-valor]").forEach(input => input.checked = false);
+            atualizarTextoBotaoFrente();
+            if (!atualizandoSelects) aplicarFiltrosMapa();
+        });
+
+        document.getElementById(FRENTE_MULTI.marcarTodos)?.addEventListener("click", function(event) {
+            event.preventDefault();
+            opcoes.querySelectorAll(".ponte-multiselect-item").forEach(function(label) {
+                if (label.style.display === "none") return;
+                const input = label.querySelector("input[data-frente-valor]");
+                if (input) input.checked = true;
+            });
+            frentesSelecionadas = new Set(obterFrentesSelecionadas());
+            atualizarTextoBotaoFrente();
+            if (!atualizandoSelects) aplicarFiltrosMapa();
+        });
+
+        opcoes.addEventListener("change", function(event) {
+            if (!event.target || !event.target.matches("input[data-frente-valor]")) return;
+            frentesSelecionadas = new Set(obterFrentesSelecionadas());
+            atualizarTextoBotaoFrente();
+            if (!atualizandoSelects) aplicarFiltrosMapa();
+        });
+
+        document.addEventListener("click", function(event) {
+            if (!box.contains(event.target)) {
+                box.classList.remove("aberto");
+                btn.setAttribute("aria-expanded", "false");
+            }
+        });
+    }
+
     function atualizarOpcoesFunil(map) {
         if (!map) {
             const contexto = obterContextoMapa();
@@ -303,7 +467,11 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
 
         ["contrato", "frente", "metodo", "diametro"].forEach(function (tipo) {
             const valores = coletarValoresFiltrados(map, tipo, filtros);
-            filtros[tipo] = preencherSelect(SELECTS[tipo], valores, LABELS[tipo], filtros[tipo]);
+            if (tipo === "frente") {
+                filtros.frente = preencherMultiselectFrente(valores, filtros.frente);
+            } else {
+                filtros[tipo] = preencherSelect(SELECTS[tipo], valores, LABELS[tipo], filtros[tipo]);
+            }
         });
 
         atualizandoSelects = false;
@@ -314,10 +482,8 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
 
         return ["contrato", "frente", "metodo", "diametro"].every(function (tipo) {
             const valorFiltro = filtros[tipo];
-            if (!valorFiltro) return true;
-
             const valorFeature = valorTipo(props, tipo);
-            return normalizar(valorFeature) === normalizar(valorFiltro);
+            return valorFiltroAtendido(valorFeature, valorFiltro);
         });
     }
 
@@ -347,7 +513,7 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
                 source.addFeatures(filtradas);
                 if (typeof layer.setVisible === "function") layer.setVisible(true);
             } else {
-                if (Object.values(filtros).some(Boolean) && typeof layer.setVisible === "function") {
+                if (haFiltrosAtivos(filtros) && typeof layer.setVisible === "function") {
                     layer.setVisible(false);
                 }
             }
@@ -381,10 +547,19 @@ console.log("ponte-map-tools.js carregado - revisão método e PDF 2026-07-20");
         const contexto = obterContextoMapa();
         if (!contexto) return;
 
-        ["contrato", "frente", "metodo", "diametro"].forEach(function (tipo) {
+        ["contrato", "metodo", "diametro"].forEach(function (tipo) {
             const el = document.getElementById(SELECTS[tipo]);
             if (el) el.value = "";
         });
+
+        frentesSelecionadas = new Set();
+        const opcoesFrente = document.getElementById(FRENTE_MULTI.opcoes);
+        if (opcoesFrente) {
+            opcoesFrente.querySelectorAll("input[data-frente-valor]").forEach(input => input.checked = false);
+        }
+        const buscaFrente = document.getElementById(FRENTE_MULTI.busca);
+        if (buscaFrente) buscaFrente.value = "";
+        atualizarTextoBotaoFrente();
 
         obterCamadasVetoriais(contexto.map).forEach(function (layer) {
             const source = layer.getSource();
