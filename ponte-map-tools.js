@@ -4,12 +4,12 @@
    Arquivo externo ao qgis2web para preservar melhorias do PONTE
    ========================================================= */
 
-console.log("ponte-map-tools.js carregado - multifiltro de frentes 2026-07-28");
+console.log("ponte-map-tools.js carregado - multifiltro de frentes sem pontos de lançamento 2026-07-28");
 
 (function () {
     const CAMPOS = {
         contrato: ["NUM_CONTRA", "Contrato_N", "CONTRATO", "Contrato", "contrato"],
-        frente: ["FRENTE", "Frente", "frente", "OBRA", "Nome_Lanca", "EEE"],
+        frente: ["FRENTE", "Frente", "frente", "NOME_FRENTE", "NOME FRENTE"],
         metodo: ["DETA_METOD"],
         diametro: ["DIAMETR_MM", "Diametro", "DIAMETRO", "diametro"]
     };
@@ -131,6 +131,34 @@ console.log("ponte-map-tools.js carregado - multifiltro de frentes 2026-07-28");
         if (!n || invalidos.includes(n)) return false;
         if (n.includes("NAO INFORMADO") || n.includes("NAO DISPONIVEL")) return false;
         return true;
+    }
+
+    function ehPontoDeLancamento(registroOuLayer) {
+        const layer = registroOuLayer && registroOuLayer.layer ? registroOuLayer.layer : registroOuLayer;
+        const titulo = normalizar(
+            (registroOuLayer && registroOuLayer.titulo) ||
+            (layer && (layer.get("popuplayertitle") || layer.get("title") || layer.get("name"))) ||
+            ""
+        );
+
+        return (
+            titulo.includes("PONTOS DE LANCAMENTO") ||
+            titulo.includes("PONTOS DE LANÇAMENTO") ||
+            titulo.includes("PONTOSDELANAMENTO") ||
+            titulo.includes("LANCAMENTO") ||
+            titulo.includes("LANÇAMENTO")
+        );
+    }
+
+    function ehCodigoPontoLancamento(valor) {
+        const n = normalizar(valor).replace(/\s+/g, "");
+        return /^GU[-_]?LT/.test(n) || /^GULT/.test(n);
+    }
+
+    function temCampoReal(properties, campos) {
+        if (!properties || !campos || !campos.length) return false;
+        const chavesNorm = new Set(Object.keys(properties).map(normalizar));
+        return campos.some(campo => chavesNorm.has(normalizar(campo)));
     }
 
     function ehCamadaBase(layer) {
@@ -291,8 +319,11 @@ console.log("ponte-map-tools.js carregado - multifiltro de frentes 2026-07-28");
 
         obterRegistrosFiltravel(map).forEach(function (registro) {
             if (!registroAtendeFiltros(registro, filtros, tipo)) return;
+            if (tipo === "frente" && ehPontoDeLancamento(registro)) return;
+
             const valor = valorTipo(registro.props, tipo);
             if (!valor) return;
+            if (tipo === "frente" && (!valorValidoParaFiltro(valor) || ehCodigoPontoLancamento(valor))) return;
             if (tipo === "metodo" && !valorValidoParaFiltro(valor)) return;
             if (tipo === "diametro" && !valorValidoParaFiltro(valor)) return;
             valores.add(valor);
@@ -477,11 +508,22 @@ console.log("ponte-map-tools.js carregado - multifiltro de frentes 2026-07-28");
         atualizandoSelects = false;
     }
 
-    function featureAtendeFiltros(feature, filtros) {
+    function featureAtendeFiltros(feature, filtros, layer) {
         const props = feature.getProperties ? feature.getProperties() : {};
 
         return ["contrato", "frente", "metodo", "diametro"].every(function (tipo) {
             const valorFiltro = filtros[tipo];
+
+            // PONTOS DE LANÇAMENTO não são frentes. Eles não entram na lista do filtro
+            // e também não devem ser ocultados apenas porque uma frente foi selecionada.
+            if (tipo === "frente") {
+                const filtroFrenteAtivo = Array.isArray(valorFiltro) ? valorFiltro.length > 0 : Boolean(valorFiltro);
+                if (filtroFrenteAtivo) {
+                    if (ehPontoDeLancamento(layer)) return true;
+                    if (!temCampoReal(props, CAMPOS.frente)) return true;
+                }
+            }
+
             const valorFeature = valorTipo(props, tipo);
             return valorFiltroAtendido(valorFeature, valorFiltro);
         });
@@ -505,7 +547,7 @@ console.log("ponte-map-tools.js carregado - multifiltro de frentes 2026-07-28");
             const source = layer.getSource();
             const todas = layer.get("ponte_features_original") || source.getFeatures().slice();
             const filtradas = todas.filter(function (feature) {
-                return featureAtendeFiltros(feature, filtros);
+                return featureAtendeFiltros(feature, filtros, layer);
             });
 
             source.clear(true);
