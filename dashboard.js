@@ -2265,9 +2265,7 @@ function textoResumoServicosMatriz(titulo, features) {
         const pct = percentual(qtd, total).toFixed(1).replace(".", ",");
         return `${servico}: ${qtd} (${pct}%)`;
     });
-    return `${titulo}: ${total} frente(s)
-` + linhas.join("
-");
+    return `${titulo}: ${total} frente(s)\n` + linhas.join("\n");
 }
 
 function htmlResumoServicosMatriz(features) {
