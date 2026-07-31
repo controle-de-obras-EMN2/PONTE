@@ -1442,3 +1442,74 @@
     text-align: right;
     white-space: nowrap;
 }
+
+/* =========================================================
+   Patch 2026-07-31: matriz de risco - largura correta das colunas
+   Corrige sobreposição entre Atividade e Profundidade.
+   ========================================================= */
+.matriz-tabela-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+}
+
+.matriz-tabela {
+    table-layout: fixed !important;
+    width: 1780px !important;
+    min-width: 1780px !important;
+    max-width: none !important;
+    border-collapse: collapse !important;
+}
+
+.matriz-tabela th,
+.matriz-tabela td {
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.matriz-tabela thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+    background: #0b2f5b !important;
+}
+
+.matriz-tabela th:nth-child(1),
+.matriz-tabela td:nth-child(1) { width: 70px !important; min-width: 70px !important; max-width: 70px !important; }
+.matriz-tabela th:nth-child(2),
+.matriz-tabela td:nth-child(2) { width: 85px !important; min-width: 85px !important; max-width: 85px !important; }
+.matriz-tabela th:nth-child(3),
+.matriz-tabela td:nth-child(3) { width: 130px !important; min-width: 130px !important; max-width: 130px !important; }
+.matriz-tabela th:nth-child(4),
+.matriz-tabela td:nth-child(4) { width: 95px !important; min-width: 95px !important; max-width: 95px !important; }
+.matriz-tabela th:nth-child(5),
+.matriz-tabela td:nth-child(5) { width: 75px !important; min-width: 75px !important; max-width: 75px !important; }
+.matriz-tabela th:nth-child(6),
+.matriz-tabela td:nth-child(6) { width: 115px !important; min-width: 115px !important; max-width: 115px !important; }
+.matriz-tabela th:nth-child(7),
+.matriz-tabela td:nth-child(7) { width: 190px !important; min-width: 190px !important; max-width: 190px !important; }
+.matriz-tabela th:nth-child(8),
+.matriz-tabela td:nth-child(8) { width: 120px !important; min-width: 120px !important; max-width: 120px !important; }
+.matriz-tabela th:nth-child(9),
+.matriz-tabela td:nth-child(9) { width: 55px !important; min-width: 55px !important; max-width: 55px !important; text-align: center !important; }
+.matriz-tabela th:nth-child(10),
+.matriz-tabela td:nth-child(10) { width: 65px !important; min-width: 65px !important; max-width: 65px !important; text-align: center !important; }
+.matriz-tabela th:nth-child(11),
+.matriz-tabela td:nth-child(11) { width: 65px !important; min-width: 65px !important; max-width: 65px !important; text-align: center !important; }
+.matriz-tabela th:nth-child(12),
+.matriz-tabela td:nth-child(12) { width: 75px !important; min-width: 75px !important; max-width: 75px !important; text-align: center !important; }
+.matriz-tabela th:nth-child(13),
+.matriz-tabela td:nth-child(13) { width: 55px !important; min-width: 55px !important; max-width: 55px !important; text-align: center !important; }
+.matriz-tabela th:nth-child(14),
+.matriz-tabela td:nth-child(14) { width: 310px !important; min-width: 310px !important; max-width: 310px !important; }
+.matriz-tabela th:nth-child(15),
+.matriz-tabela td:nth-child(15) { width: 90px !important; min-width: 90px !important; max-width: 90px !important; }
+.matriz-tabela th:nth-child(16),
+.matriz-tabela td:nth-child(16) { width: 90px !important; min-width: 90px !important; max-width: 90px !important; }
+.matriz-tabela th:nth-child(17),
+.matriz-tabela td:nth-child(17) { width: 80px !important; min-width: 80px !important; max-width: 80px !important; text-align: center !important; }
+.matriz-tabela th:nth-child(18),
+.matriz-tabela td:nth-child(18) { width: 60px !important; min-width: 60px !important; max-width: 60px !important; text-align: center !important; }

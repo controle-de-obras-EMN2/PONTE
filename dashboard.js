@@ -2697,9 +2697,9 @@ function atualizarTabelaMatriz(features) {
             <td>${escaparHtml(statusFrenteMatriz(p))}</td>
             <td>${escaparHtml(riscoFrenteMatriz(p))}</td>
             <td>${escaparHtml(metodoPrincipalFrente(p))}</td>
-            <td>${escaparHtml(detalheMetodoFrente(p))}</td>
-            <td>${escaparHtml(atividadeFrenteMatriz(p))}</td>
-            <td>${escaparHtml(profundidadeFrente(p))}</td>
+            <td title="${escaparHtml(detalheMetodoFrente(p))}">${escaparHtml(detalheMetodoFrente(p))}</td>
+            <td title="${escaparHtml(atividadeFrenteMatriz(p))}">${escaparHtml(atividadeFrenteMatriz(p))}</td>
+            <td title="${escaparHtml(profundidadeFrente(p))}">${escaparHtml(profundidadeFrente(p))}</td>
             <td>${escaparHtml(simNao(p.GAS))}</td>
             <td>${escaparHtml(simNao(p.ELETRICIDA))}</td>
             <td>${escaparHtml(simNao(p.TELECON))}</td>
