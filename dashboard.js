@@ -187,6 +187,62 @@ function obterFeaturesPorNomeParcial(partes) {
     return features;
 }
 
+let ponteCamadasQgisDinamicasCarregadas = false;
+
+function scriptJaCarregadoPonte(src) {
+    const alvo = new URL(src, window.location.href).href.split("?")[0];
+    return Array.from(document.scripts).some(script => {
+        if (!script.src) return false;
+        return script.src.split("?")[0] === alvo;
+    });
+}
+
+function carregarScriptPonte(src) {
+    return new Promise(resolve => {
+        if (scriptJaCarregadoPonte(src)) return resolve();
+        const script = document.createElement("script");
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => {
+            console.warn("PONTE: não foi possível carregar camada", src);
+            resolve();
+        };
+        document.body.appendChild(script);
+    });
+}
+
+async function carregarCamadasQgis2webDinamicas() {
+    if (ponteCamadasQgisDinamicasCarregadas) return;
+    ponteCamadasQgisDinamicasCarregadas = true;
+
+    try {
+        const resp = await fetch("MAPA/index.html?ponte=" + Date.now(), { cache: "no-store" });
+        if (!resp.ok) return;
+        const html = await resp.text();
+        const scripts = [];
+        const regex = /<script[^>]+src=["']([^"']*layers\/[^"']+\.js(?:\?[^"']*)?)["']/gi;
+        let match;
+        while ((match = regex.exec(html)) !== null) {
+            let src = match[1].replace(/^\.\//, "");
+            if (src.startsWith("MAPA/")) {
+                // ok
+            } else if (src.startsWith("layers/")) {
+                src = "MAPA/" + src;
+            } else if (!src.startsWith("http")) {
+                src = "MAPA/" + src.replace(/^.*layers\//, "layers/");
+            }
+            if (!scripts.includes(src)) scripts.push(src);
+        }
+
+        for (const src of scripts) {
+            await carregarScriptPonte(src + (src.includes("?") ? "&" : "?") + "t=" + Date.now());
+        }
+        if (scripts.length) console.log("PONTE: camadas qgis2web carregadas dinamicamente", scripts.length);
+    } catch (erro) {
+        console.warn("PONTE: não foi possível ler MAPA/index.html para carregar camadas dinâmicas", erro);
+    }
+}
+
 function obterObras() {
     const direto = obterFeaturesPorVariavel("json_OBRAS_EMN2_4");
     if (direto.length) return direto;
@@ -209,20 +265,77 @@ function obterObrasCadastradas() {
     return obterObras().filter(feature => !ehProjetoBasicoObra(feature));
 }
 
+function pontuacaoCamadaMatriz(nomeVariavel, camada) {
+    if (!camada || !Array.isArray(camada.features) || !camada.features.length) return -9999;
+
+    const nome = normalizarTexto(nomeVariavel || "");
+    const amostra = camada.features.slice(0, 12);
+    const chaves = new Set();
+    amostra.forEach(f => Object.keys(f.properties || {}).forEach(k => chaves.add(k)));
+    const chavesNorm = Array.from(chaves).map(k => normalizarTexto(k).replace(/[^A-Z0-9]/g, ""));
+
+    const tem = (...campos) => campos.some(c => chavesNorm.includes(normalizarTexto(c).replace(/[^A-Z0-9]/g, "")));
+
+    // Exclui camadas que não são frentes de serviço/matriz.
+    if (nome.includes("PONTOSDELAN") || nome.includes("LANCAMENTO") || nome.includes("LANAMENTO") || tem("Nome_Lanca", "Subdivisao", "Unidade_Ne")) return -9999;
+    if ((nome === "JSON_EEE_6" || nome.includes("ETES")) || tem("EEE", "Q", "OPERAÇÃO")) return -9999;
+    if (nome.includes("SINISTRO") || tem("Ficha", "Sinistro", "Critério")) return -9999;
+    if (nome.includes("OBRAS") && !tem("GAS", "RISCO", "SOMA", "AJUSTE STA")) return -9999;
+
+    let score = 0;
+    if (nome.includes("FRENTE")) score += 40;
+    if (nome.includes("EMN2")) score += 8;
+    if (tem("ID")) score += 8;
+    if (tem("AJUSTE STA", "AJUSTE_STA", "STATUS")) score += 18;
+    if (tem("RISCO")) score += 28;
+    if (tem("SOMA")) score += 18;
+    if (tem("GAS")) score += 12;
+    if (tem("Latitude", "LATITUDE", "Longitude", "LONGITUDE")) score += 10;
+    if (tem("DETA_METOD", "DETAL_METOD", "DETAL_MÉTODO", "METODO", "MÉTODO")) score += 20;
+    if (tem("ATIVIDADE", "SERVICO", "SERVIÇO", "SERVICO_EXECUTADO")) score += 24;
+    if (tem("VCA", "HDD", "OUTROS_MND")) score += 10;
+
+    return score;
+}
+
 function obterFrentesCampo() {
+    const candidatas = Object.keys(window)
+        .filter(chave => chave.startsWith("json_"))
+        .map(chave => {
+            const camada = window[chave];
+            const score = pontuacaoCamadaMatriz(chave, camada);
+            const match = chave.match(/_(\d+)$/);
+            const ordem = match ? Number(match[1]) : 0;
+            return {
+                chave,
+                score,
+                ordem,
+                quantidade: Array.isArray(camada?.features) ? camada.features.length : 0,
+                features: Array.isArray(camada?.features) ? camada.features : []
+            };
+        })
+        .filter(item => item.score >= 45 && item.quantidade > 0)
+        .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (b.ordem !== a.ordem) return b.ordem - a.ordem;
+            return b.quantidade - a.quantidade;
+        });
+
+    if (candidatas.length) {
+        if (!window.__ponteMatrizFonteLogada || window.__ponteMatrizFonteLogada !== candidatas[0].chave) {
+            window.__ponteMatrizFonteLogada = candidatas[0].chave;
+            console.log("PONTE matriz: camada de frentes selecionada", candidatas[0].chave, "score", candidatas[0].score, "feições", candidatas[0].quantidade);
+        }
+        return candidatas[0].features;
+    }
+
     const direto10 = obterFeaturesPorVariavel("json_FRENTES_10");
     if (direto10.length) return direto10;
 
     const direto = obterFeaturesPorVariavel("json_FRENTES_9");
     if (direto.length) return direto;
 
-    const porNome = obterFeaturesPorNomeParcial(["FRENTES", "FRENTEEMANDAMENTO", "FRENTE_EM_ANDAMENTO"]);
-    if (porNome.length) return porNome;
-
-    return obterFeaturesPorNomeParcial(["json_"]).filter(f => {
-        const p = f.properties || {};
-        return p["AJUSTE STA"] !== undefined || p.GAS !== undefined || p.RISCO !== undefined || p.SOMA !== undefined;
-    });
+    return [];
 }
 
 function obterSinistros() {
@@ -1777,12 +1890,72 @@ function simNao(valor) {
     return normalizarTexto(valor) === "NULL" ? "Não" : String(valor);
 }
 
+function textoInformadoMatriz(valor) {
+    const texto = String(valor ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const n = normalizarTexto(texto).replace(/\s+/g, " ");
+    const invalidos = ["NAO INFORMADO", "NAO DISPONIVEL", "N/A", "NA", "N.A", "N.D", "N.D.", "ND", "NULL", "NULO", "-", "0", "SEM INFORMACAO", "SEM INFORMAÇÃO", "VAZIO"];
+    if (!n || invalidos.includes(n) || n.includes("NAO INFORMADO") || n.includes("NAO DISPONIVEL")) return "";
+    return texto;
+}
+
+function textoCampoInformadoMatriz(p, campos) {
+    const valor = textoCampo(p || {}, campos);
+    return textoInformadoMatriz(valor);
+}
+
+function separarValoresMatriz(valor) {
+    const texto = textoInformadoMatriz(valor);
+    if (!texto) return [];
+    return texto
+        .split(/\s*(?:\+|;|,|\/|\|)\s*/g)
+        .map(textoInformadoMatriz)
+        .filter(Boolean);
+}
+
+function unicosMatriz(valores) {
+    const vistos = new Set();
+    const saida = [];
+    (valores || []).forEach(v => {
+        const texto = textoInformadoMatriz(v);
+        if (!texto) return;
+        const chave = normalizarTexto(texto);
+        if (vistos.has(chave)) return;
+        vistos.add(chave);
+        saida.push(texto);
+    });
+    return saida;
+}
+
+function metodoPrincipalFrente(p) {
+    return textoCampoInformadoMatriz(p, ["METODO", "MÉTODO", "METODO_CONSTRUTIVO", "METOD_CONS", "Metod_Cons"])
+        || (simNao(p.VCA) === "Sim" ? "VCA" : "")
+        || (simNao(p.HDD) === "Sim" ? "HDD" : "")
+        || (simNao(p.OUTROS_MND) === "Sim" ? "Outros MND" : "");
+}
+
+function detalheMetodoFrente(p) {
+    const direto = textoCampoInformadoMatriz(p, ["DETA_METOD", "DETA_METODO", "DETAL_METOD", "DETAL_METODO", "DETAL_MÉTODO", "DETALHE_METODO", "DETALHE MÉTODO"]);
+    if (direto) return direto;
+    const lista = [];
+    if (simNao(p.VCA) === "Sim") lista.push("VCA");
+    if (simNao(p.HDD) === "Sim") lista.push("HDD");
+    if (simNao(p.OUTROS_MND) === "Sim") lista.push("Outros MND");
+    return lista.join(" + ");
+}
+
+function atividadeFrenteMatriz(p) {
+    return textoCampoInformadoMatriz(p, [
+        "ATIVIDADE", "ATIVIDADE_EXECUTADA", "ATIVIDADE EM EXECUÇÃO", "ATIVIDADE EM EXECUCAO",
+        "SERVICO", "SERVIÇO", "SERVICO_EXECUTADO", "SERVIÇO_EXECUTADO",
+        "SERVICO EM EXECUCAO", "SERVIÇO EM EXECUÇÃO", "TIPO_SERVICO", "TIPO DE SERVIÇO", "ETAPA"
+    ]);
+}
+
 function metodosFrente(p) {
-    const metodos = [];
-    if (simNao(p.VCA) === "Sim") metodos.push("VCA");
-    if (simNao(p.HDD) === "Sim") metodos.push("HDD");
-    if (simNao(p.OUTROS_MND) === "Sim") metodos.push("Outros MND");
-    return metodos.join(" + ") || "";
+    const valores = [];
+    valores.push(...separarValoresMatriz(detalheMetodoFrente(p)));
+    valores.push(...separarValoresMatriz(metodoPrincipalFrente(p)));
+    return unicosMatriz(valores).join(" + ") || "";
 }
 
 function profundidadeFrente(p) {
@@ -2076,12 +2249,13 @@ function riscoFrenteMatriz(p) {
 }
 
 function listaMetodosFrente(p) {
-    const metodos = [];
-    if (simNao(p.VCA) === "Sim") metodos.push("VCA");
-    if (simNao(p.HDD) === "Sim") metodos.push("HDD");
-    if (simNao(p.OUTROS_MND) === "Sim") metodos.push("Outros MND");
-    if (!metodos.length && p.METODO) metodos.push(String(p.METODO));
-    return metodos;
+    const valores = [];
+    valores.push(...separarValoresMatriz(textoCampo(p || {}, ["DETA_METOD", "DETA_METODO", "DETAL_METOD", "DETAL_METODO", "DETAL_MÉTODO", "DETALHE_METODO", "DETALHE MÉTODO"])));
+    valores.push(...separarValoresMatriz(textoCampo(p || {}, ["METODO", "MÉTODO", "METODO_CONSTRUTIVO", "METOD_CONS", "Metod_Cons"])));
+    if (simNao((p || {}).VCA) === "Sim") valores.push("VCA");
+    if (simNao((p || {}).HDD) === "Sim") valores.push("HDD");
+    if (simNao((p || {}).OUTROS_MND) === "Sim") valores.push("Outros MND");
+    return unicosMatriz(valores);
 }
 
 function obterValorFiltroMatriz(id) {
@@ -2218,33 +2392,8 @@ function contarMatrizPor(features, fn) {
 }
 
 function servicoFrenteMatriz(p) {
-    const valor = textoCampo(p || {}, [
-        "SERVICO",
-        "SERVIÇO",
-        "SERVICO_EXECUTADO",
-        "SERVIÇO_EXECUTADO",
-        "SERVICO EM EXECUCAO",
-        "SERVIÇO EM EXECUÇÃO",
-        "SERVICO_EXEC",
-        "SERVIÇO_EXEC",
-        "TIPO_SERVICO",
-        "TIPO_SERVIÇO",
-        "TIPO DE SERVICO",
-        "TIPO DE SERVIÇO",
-        "ATIVIDADE",
-        "ATIVIDADE_EXECUTADA",
-        "FRENTE_SERVICO",
-        "FRENTE DE SERVIÇO",
-        "ETAPA_SERVICO",
-        "ETAPA_SERVIÇO",
-        "ETAPA"
-    ]).trim();
-
-    const normalizado = normalizarTexto(valor);
-    if (!valor || ["NAO INFORMADO", "NAO DISPONIVEL", "N/A", "NA", "ND", "NULL", "NULO", "-", "SEM INFORMACAO", "SEM INFORMAÇÃO"].includes(normalizado)) {
-        return "Serviço não informado";
-    }
-    return valor;
+    const atividade = atividadeFrenteMatriz(p || {});
+    return atividade || "Serviço não informado";
 }
 
 function contarMatrizPorServico(features) {
@@ -2539,7 +2688,7 @@ function atualizarTabelaMatriz(features) {
         const p = feature.properties || {};
         const id = textoCampo(p, ["ID", "FRENTE", "fid"]);
         const contrato = textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]);
-        const endereco = p.ENDERECO_C || p.ENDEREÇO || "";
+        const endereco = p.ENDERECO_C || p.ENDEREÇO || p.ENDERECO || "";
         const url = criarUrlVerNoMapa("FRENTES", "ID", id);
         const qtdChecklists = checklistsPorFrente[id] || 0;
         return `<tr>
@@ -2547,7 +2696,9 @@ function atualizarTabelaMatriz(features) {
             <td>${escaparHtml(contrato)}</td>
             <td>${escaparHtml(statusFrenteMatriz(p))}</td>
             <td>${escaparHtml(riscoFrenteMatriz(p))}</td>
-            <td>${escaparHtml(metodosFrente(p))}</td>
+            <td>${escaparHtml(metodoPrincipalFrente(p))}</td>
+            <td>${escaparHtml(detalheMetodoFrente(p))}</td>
+            <td>${escaparHtml(atividadeFrenteMatriz(p))}</td>
             <td>${escaparHtml(profundidadeFrente(p))}</td>
             <td>${escaparHtml(simNao(p.GAS))}</td>
             <td>${escaparHtml(simNao(p.ELETRICIDA))}</td>
@@ -2555,14 +2706,14 @@ function atualizarTabelaMatriz(features) {
             <td>${escaparHtml(simNao(p.DRENAGEM))}</td>
             <td>${escaparHtml(p.SOMA ?? "")}</td>
             <td class="col-endereco" title="${escaparHtml(endereco)}">${escaparHtml(enderecoCurto(endereco))}</td>
-            <td>${escaparHtml(p.DT_INICIO || "")}</td>
+            <td>${escaparHtml(p.DT_INICIO || p["DT INICIO"] || "")}</td>
             <td>${escaparHtml(p["DT TERMINO"] || p.DT_TERMINO || "")}</td>
             <td>${escaparHtml(qtdChecklists)}</td>
             <td><a class="link-ver-mapa" href="${escaparHtml(url)}" target="_blank">Ver</a></td>
         </tr>`;
     }).join("");
 
-    body.innerHTML = linhas || `<tr><td colspan="16">Nenhum registro encontrado para o filtro atual.</td></tr>`;
+    body.innerHTML = linhas || `<tr><td colspan="18">Nenhum registro encontrado para o filtro atual.</td></tr>`;
 }
 
 function atualizarMatrizRisco() {
@@ -2595,7 +2746,7 @@ function limparFiltrosMatrizRisco() {
 function exportarMatrizCSV() {
     const features = filtrarMatrizRiscoBase(true);
     const checklistsPorFrente = contagemChecklistsPorFrente(80);
-    const linhas = [["ID", "Contrato", "Status", "Risco", "Serviço", "Métodos", "Profundidade", "Gás", "Elétrica", "Telecom", "Drenagem", "Soma", "Endereço", "Data início", "Data término", "Checklists da semana"]];
+    const linhas = [["ID", "Contrato", "Status", "Risco", "Método", "Detalhe método", "Atividade/Serviço", "Profundidade", "Gás", "Elétrica", "Telecom", "Drenagem", "Soma", "Endereço", "Data início", "Data término", "Checklists"]];
     features.forEach(feature => {
         const p = feature.properties || {};
         const id = textoCampo(p, ["ID", "FRENTE", "fid"]);
@@ -2604,22 +2755,23 @@ function exportarMatrizCSV() {
             textoCampo(p, ["NUM_CONTRA", "CONTRATO", "Contrato"]),
             statusFrenteMatriz(p),
             riscoFrenteMatriz(p),
-            servicoFrenteMatriz(p),
-            metodosFrente(p),
+            metodoPrincipalFrente(p),
+            detalheMetodoFrente(p),
+            atividadeFrenteMatriz(p),
             profundidadeFrente(p),
             simNao(p.GAS),
             simNao(p.ELETRICIDA),
             simNao(p.TELECON),
             simNao(p.DRENAGEM),
             p.SOMA ?? "",
-            p.ENDERECO_C || p.ENDEREÇO || "",
-            p.DT_INICIO || "",
+            p.ENDERECO_C || p.ENDEREÇO || p.ENDERECO || "",
+            p.DT_INICIO || p["DT INICIO"] || "",
             p["DT TERMINO"] || p.DT_TERMINO || "",
             checklistsPorFrente[id] || 0
         ]);
     });
     const csv = linhas.map(linha => linha.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
-    baixarArquivo("ponte_matriz_risco.csv", "text/csv;charset=utf-8", "\ufeff" + csv);
+    baixarArquivo("ponte_matriz_risco.csv", "text/csv;charset=utf-8", "﻿" + csv);
 }
 
 function inicializarMatrizRisco() {
@@ -2688,6 +2840,11 @@ function inicializarDashboard() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    // Pequeno atraso para garantir que os arquivos de camadas do qgis2web já criaram as variáveis globais.
-    setTimeout(inicializarDashboard, 150);
+    // Carrega também as camadas listadas no MAPA/index.html. Assim, quando o qgis2web muda
+    // nomes como FRENTES_10 para EMN2_20260723_rev2, a matriz continua lendo a camada nova.
+    setTimeout(function() {
+        carregarCamadasQgis2webDinamicas().finally(function() {
+            inicializarDashboard();
+        });
+    }, 150);
 });

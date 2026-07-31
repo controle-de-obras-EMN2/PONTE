@@ -4,7 +4,7 @@
    Arquivo externo ao qgis2web para preservar melhorias do PONTE
    ========================================================= */
 
-console.log("ponte-map-tools.js carregado - multifiltro de frentes sem pontos de lançamento 2026-07-28");
+console.log("ponte-map-tools.js carregado - multifiltro de frentes + correção de pins 2026-07-31");
 
 (function () {
     const CAMPOS = {
@@ -84,6 +84,7 @@ console.log("ponte-map-tools.js carregado - multifiltro de frentes sem pontos de
         }
 
         prepararBackupsDeFeicoes(contexto.map);
+        corrigirSimbologiaPinsFrentes(contexto);
 
         const totalFeatures = obterRegistrosFiltravel(contexto.map).length;
         if (!totalFeatures) {
@@ -216,6 +217,82 @@ console.log("ponte-map-tools.js carregado - multifiltro de frentes sem pontos de
                 layer.set("ponte_features_original", featuresAtuais);
             }
         });
+    }
+
+    function camadaPareceFrentes(layer) {
+        const titulo = normalizar(layer.get("title") || layer.get("name") || layer.get("popuplayertitle") || "");
+        if (titulo.includes("PONTOS") || titulo.includes("LANCAMENTO") || titulo.includes("LANAMENTO") || titulo.includes("SINISTRO") || titulo.includes("EEE")) return false;
+        if (titulo.includes("FRENTE")) return true;
+
+        const source = layer.getSource && layer.getSource();
+        const features = layer.get("ponte_features_original") || (source && source.getFeatures ? source.getFeatures() : []);
+        const amostra = (features || []).slice(0, 5);
+        return amostra.some(function(feature) {
+            const p = feature.getProperties ? feature.getProperties() : {};
+            const temCamposMatriz = obterValorCampo(p, ["AJUSTE STA", "AJUSTE_STA", "RISCO", "SOMA", "GAS"]);
+            const temPontosLancamento = obterValorCampo(p, ["Nome_Lanca", "Subdivisao", "Unidade_Ne"]);
+            return !!temCamposMatriz && !temPontosLancamento;
+        });
+    }
+
+    const cacheSvgPinsFrentes = {};
+
+    function svgPinFrente(cor) {
+        const corFinal = cor || "#f2c94c";
+        if (cacheSvgPinsFrentes[corFinal]) return cacheSvgPinsFrentes[corFinal];
+        const svg = `<svg width="34" height="34" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${corFinal}" stroke="#111111" stroke-width="1.25"/>
+            <circle cx="12" cy="9" r="2.6" fill="#ffffff" stroke="#111111" stroke-width="0.75"/>
+        </svg>`;
+        cacheSvgPinsFrentes[corFinal] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+        return cacheSvgPinsFrentes[corFinal];
+    }
+
+    function corPinFrentePeloStatus(props) {
+        const status = normalizar(obterValorCampo(props, ["AJUSTE STA", "AJUSTE_STA", "STATUS", "Status"]));
+        const risco = normalizar(obterValorCampo(props, ["RISCO", "Risco"]));
+
+        if (status.includes("PARALIS")) return "#d93618";
+        if (status.includes("ADEQUACAO ARSESP")) return "#7b2cbf";
+        if (status.includes("ANDAMENTO")) return "#f2b705";
+        if (status.includes("CONCLUID")) return "#2fa84f";
+
+        if (risco.includes("ALTO")) return "#d93618";
+        if (risco.includes("MEDIO")) return "#f2b705";
+        if (risco.includes("BAIXO")) return "#2fa84f";
+        return "#0b6fb3";
+    }
+
+    function corrigirSimbologiaPinsFrentes(contexto) {
+        if (!contexto || !contexto.ol || !contexto.map) return;
+        const ol = contexto.ol;
+
+        obterCamadasVetoriais(contexto.map).forEach(function(layer) {
+            if (!camadaPareceFrentes(layer)) return;
+            if (layer.get("ponte_pins_frentes_corrigidos")) return;
+
+            layer.setStyle(function(feature, resolution) {
+                const props = feature.getProperties ? feature.getProperties() : {};
+                const cor = corPinFrentePeloStatus(props);
+                const estilo = new ol.style.Style({
+                    image: new ol.style.Icon({
+                        src: svgPinFrente(cor),
+                        imgSize: [34, 34],
+                        scale: 0.95,
+                        anchor: [17, 34],
+                        anchorXUnits: "pixels",
+                        anchorYUnits: "pixels"
+                    })
+                });
+                return estilo;
+            });
+
+            layer.set("ponte_pins_frentes_corrigidos", true);
+            if (layer.changed) layer.changed();
+            console.log("PONTE: simbologia de pins corrigida", layer.get("title") || layer.get("name") || "camada de frentes");
+        });
+
+        if (contexto.map.render) contexto.map.render();
     }
 
     function obterValorCampo(properties, campos) {
