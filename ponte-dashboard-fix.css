@@ -1653,3 +1653,72 @@
 @media (max-width: 700px) {
     .acc-filtros { grid-template-columns: 1fr; }
 }
+
+
+/* Ajustes visuais ACC - botões e cabeçalho de tabela */
+.acc-chip-btn {
+    height: 44px;
+    border: 1px solid #d9e2ec !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    color: #0b2f5b !important;
+    font-weight: 800 !important;
+    padding: 0 18px !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.acc-chip-btn:hover {
+    background: #f8fbff !important;
+    border-color: #b7c6d8 !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+}
+.acc-chip-btn:active {
+    transform: translateY(1px);
+}
+.acc-toolbar .acc-chip-btn,
+.acc-filtros .acc-chip-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.acc-filtros {
+    align-items: end;
+}
+.acc-tabela-card {
+    overflow: hidden;
+}
+.acc-tabela-wrap {
+    position: relative;
+    width: 100%;
+    max-height: 460px;
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+}
+.acc-tabela {
+    width: max-content;
+    min-width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.acc-tabela thead {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+.acc-tabela th {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: #07305f;
+    color: #fff;
+    box-shadow: 0 1px 0 #052649;
+}
+.acc-tabela tbody tr {
+    background: #fff;
+}
+.acc-tabela td {
+    background: #fff;
+}
