@@ -153,22 +153,89 @@ function classeStatus(st){
     if (n.includes('SEM OBJ')) return 'acc-status-pill acc-status-sem';
     return 'acc-status-pill acc-status-na';
 }
+const accDoughnutPercentPlugin = {
+    id: 'accDoughnutPercentPlugin',
+    afterDatasetsDraw(chart, args, pluginOptions) {
+        if (!pluginOptions || pluginOptions.enabled === false) return;
+        if (chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
+
+        const dataset = chart.data.datasets && chart.data.datasets[0];
+        if (!dataset || !Array.isArray(dataset.data)) return;
+
+        const total = dataset.data.reduce((soma, valor) => soma + (Number(valor) || 0), 0);
+        if (!total) return;
+
+        const meta = chart.getDatasetMeta(0);
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = pluginOptions.font || 'bold 12px Arial';
+        ctx.fillStyle = pluginOptions.color || '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,.35)';
+        ctx.shadowBlur = 3;
+
+        meta.data.forEach((arc, index) => {
+            const valor = Number(dataset.data[index]) || 0;
+            if (!valor) return;
+
+            const porcentagem = (valor / total) * 100;
+            const props = arc.getProps(['x', 'y', 'startAngle', 'endAngle', 'innerRadius', 'outerRadius'], true);
+            const angulo = (props.startAngle + props.endAngle) / 2;
+            const raio = (props.innerRadius + props.outerRadius) / 2;
+            const x = props.x + Math.cos(angulo) * raio;
+            const y = props.y + Math.sin(angulo) * raio;
+
+            const texto = porcentagem.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+            ctx.fillText(texto, x, y);
+        });
+
+        ctx.restore();
+    }
+};
+
 function chart(id, tipo, labels, datasets, options={}){
     const ctx = document.getElementById(id);
     if (!ctx || !window.Chart) return;
     if (accCharts[id]) accCharts[id].destroy();
-    accCharts[id] = new Chart(ctx, { type: tipo, data: { labels, datasets }, options: Object.assign({
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+
+    const baseOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: { mode: 'index', intersect: false }
+        },
         interaction: { mode: 'index', intersect: false },
         scales: tipo === 'doughnut' || tipo === 'pie' ? {} : { y: { beginAtZero: true } }
-    }, options)});
+    };
+
+    const finalOptions = Object.assign({}, baseOptions, options);
+    finalOptions.plugins = Object.assign({}, baseOptions.plugins, options.plugins || {});
+    finalOptions.scales = options.scales || baseOptions.scales;
+
+    accCharts[id] = new Chart(ctx, {
+        type: tipo,
+        data: { labels, datasets },
+        options: finalOptions,
+        plugins: [accDoughnutPercentPlugin]
+    });
 }
 function atualizarGraficos(){
     const f = accFiltrados;
     const status = contar(f, 'SITUACAO_GERAL');
     const labelsStatus = ['Sem objeção','Com objeção','Em análise','Não informado'].filter(l => status[l]);
-    chart('graficoACCStatus','doughnut',labelsStatus,[{ data: labelsStatus.map(l=>status[l]), backgroundColor: labelsStatus.map(corStatus) }]);
+    chart('graficoACCStatus','doughnut',labelsStatus,[{
+        data: labelsStatus.map(l=>status[l]),
+        backgroundColor: labelsStatus.map(corStatus),
+        borderColor: '#ffffff',
+        borderWidth: 2
+    }], {
+        cutout: '58%',
+        plugins: {
+            accDoughnutPercentPlugin: { enabled: true }
+        }
+    });
 
     const tipos = Object.entries(contar(f,'TIPO')).sort((a,b)=>b[1]-a[1]).slice(0,10);
     chart('graficoACCTipo','bar',tipos.map(x=>x[0]),[{ label:'Fluxos', data:tipos.map(x=>x[1]) }]);
