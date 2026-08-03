@@ -1543,8 +1543,7 @@
 }
 .acc-filtros button,
 .acc-toolbar button,
-.acc-toolbar a,
-.acc-card-link {
+.acc-toolbar a {
     height: 38px;
     border: 0;
     border-radius: 8px;
@@ -1721,4 +1720,125 @@
 }
 .acc-tabela td {
     background: #fff;
+}
+
+
+/* =====================================================
+   ACC - correção visual definitiva
+   ===================================================== */
+.acc-page .acc-toolbar button,
+.acc-page .acc-filtros button,
+.acc-page #btnAccCsv,
+.acc-page #btnAccPdf,
+.acc-page #btnAccLimpar {
+    height: 44px !important;
+    min-height: 44px !important;
+    border: 1px solid #d9e2ec !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    color: #07305f !important;
+    font-weight: 800 !important;
+    padding: 0 18px !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08) !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+}
+.acc-page .acc-toolbar button:hover,
+.acc-page .acc-filtros button:hover,
+.acc-page #btnAccCsv:hover,
+.acc-page #btnAccPdf:hover,
+.acc-page #btnAccLimpar:hover {
+    background: #f8fbff !important;
+    border-color: #b7c6d8 !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Os cards da ACC não podem herdar aparência de botão escuro */
+.acc-page .acc-cards .card.acc-card-link,
+.acc-page .cards .card.acc-card-link {
+    height: auto !important;
+    min-height: 104px !important;
+    display: block !important;
+    align-items: initial !important;
+    justify-content: initial !important;
+    background: #ffffff !important;
+    color: inherit !important;
+    border: 0 !important;
+    border-left: 6px solid #07305f !important;
+    border-radius: 12px !important;
+    padding: 18px 18px !important;
+    box-shadow: 0 2px 14px rgba(0,0,0,.08) !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+}
+.acc-page .acc-cards .card.acc-card-link h3,
+.acc-page .cards .card.acc-card-link h3 {
+    color: #07305f !important;
+    margin: 0 0 8px 0 !important;
+    font-size: 14px !important;
+    font-weight: 900 !important;
+}
+.acc-page .acc-cards .card.acc-card-link strong,
+.acc-page .cards .card.acc-card-link strong {
+    display: block !important;
+    color: #111827 !important;
+    font-size: 28px !important;
+    line-height: 1.1 !important;
+    margin: 0 0 6px 0 !important;
+}
+.acc-page .acc-cards .card.acc-card-link p,
+.acc-page .cards .card.acc-card-link p {
+    color: #6b7280 !important;
+    margin: 0 !important;
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+}
+
+/* Tabela ACC com cabeçalho preso no topo do card, sem flutuar sobre os dados */
+.acc-page .acc-tabela-card {
+    overflow: hidden !important;
+}
+.acc-page .acc-tabela-wrap {
+    position: relative !important;
+    width: 100% !important;
+    height: 440px !important;
+    max-height: 440px !important;
+    overflow: auto !important;
+    border-radius: 12px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #ffffff !important;
+}
+.acc-page table.acc-tabela {
+    width: max-content !important;
+    min-width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    table-layout: fixed !important;
+}
+.acc-page table.acc-tabela thead {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+}
+.acc-page table.acc-tabela thead tr {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 101 !important;
+}
+.acc-page table.acc-tabela thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 102 !important;
+    background: #07305f !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 0 #052649, 0 2px 6px rgba(15,23,42,.12) !important;
+}
+.acc-page table.acc-tabela tbody td {
+    background: #ffffff !important;
+}
+.acc-page table.acc-tabela tbody tr:nth-child(even) td {
+    background: #f8fafc !important;
 }
