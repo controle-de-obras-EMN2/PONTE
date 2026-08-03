@@ -1842,3 +1842,36 @@
 .acc-page table.acc-tabela tbody tr:nth-child(even) td {
     background: #f8fafc !important;
 }
+
+
+/* Reorganização visual dos cards de Processos Gás na página ACC */
+.acc-processos-resumo-top {
+    margin-top: 10px;
+    margin-bottom: 18px;
+}
+.acc-secao-titulo {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.acc-secao-titulo h2 {
+    margin: 0;
+}
+.acc-secao-titulo small {
+    color: #64748b;
+    font-weight: 800;
+}
+.acc-processos-cards {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+.acc-processos-graficos-secao {
+    margin-top: 26px;
+}
+.acc-processos-graficos-secao h2 {
+    margin-bottom: 12px;
+}
+.acc-processos-grid {
+    margin-top: 8px;
+}

@@ -31,6 +31,20 @@
         <small id="accAtualizacao">Base ACC</small>
     </section>
 
+    <section class="secao-dashboard acc-processos-resumo-top">
+        <div class="acc-secao-titulo">
+            <h2>Processos Gás</h2>
+            <small>Resumo geral da base de processos</small>
+        </div>
+        <div class="cards cards-5 acc-processos-cards">
+            <div class="card"><h3>Total processos</h3><strong id="accProcTotal">0</strong><p>Mapeamento + liberação</p></div>
+            <div class="card"><h3>Aprovados</h3><strong id="accProcAprovados">0</strong><p>Antes/depois do ACC</p></div>
+            <div class="card"><h3>Pendente aprovação</h3><strong id="accProcPendentes">0</strong><p>Em aprovação</p></div>
+            <div class="card"><h3>Obj. Segurança</h3><strong id="accProcSegObj">0</strong><p>Processos objetados</p></div>
+            <div class="card"><h3>Obj. Supervisão</h3><strong id="accProcSupObj">0</strong><p>Processos objetados</p></div>
+        </div>
+    </section>
+
     <section class="secao-dashboard">
         <div class="matriz-risco-header">
             <h2>ACC — Fluxos ARSESP</h2>
@@ -79,15 +93,9 @@
         </div>
     </section>
 
-    <section class="secao-dashboard">
-        <h2>Processos Gás</h2>
-        <div class="cards cards-5">
-            <div class="card"><h3>Total processos</h3><strong id="accProcTotal">0</strong><p>Mapeamento + liberação</p></div>
-            <div class="card"><h3>Aprovados</h3><strong id="accProcAprovados">0</strong><p>Antes/depois do ACC</p></div>
-            <div class="card"><h3>Pendente aprovação</h3><strong id="accProcPendentes">0</strong><p>Em aprovação</p></div>
-            <div class="card"><h3>Obj. Segurança</h3><strong id="accProcSegObj">0</strong><p>Processos objetados</p></div>
-            <div class="card"><h3>Obj. Supervisão</h3><strong id="accProcSupObj">0</strong><p>Processos objetados</p></div>
-        </div>
+    <section class="secao-dashboard acc-processos-graficos-secao">
+        <h2>Gráficos dos Processos Gás</h2>
+
         <div class="acc-processos-grid">
             <div class="grafico-card acc-processos-card"><h3>Processos por contrato</h3><canvas id="graficoACCProcessosContrato"></canvas></div>
             <div class="grafico-card acc-processos-card"><h3>Aprovação x pendência</h3><canvas id="graficoACCProcessosStatus"></canvas></div>
