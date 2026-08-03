@@ -5,106 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PONTE | Fluxo</title>
-
     <link rel="stylesheet" href="ponte.css">
-
-    <style>
-        #pagina-fluxo {
-            margin-top: 110px;
-            padding: 18px 22px 22px 22px;
-            background: #f4f6f8;
-            min-height: calc(100vh - 110px);
-            box-sizing: border-box;
-        }
-
-        .fluxo-topo {
-            margin-bottom: 14px;
-        }
-
-        .fluxo-topo h1 {
-            color: #0b2f5b;
-            margin: 0;
-            font-size: 30px;
-            font-weight: 800;
-        }
-
-        .pdf-container {
-            position: relative;
-            width: 100%;
-            height: calc(100vh - 180px);
-            min-height: 620px;
-            background: white;
-            border-radius: 14px;
-            box-shadow: 0 3px 12px rgba(0,0,0,.08);
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-            cursor: grab;
-            touch-action: none;
-            overscroll-behavior: contain;
-        }
-
-        .pdf-container.arrastando {
-            cursor: grabbing;
-        }
-
-        #pdfCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            transform-origin: 0 0;
-            user-select: none;
-            -webkit-user-drag: none;
-        }
-
-        .zoom-indicador {
-            position: absolute;
-            right: 18px;
-            bottom: 18px;
-            z-index: 20;
-            background: rgba(11, 47, 91, .92);
-            color: white;
-            padding: 7px 11px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            pointer-events: none;
-            opacity: .95;
-        }
-
-        .carregando-pdf {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #0b2f5b;
-            font-size: 18px;
-            font-weight: 700;
-            pointer-events: none;
-        }
-
-        .erro-pdf {
-            padding: 24px;
-            color: #0b2f5b;
-            font-weight: 700;
-        }
-
-        @media (max-width: 800px) {
-            #pagina-fluxo {
-                margin-top: 0;
-                padding: 14px;
-            }
-
-            .fluxo-topo h1 {
-                font-size: 24px;
-            }
-
-            .pdf-container {
-                height: 70vh;
-                min-height: 460px;
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -118,50 +19,57 @@
         </div>
 
         <div id="menu">
-
-            <a href="index.html" class="menu-btn">
-                🗺️ Mapa
-            </a>
-
-            <a href="dashboard.html" class="menu-btn">
-                📊 Dashboard
-            </a>
-
-            <a href="matriz.html" class="menu-btn">
-               ⚠️ Matriz
-            </a>
-            
-            <a href="fluxo.html" class="menu-btn">
-                🧭 Fluxo
-            </a>
-
+            <a href="index.html" class="menu-btn">🗺️ Mapa</a>
+            <a href="dashboard.html" class="menu-btn">📊 Dashboard</a>
+            <a href="fluxo.html" class="menu-btn">🧭 Fluxo</a>
         </div>
 
     </header>
 
-    <main id="pagina-fluxo">
+    <main id="fluxo-page">
 
         <section class="fluxo-topo">
-            <h1>Fluxo dos Pacotes</h1>
+            <div>
+                <h1>Fluxo dos Pacotes</h1>
+                <p>Visualização interativa do caminhamento dos contratos, elevatórias, coletores e interferências.</p>
+            </div>
+
+            <div class="fluxo-acoes">
+                <input type="text" id="buscaFluxo" placeholder="Buscar contrato, EEE, coletor...">
+                <button type="button" onclick="centralizarFluxo()">Centralizar</button>
+            </div>
         </section>
 
-        <section class="pdf-container" id="pdfContainer">
+        <section class="fluxo-legenda">
+            <button type="button" data-filtro="TODOS" class="ativo">Todos</button>
+            <button type="button" data-filtro="contrato">Contratos</button>
+            <button type="button" data-filtro="elevatoria">EEE</button>
+            <button type="button" data-filtro="coletor">Coletores</button>
+            <button type="button" data-filtro="linha_recalque">Linhas de recalque</button>
+            <button type="button" data-filtro="ponto_critico">Pontos críticos</button>
+            <button type="button" data-filtro="existente">Existente</button>
+        </section>
 
-            <canvas id="pdfCanvas"></canvas>
-
-            <div class="carregando-pdf" id="carregandoPdf">
-                Carregando fluxograma...
-            </div>
-
-            <div class="zoom-indicador" id="zoomIndicador">
-                100%
-            </div>
-
+        <section class="fluxo-container" id="fluxoContainer">
+            <svg id="fluxoSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div id="tooltipFluxo" class="tooltip-fluxo"></div>
         </section>
 
     </main>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <div id="modal" class="modal" style="display:none;">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h2 id="modalTitulo"></h2>
+                <button class="modal-close" type="button" onclick="fecharModal()">×</button>
+            </div>
+
+            <div id="modalCorpo"></div>
+
+        </div>
+    </div>
+
     <script src="fluxo.js"></script>
 
 </body>

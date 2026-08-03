@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PONTE | ACC</title>
+    <link rel="stylesheet" href="ponte.css">
+    <link rel="stylesheet" href="MAPA/resources/ol.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="ponte-dashboard-fix.css">
+</head>
+<body>
+<header id="header">
+    <img src="images/logo_ponte.png" id="logo" alt="Logo PONTE">
+    <div id="titulo">Plataforma de Operação e Navegação Técnica de Engenharia</div>
+    <div id="menu">
+        <a href="index.html" class="menu-btn">🗺️ Mapa</a>
+        <a href="dashboard.html" class="menu-btn">📊 Dashboard</a>
+        <a href="matriz.html" class="menu-btn">⚠️ Matriz</a>
+        <a href="acc.html" class="menu-btn">📁 ACC</a>
+        <a href="fluxo.html" class="menu-btn">🧭 Fluxo</a>
+    </div>
+</header>
+
+<main id="dashboard" class="acc-page">
+    <section class="dashboard-export-toolbar acc-toolbar">
+        <div>
+            <button id="btnAccCsv" type="button">Exportar ACC CSV</button>
+            <button id="btnAccPdf" type="button">Exportar ACC PDF</button>
+        </div>
+        <small id="accAtualizacao">Base ACC</small>
+    </section>
+
+    <section class="secao-dashboard">
+        <div class="matriz-risco-header">
+            <h2>ACC — Fluxos ARSESP</h2>
+        </div>
+        <div class="acc-filtros">
+            <select id="accFiltroContrato"><option value="TODOS">Todos os contratos</option></select>
+            <select id="accFiltroStatus"><option value="TODOS">Todos os status</option></select>
+            <select id="accFiltroFluxo"><option value="TODOS">Aberto/fechado: todos</option></select>
+            <select id="accFiltroTipo"><option value="TODOS">Todos os tipos</option></select>
+            <select id="accFiltroEtapa"><option value="TODOS">Todas as etapas</option></select>
+            <select id="accFiltroAgente"><option value="TODOS">Todos os agentes</option></select>
+            <input id="accBusca" type="search" placeholder="Buscar fluxo, frente, trecho ou endereço">
+            <button id="btnAccLimpar" type="button">Limpar filtros</button>
+        </div>
+
+        <div class="cards cards-6 acc-cards">
+            <div class="card acc-card-link" data-acc-card="total"><h3>Total de fluxos</h3><strong id="accCardTotal">0</strong><p>Registros no recorte</p></div>
+            <div class="card acc-card-link" data-acc-card="sem"><h3>Sem objeção</h3><strong id="accCardSemObjecao">0</strong><p>Aprovados / sem objeção</p></div>
+            <div class="card acc-card-link" data-acc-card="com"><h3>Com objeção</h3><strong id="accCardComObjecao">0</strong><p>Reprovados / objetados</p></div>
+            <div class="card acc-card-link" data-acc-card="analise"><h3>Em análise</h3><strong id="accCardAnalise">0</strong><p>Processos em análise</p></div>
+            <div class="card acc-card-link" data-acc-card="abertos"><h3>Abertos</h3><strong id="accCardAbertos">0</strong><p>Fluxos em andamento</p></div>
+            <div class="card acc-card-link" data-acc-card="pendencia"><h3>Pendência documental</h3><strong id="accCardPendencia">0</strong><p>Com pendências descritas</p></div>
+        </div>
+    </section>
+
+    <section class="secao-dashboard">
+        <div class="acc-layout-principal">
+            <div class="grafico-card acc-mapa-card">
+                <div class="acc-mapa-header">
+                    <h3>Localização das atividades</h3>
+                    <span id="accMapaResumo">0 localizados</span>
+                </div>
+                <div id="accMapa"></div>
+                <p class="acc-legenda-mini">A localização é associada às frentes/camadas do mapa por contrato e frente. Cores: verde = sem objeção, vermelho = com objeção, amarelo = em análise.</p>
+            </div>
+            <div class="grafico-card acc-chart-card"><h3>Fluxos por status</h3><canvas id="graficoACCStatus"></canvas></div>
+            <div class="grafico-card acc-chart-card"><h3>Fluxos por tipo</h3><canvas id="graficoACCTipo"></canvas></div>
+        </div>
+    </section>
+
+    <section class="secao-dashboard">
+        <div class="graficos graficos-3">
+            <div class="grafico-card"><h3>Fluxos por contrato</h3><canvas id="graficoACCContrato"></canvas></div>
+            <div class="grafico-card"><h3>Situação por disciplina</h3><canvas id="graficoACCDisciplina"></canvas></div>
+            <div class="grafico-card"><h3>Etapas atuais</h3><canvas id="graficoACCEtapa"></canvas></div>
+        </div>
+    </section>
+
+    <section class="secao-dashboard">
+        <h2>Processos Gás</h2>
+        <div class="cards cards-5">
+            <div class="card"><h3>Total processos</h3><strong id="accProcTotal">0</strong><p>Mapeamento + liberação</p></div>
+            <div class="card"><h3>Aprovados</h3><strong id="accProcAprovados">0</strong><p>Antes/depois do ACC</p></div>
+            <div class="card"><h3>Pendente aprovação</h3><strong id="accProcPendentes">0</strong><p>Em aprovação</p></div>
+            <div class="card"><h3>Obj. Segurança</h3><strong id="accProcSegObj">0</strong><p>Processos objetados</p></div>
+            <div class="card"><h3>Obj. Supervisão</h3><strong id="accProcSupObj">0</strong><p>Processos objetados</p></div>
+        </div>
+        <div class="acc-processos-grid">
+            <div class="grafico-card acc-processos-card"><h3>Processos por contrato</h3><canvas id="graficoACCProcessosContrato"></canvas></div>
+            <div class="grafico-card acc-processos-card"><h3>Aprovação x pendência</h3><canvas id="graficoACCProcessosStatus"></canvas></div>
+        </div>
+    </section>
+
+    <section class="secao-dashboard">
+        <div class="grafico-card acc-tabela-card">
+            <div class="acc-tabela-header">
+                <h3>Fluxos ACC</h3>
+                <span id="accTabelaResumo">0 registros</span>
+            </div>
+            <div class="acc-tabela-wrap">
+                <table class="tabela-modal tabela-compacta acc-tabela" id="accTabela">
+                    <thead><tr>
+                        <th>Nº</th><th>Contrato</th><th>Fluxo</th><th>Status</th><th>Aberto/Fechado</th><th>Tipo</th><th>Frente</th><th>Trecho</th><th>Data protocolo</th><th>Agente</th><th>Etapa atual</th><th>Comunicação</th><th>Qualidade</th><th>SST</th><th>Supervisão</th><th>Pendências</th><th>Mapa</th>
+                    </tr></thead>
+                    <tbody id="accTabelaBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</main>
+
+<div id="modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header"><h2 id="modalTitulo"></h2><button class="modal-close" type="button" onclick="fecharModal()">×</button></div>
+        <div id="modalCorpo"></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="acc.js"></script>
+</body>
+</html>
